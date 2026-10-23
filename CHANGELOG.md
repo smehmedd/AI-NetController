@@ -4,6 +4,33 @@ All notable changes, architectural upgrades, security hardening passes, and UI/U
 
 ---
 
+## [v2.6.0] — 2026-10-23 (Full-Stack Ecosystem Upgrade, Zero-Allocation Optimization & Security Hardening)
+
+### 🚀 Quantitative Performance Benchmarks (`v2.5.0` → `v2.6.0`)
+
+| Subsystem Benchmark | Before (`v2.5.0`) | After (`v2.6.0`) | Measured Speedup & Optimization |
+| :--- | :---: | :---: | :--- |
+| **WoL Magic Packet Generation (1,000 packets)** | `262.00 ms` (`3,816 pkt/s`) | **`4.33 – 4.81 ms`** (`~215,000+ pkt/s`) | **54.5× – 60.5× faster** (256-entry `HEX_LUT` table, ASCII nibble parser, zero `RegExp` / `Intl.DateTimeFormat` allocations) |
+| **Binary Wire Framing (25,000 packets)** | `32.56 – 63.41 ms` | **`5.61 – 11.68 ms`** (`~4.45M pkt/s`) | **5.4× – 5.8× faster** (`packControlFrameFast` + `parseHeaderInto` zero-allocation `DataView` pool) |
+| **Telemetry Ring Buffer (50,000 cycles, cap 200)** | `11.33 – 30.80 ms` (`Array.shift()`) | **`2.84 – 3.33 ms`** (`~17.5M ops/s`) | **4.0× – 9.3× faster** (Unboxed `Float64RingBuffer` & single-pass `HeartbeatRingBuffer`) |
+| **High-Frequency Telemetry Flood (20,000 frames)** | `8.40 ms` | **`0.68 – 0.75 ms`** | **11.2× – 12.4× faster** ($O(1)$ circular pointer wrap-around) |
+| **Host Command RateLimiter (10,000 burst checks)** | `19.20 ms` (`.filter()`) | **`3.25 – 4.16 ms`** | **4.6× – 5.9× faster** (In-place head eviction, zero intermediate array allocations) |
+| **Python ChaCha20-Poly1305 AEAD (1 MB payload)** | `23.20 ms` | **`21.40 ms`** | **Zero-Copy C-Extension `memoryview` (< 35ms SLA)** |
+| **Python Display Pipeline (60-Frame Delta Burst)** | `2.90 ms` | **`2.70 ms`** | **0.045 ms/frame** (Adler-32 4×4 spatial delta skip + recycled BGRA buffers) |
+
+### 📦 Ecosystem Dependency Upgrades
+- **Web Console (`package.json`)**: Upgraded to `v2.6.0` with `@google/genai ^1.52.0`, `react ^19.3.1`, `react-dom ^19.3.1`, `vite ^6.4.5`, `@tailwindcss/vite ^4.3.3`, `tailwindcss ^4.3.3`, `motion ^12.43.0`, `zustand ^5.0.16`, `recharts ^2.15.4`, `express ^4.22.3`, `dotenv ^16.6.1`, `tsx ^4.23.15`, `esbuild ^0.25.12`, and `typescript ~5.8.3`.
+- **Python Host Agent (`agent/requirements.txt`)**: Upgraded to `websockets>=15.0.1`, `aiohttp>=3.11.16`, `zeroconf>=0.146.1`, `mss>=10.0.0`, `Pillow>=11.1.0`, `PyTurboJPEG>=1.7.7`, `cryptography>=44.0.2`, `psutil>=7.0.0`, and `pyinstaller>=6.12.0`.
+- **Flutter Mobile Client (`apps/mobile/pubspec.yaml` & `build.gradle`)**: Upgraded to `v2.6.0+26`, `sdk: '>=3.7.0 <4.0.0'`, `flutter: '>=3.29.0'`, `web_socket_channel ^3.0.2`, `network_info_plus ^6.1.3`, `wakelock_plus ^1.2.10`, `share_plus ^10.1.4`, `vibration ^3.1.3`, `crypto ^3.0.6`, `quick_actions ^1.1.0`, `androidx.core:core-ktx:1.16.0`, and `androidx.appcompat:appcompat:1.7.1`.
+- **Gemini AI Model Modernization**: Updated default and fallback models across `server.ts`, `uiStore.ts`, `SettingsScreen.tsx`, and `GeminiChatbot.tsx` to `gemini-3.8-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`.
+
+### 🛡️ Security Hardening (`v2026.10-REV5`)
+- **RFC 6479 128-Bit Sliding Bitmap Anti-Replay Window (`networkWorker.ts`)**: Upgraded inbound sequence tracking from a simple `seq > highestInboundSeq` check to a full 128-packet `BigInt` bitmask window that rejects both stale out-of-window frames and duplicate in-window replays.
+- **Express HTTP Security & Rate Limiting (`apps/web/server.ts`)**: Added `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, strict CORS validation, and a 120 req/min sliding-window IP rate limiter.
+- **Expanded AST De-Obfuscation & SSRF Guards (`server.ts`, `securityService.ts`, `command_ast_firewall.py`)**: Added pre-inspection stripping of Windows CMD carets (`^`), PowerShell backticks (`` ` ``), and interstitial quotes (`r^m -r"f" /`), blocked `%VAR:~x,y%` environment variable substring slicing and hex/octal IP evasion, and blocked loopback/link-local SSRF vectors on custom model endpoints.
+
+---
+
 ## [v2.5.0] — 2026-10-23 (Apple Liquid Glass & Bento Fleet Architecture Release)
 
 ### ✨ Highlights

@@ -61,3 +61,54 @@ export class CircularRingBuffer<T> {
     return result;
   }
 }
+
+/**
+ * Unboxed contiguous Float64 circular ring buffer for high-frequency numeric telemetry.
+ * Zero heap object allocations on push().
+ */
+export class Float64RingBuffer {
+  private buffer: Float64Array;
+  private capacity: number;
+  private head: number = 0;
+  private count: number = 0;
+
+  constructor(capacity: number) {
+    if (capacity <= 0) {
+      throw new Error('Float64RingBuffer capacity must be strictly greater than 0');
+    }
+    this.capacity = capacity;
+    this.buffer = new Float64Array(capacity);
+  }
+
+  public push(value: number): void {
+    this.buffer[this.head] = value;
+    this.head = (this.head + 1) % this.capacity;
+    if (this.count < this.capacity) {
+      this.count++;
+    }
+  }
+
+  public get size(): number {
+    return this.count;
+  }
+
+  public latest(): number {
+    if (this.count === 0) return 0;
+    const idx = (this.head - 1 + this.capacity) % this.capacity;
+    return this.buffer[idx];
+  }
+
+  public clear(): void {
+    this.head = 0;
+    this.count = 0;
+  }
+
+  public toArray(): number[] {
+    const result = new Array<number>(this.count);
+    const start = this.count < this.capacity ? 0 : this.head;
+    for (let i = 0; i < this.count; i++) {
+      result[i] = this.buffer[(start + i) % this.capacity];
+    }
+    return result;
+  }
+}

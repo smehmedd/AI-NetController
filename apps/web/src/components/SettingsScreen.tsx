@@ -69,10 +69,9 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
   const [isSystemStateAlerts, setIsSystemStateAlerts] = useState(true);
 
   const [modelsList, setModelsList] = useState<Array<{ id: string; name: string; description: string; provider: string }>>([
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Recommended)', description: 'Ultra-fast multimodal reasoning model for real-time fleet triage & mouse control', provider: 'gemini' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'High-speed agentic model with structured tool-use capabilities', provider: 'gemini' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Deep reasoning model for complex network diagnostics and security audits', provider: 'gemini' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Lightweight high-efficiency model for quick sysadmin tasks', provider: 'gemini' },
+    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash (Recommended)', description: 'Ultra-fast multimodal reasoning model for real-time fleet triage & mouse control', provider: 'gemini' },
+    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Lightweight high-efficiency low-latency model for quick sysadmin tasks', provider: 'gemini' },
+    { id: 'gemini-flash-latest', name: 'Gemini Flash Latest', description: 'High-speed agentic model with structured tool-use capabilities', provider: 'gemini' },
     { id: 'deepseek-r1:latest', name: 'DeepSeek-R1 (Local / Ollama)', description: 'Reasoning model for offline air-gapped network management', provider: 'deepseek' },
   ]);
 

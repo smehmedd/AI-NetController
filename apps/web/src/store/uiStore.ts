@@ -36,9 +36,19 @@ const getInitialLanguage = (): Language => {
 const getInitialModel = (): string => {
   try {
     const saved = localStorage.getItem('wakeflow_selected_model');
-    if (saved) return saved;
+    if (saved) {
+      if (
+        saved === 'gemini-1.5-flash' ||
+        saved === 'gemini-1.5-pro' ||
+        saved === 'gemini-2.0-flash' ||
+        saved === 'gemini-2.5-flash'
+      ) {
+        return 'gemini-3.8-flash';
+      }
+      return saved;
+    }
   } catch {}
-  return 'gemini-2.5-flash';
+  return 'gemini-3.8-flash';
 };
 
 export const useUIStore = create<UIState>((set) => ({

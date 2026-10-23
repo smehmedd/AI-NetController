@@ -32,14 +32,49 @@ export interface ParsedHeader {
   payloadLength: number;
 }
 
-export function parseHeader(dv: DataView): ParsedHeader {
+// Pre-allocated reusable header result and 64-byte control frame buffer for zero-GC hot paths
+const SCRATCH_HEADER: ParsedHeader = {
+  isValid: false,
+  opcode: Opcode.OP_UNKNOWN,
+  flags: 0,
+  sequenceId: 0,
+  payloadLength: 0,
+};
+
+const POOL_CONTROL_BUFFER = new ArrayBuffer(64);
+const POOL_CONTROL_VIEW = new DataView(POOL_CONTROL_BUFFER);
+const POOL_CONTROL_U8 = new Uint8Array(POOL_CONTROL_BUFFER);
+
+export function parseHeaderInto(dv: DataView, out: ParsedHeader = SCRATCH_HEADER): ParsedHeader {
   if (dv.byteLength < HEADER_SIZE) {
-    return { isValid: false, opcode: Opcode.OP_UNKNOWN, flags: 0, sequenceId: 0, payloadLength: 0 };
+    out.isValid = false;
+    out.opcode = Opcode.OP_UNKNOWN;
+    out.flags = 0;
+    out.sequenceId = 0;
+    out.payloadLength = 0;
+    return out;
   }
 
-  const m0 = dv.getUint8(0);
-  const m1 = dv.getUint8(1);
-  if (m0 !== MAGIC_BYTE_0 || m1 !== MAGIC_BYTE_1) {
+  // Validate 16-bit magic header 0xC571 in a single 16-bit big-endian read
+  if (dv.getUint16(0, false) !== 0xC571) {
+    out.isValid = false;
+    out.opcode = Opcode.OP_UNKNOWN;
+    out.flags = 0;
+    out.sequenceId = 0;
+    out.payloadLength = 0;
+    return out;
+  }
+
+  out.isValid = true;
+  out.opcode = dv.getUint8(2) as Opcode;
+  out.flags = dv.getUint8(3);
+  out.sequenceId = dv.getUint32(4, false);
+  out.payloadLength = dv.getUint32(8, false);
+  return out;
+}
+
+export function parseHeader(dv: DataView): ParsedHeader {
+  if (dv.byteLength < HEADER_SIZE || dv.getUint16(0, false) !== 0xC571) {
     return { isValid: false, opcode: Opcode.OP_UNKNOWN, flags: 0, sequenceId: 0, payloadLength: 0 };
   }
 
@@ -52,14 +87,26 @@ export function parseHeader(dv: DataView): ParsedHeader {
   };
 }
 
+export function packControlFrameFast(opcode: Opcode, sequenceId: number, payload?: Uint8Array): DataView {
+  const payloadLen = payload ? payload.byteLength : 0;
+  POOL_CONTROL_VIEW.setUint16(0, 0xC571, false);
+  POOL_CONTROL_VIEW.setUint8(2, opcode);
+  POOL_CONTROL_VIEW.setUint8(3, 0x00);
+  POOL_CONTROL_VIEW.setUint32(4, sequenceId, false);
+  POOL_CONTROL_VIEW.setUint32(8, payloadLen, false);
+  if (payload && payloadLen > 0 && HEADER_SIZE + payloadLen <= 64) {
+    POOL_CONTROL_U8.set(payload, HEADER_SIZE);
+  }
+  return POOL_CONTROL_VIEW;
+}
+
 export function packFrame(opcode: Opcode, sequenceId: number, payload?: Uint8Array): ArrayBuffer {
   const payloadLen = payload ? payload.byteLength : 0;
   const totalLength = HEADER_SIZE + payloadLen;
   const buffer = new ArrayBuffer(totalLength);
   const dv = new DataView(buffer);
 
-  dv.setUint8(0, MAGIC_BYTE_0);
-  dv.setUint8(1, MAGIC_BYTE_1);
+  dv.setUint16(0, 0xC571, false);
   dv.setUint8(2, opcode);
   dv.setUint8(3, 0x00);
   dv.setUint32(4, sequenceId, false);

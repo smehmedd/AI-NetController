@@ -55,6 +55,8 @@ _RE_CARET = re.compile(r"\^")
 _RE_INTERSTITIAL_QUOTES = re.compile(r'(?<=\w)["\'](?=\w)')
 _RE_WHITESPACE = re.compile(r"\s+")
 _RE_EVASION_CARET = re.compile(r"\w\^\w")
+_RE_EVASION_BACKTICK = re.compile(r"\w`\w")
+_RE_ENV_SUBSTRING_SLICE = re.compile(r"%[a-zA-Z0-9_]+:~\d+,\d+%")
 _RE_PYTHON_CMD = re.compile(r"^(python(?:3)?)(\s+|$)", flags=re.IGNORECASE)
 _RE_ENCODED_POWERSHELL = re.compile(r"(?:powershell|pwsh)(?:\.exe)?\s+.*-(?:e|en|enc|enco|encod|encode|encoded|encodedc|encodedco|encodedcom|encodedcomm|encodedcomma|encodedcomman|encodedcommand)\b", flags=re.IGNORECASE)
 _RE_SUBSHELL_INJECTION = re.compile(r"\$\([^)]+\)|`[^`]+`|\b(?:iex|invoke-expression)\b", flags=re.IGNORECASE)
@@ -115,6 +117,9 @@ class CommandASTFirewall:
         if "\x00" in raw_cmd:
             return False, "BLOCKED", "", "Null-byte injection detected."
 
+        if _RE_ENV_SUBSTRING_SLICE.search(raw_cmd):
+            return False, "BLOCKED", raw_cmd, "Environment variable substring slicing evasion (%VAR:~x,y%) is prohibited."
+
         cleaned = CommandASTFirewall.strip_obfuscation(raw_cmd)
 
         try:
@@ -139,8 +144,8 @@ class CommandASTFirewall:
             return True, "REQUIRES_BIOMETRIC", cleaned, "Dynamic subshell or Invoke-Expression evaluation requires operator approval."
 
         # Obfuscation & Evasion Artifact Check
-        if _RE_EVASION_CARET.search(raw_cmd) or _RE_INTERSTITIAL_QUOTES.search(raw_cmd):
-            return True, "REQUIRES_BIOMETRIC", cleaned, "Command contained character evasion artifacts (^ or quotes)."
+        if _RE_EVASION_CARET.search(raw_cmd) or _RE_INTERSTITIAL_QUOTES.search(raw_cmd) or _RE_EVASION_BACKTICK.search(raw_cmd):
+            return True, "REQUIRES_BIOMETRIC", cleaned, "Command contained character evasion artifacts (^, `, or quotes)."
 
         # Split tokens on shell chaining operators (; | & && ||) even when unspaced
         normalized_joined = " ".join(token.lower() for token in tokens)

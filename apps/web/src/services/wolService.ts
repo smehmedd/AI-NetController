@@ -264,11 +264,58 @@ export function calculateNextRun(
   return null;
 }
 
+// Pre-computed 256-entry hexadecimal lookup table for O(1) byte-to-hex serialization
+const HEX_LUT: string[] = Array.from({ length: 256 }, (_, i) =>
+  i.toString(16).padStart(2, '0').toUpperCase()
+);
+
+// Fast ASCII character code to hex nibble value (-1 if not hex)
+function hexCharToNibble(code: number): number {
+  if (code >= 48 && code <= 57) return code - 48; // '0'-'9'
+  if (code >= 65 && code <= 70) return code - 55; // 'A'-'F'
+  if (code >= 97 && code <= 102) return code - 87; // 'a'-'f'
+  return -1;
+}
+
+// Fast 6-byte (12 hex char) parser into Uint8Array without regex allocations
+const SCRATCH_MAC_BYTES = new Uint8Array(6);
+const SCRATCH_PWD_BYTES = new Uint8Array(6);
+
+function parseSixHexBytes(input: string, out: Uint8Array): boolean {
+  let nibbleCount = 0;
+  let highNibble = 0;
+  const len = input.length;
+  for (let i = 0; i < len; i++) {
+    const nib = hexCharToNibble(input.charCodeAt(i));
+    if (nib === -1) continue;
+    if ((nibbleCount & 1) === 0) {
+      highNibble = nib;
+    } else {
+      const byteIdx = nibbleCount >> 1;
+      if (byteIdx < 6) {
+        out[byteIdx] = (highNibble << 4) | nib;
+      }
+    }
+    nibbleCount++;
+  }
+  return nibbleCount === 12;
+}
+
+function formatCurrentTimeHHMMSS(): string {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hStr = h < 10 ? `0${h}` : `${h}`;
+  const mStr = m < 10 ? `0${m}` : `${m}`;
+  const sStr = s < 10 ? `0${s}` : `${s}`;
+  return `${hStr}:${mStr}:${sStr}`;
+}
+
 export function normalizeMac(mac: string): string | null {
   if (!mac || typeof mac !== 'string') return null;
-  const clean = mac.replace(/[^a-fA-F0-9]/g, '').toUpperCase();
-  if (clean.length !== 12) return null;
-  return clean.match(/.{1,2}/g)?.join(':') || null;
+  if (!parseSixHexBytes(mac, SCRATCH_MAC_BYTES)) return null;
+  return `${HEX_LUT[SCRATCH_MAC_BYTES[0]]}:${HEX_LUT[SCRATCH_MAC_BYTES[1]]}:${HEX_LUT[SCRATCH_MAC_BYTES[2]]}:${HEX_LUT[SCRATCH_MAC_BYTES[3]]}:${HEX_LUT[SCRATCH_MAC_BYTES[4]]}:${HEX_LUT[SCRATCH_MAC_BYTES[5]]}`;
 }
 
 /**
@@ -276,6 +323,8 @@ export function normalizeMac(mac: string): string | null {
  * - 6 bytes of 0xFF
  * - 16 repetitions of the 6-byte target MAC address
  * - Optional 6-byte SecureOn password (AMD WoL security standard)
+ *
+ * Optimized with a 256-byte HEX_LUT and fast nibble parser (0 regex allocations, 0 Intl instantiations).
  */
 export function generateMagicPacket(
   mac: string,
@@ -283,68 +332,66 @@ export function generateMagicPacket(
   port: number = 9,
   secureOnPassword?: string
 ): WolPacketPayload {
-  const cleanMac = (mac || '').replace(/[^a-fA-F0-9]/g, '').toUpperCase();
-  if (cleanMac.length !== 12) {
+  if (!mac || typeof mac !== 'string' || !parseSixHexBytes(mac, SCRATCH_MAC_BYTES)) {
     throw new Error('Invalid MAC address. Must contain exactly 12 hexadecimal characters.');
   }
 
+  const m0 = SCRATCH_MAC_BYTES[0];
+  const m1 = SCRATCH_MAC_BYTES[1];
+  const m2 = SCRATCH_MAC_BYTES[2];
+  const m3 = SCRATCH_MAC_BYTES[3];
+  const m4 = SCRATCH_MAC_BYTES[4];
+  const m5 = SCRATCH_MAC_BYTES[5];
+
   const safePort = Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 9;
-  const safeIp = broadcastIp && typeof broadcastIp === 'string' && broadcastIp.trim() ? broadcastIp.trim() : '255.255.255.255';
+  const safeIp =
+    broadcastIp && typeof broadcastIp === 'string' && broadcastIp.trim()
+      ? broadcastIp.trim()
+      : '255.255.255.255';
 
-  const macBytes: number[] = [];
-  for (let i = 0; i < 12; i += 2) {
-    macBytes.push(parseInt(cleanMac.substring(i, i + 2), 16));
-  }
-
-  // Parse optional 6-byte SecureOn password. When supplied, it must be exactly 12 hex chars.
-  const cleanPassword = (secureOnPassword || '').replace(/[^a-fA-F0-9]/g, '').toUpperCase();
-  if (secureOnPassword !== undefined && secureOnPassword !== null && secureOnPassword !== '' && cleanPassword.length !== 12) {
-    throw new Error('SecureOn password must contain exactly 12 hexadecimal characters.');
-  }
-  const hasSecureOn = cleanPassword.length === 12;
-  const passwordBytes: number[] = [];
-  if (hasSecureOn) {
-    for (let i = 0; i < 12; i += 2) {
-      passwordBytes.push(parseInt(cleanPassword.substring(i, i + 2), 16));
+  let hasSecureOn = false;
+  if (secureOnPassword !== undefined && secureOnPassword !== null && secureOnPassword !== '') {
+    if (typeof secureOnPassword !== 'string' || !parseSixHexBytes(secureOnPassword, SCRATCH_PWD_BYTES)) {
+      throw new Error('SecureOn password must contain exactly 12 hexadecimal characters.');
     }
+    hasSecureOn = true;
   }
 
   const totalLength = hasSecureOn ? 108 : 102;
-  const packet = new Uint8Array(totalLength);
+  const h0 = HEX_LUT[m0];
+  const h1 = HEX_LUT[m1];
+  const h2 = HEX_LUT[m2];
+  const h3 = HEX_LUT[m3];
+  const h4 = HEX_LUT[m4];
+  const h5 = HEX_LUT[m5];
 
-  // First 6 bytes are 0xFF
-  for (let i = 0; i < 6; i++) {
-    packet[i] = 0xff;
-  }
+  const normalizedMac = `${h0}:${h1}:${h2}:${h3}:${h4}:${h5}`;
+  const macHexSpaced = `${h0} ${h1} ${h2} ${h3} ${h4} ${h5}`;
 
-  // Next 16 * 6 = 96 bytes are repetitions of MAC
-  let offset = 6;
-  for (let rep = 0; rep < 16; rep++) {
-    for (let b = 0; b < 6; b++) {
-      packet[offset++] = macBytes[b];
-    }
-  }
+  // Construct 16 repetitions of MAC hex string in O(1) string concatenations
+  const mac2 = `${macHexSpaced} ${macHexSpaced}`;
+  const mac4 = `${mac2} ${mac2}`;
+  const mac8 = `${mac4} ${mac4}`;
+  const mac16 = `${mac8} ${mac8}`;
 
-  // Optional 6-byte SecureOn password appendix
+  let rawHex = `FF FF FF FF FF FF ${mac16}`;
   if (hasSecureOn) {
-    for (let b = 0; b < 6; b++) {
-      packet[offset++] = passwordBytes[b];
-    }
-  }
-
-  // Format as Hex string
-  const hexParts: string[] = [];
-  for (let i = 0; i < packet.length; i++) {
-    hexParts.push(packet[i].toString(16).padStart(2, '0').toUpperCase());
+    const p0 = HEX_LUT[SCRATCH_PWD_BYTES[0]];
+    const p1 = HEX_LUT[SCRATCH_PWD_BYTES[1]];
+    const p2 = HEX_LUT[SCRATCH_PWD_BYTES[2]];
+    const p3 = HEX_LUT[SCRATCH_PWD_BYTES[3]];
+    const p4 = HEX_LUT[SCRATCH_PWD_BYTES[4]];
+    const p5 = HEX_LUT[SCRATCH_PWD_BYTES[5]];
+    rawHex = `${rawHex} ${p0} ${p1} ${p2} ${p3} ${p4} ${p5}`;
   }
 
   return {
-    mac: macBytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(':'),
+    mac: normalizedMac,
     broadcastIp: safeIp,
     port: safePort,
-    rawHex: hexParts.join(' '),
-    bytesCount: packet.length,
-    timestamp: new Date().toLocaleTimeString('bg-BG', { hour12: false })
+    rawHex,
+    bytesCount: totalLength,
+    timestamp: formatCurrentTimeHHMMSS(),
   };
 }
 

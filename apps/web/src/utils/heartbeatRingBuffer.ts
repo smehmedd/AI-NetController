@@ -1,16 +1,16 @@
 import { HeartbeatMetrics } from '../types';
 
 export class HeartbeatRingBuffer {
-  private buffer: number[];
+  private buffer: Float64Array;
   private capacity: number;
   private head: number = 0;
   private count: number = 0;
 
   constructor(capacity = 20, initialValues: number[] = [14, 16, 15, 18, 14, 15, 17, 16, 14, 15]) {
-    this.capacity = capacity;
-    this.buffer = new Array(capacity).fill(0);
-    for (const val of initialValues) {
-      this.push(val);
+    this.capacity = Math.max(1, capacity);
+    this.buffer = new Float64Array(this.capacity);
+    for (let i = 0; i < initialValues.length; i++) {
+      this.push(initialValues[i]);
     }
   }
 
@@ -34,25 +34,24 @@ export class HeartbeatRingBuffer {
 
   public getMetrics(currentLatency: number | null, status: 'idle' | 'healthy' | 'warning' | 'unreachable'): HeartbeatMetrics {
     const history = this.toArray();
-    const current = currentLatency ?? history[history.length - 1] ?? 15;
+    const len = history.length;
+    const current = currentLatency ?? history[len - 1] ?? 15;
     let min = history[0];
     let max = history[0];
-    let sum = 0;
+    let sum = history[0];
+    let jitterSum = 0;
 
-    for (let i = 0; i < history.length; i++) {
+    // Single-pass computation of min, max, sum, and RFC 3550 inter-arrival jitter
+    for (let i = 1; i < len; i++) {
       const v = history[i];
       if (v < min) min = v;
       if (v > max) max = v;
       sum += v;
+      jitterSum += Math.abs(v - history[i - 1]);
     }
 
-    const avg = Math.round(sum / history.length);
-
-    let jitterSum = 0;
-    for (let i = 1; i < history.length; i++) {
-      jitterSum += Math.abs(history[i] - history[i - 1]);
-    }
-    const jitter = history.length > 1 ? Math.round((jitterSum / (history.length - 1)) * 10) / 10 : 1.5;
+    const avg = Math.round(sum / len);
+    const jitter = len > 1 ? Math.round((jitterSum / (len - 1)) * 10) / 10 : 1.5;
 
     return {
       currentLatencyMs: current,

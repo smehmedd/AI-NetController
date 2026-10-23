@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -15,7 +15,59 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-app.use(express.json({ limit: '10mb' }));
+app.disable('x-powered-by');
+app.use(express.json({ limit: '4mb' }));
+
+// Hardened HTTP Security Headers & Strict Same-Origin / Preview CORS Policy
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('.run.app') || origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// High-Performance Sliding-Window API Rate Limiter (120 req/min per IP)
+const apiRateBuckets = new Map<string, { count: number; resetAt: number }>();
+const API_WINDOW_MS = 60_000;
+const API_MAX_REQUESTS = 120;
+
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  const clientIp = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1')
+    .split(',')[0]
+    .trim();
+  const now = Date.now();
+  let bucket = apiRateBuckets.get(clientIp);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 1, resetAt: now + API_WINDOW_MS };
+    apiRateBuckets.set(clientIp, bucket);
+  } else {
+    bucket.count++;
+  }
+
+  res.setHeader('X-RateLimit-Limit', String(API_MAX_REQUESTS));
+  res.setHeader('X-RateLimit-Remaining', String(Math.max(0, API_MAX_REQUESTS - bucket.count)));
+
+  if (bucket.count > API_MAX_REQUESTS) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded. Please wait before sending more API requests.',
+      retryAfterMs: Math.max(0, bucket.resetAt - now),
+    });
+  }
+  next();
+});
 
 // Dynamic AI Model Registry
 export interface AIModelDescriptor {
@@ -31,31 +83,24 @@ export interface AIModelDescriptor {
 
 let DYNAMIC_MODELS: AIModelDescriptor[] = [
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash (Default)',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash (Default)',
     provider: 'gemini',
     description: 'Ultra-fast multimodal reasoning model for real-time fleet triage and mouse control',
     contextWindow: '1.0M tokens',
   },
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash Lite',
     provider: 'gemini',
-    description: 'High-speed agentic model with structured tool-use capabilities',
+    description: 'Lightweight high-efficiency low-latency model for quick sysadmin tasks',
     contextWindow: '1.0M tokens',
   },
   {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
+    id: 'gemini-flash-latest',
+    name: 'Gemini Flash Latest',
     provider: 'gemini',
-    description: 'Deep reasoning model for complex network diagnostics and security audits',
-    contextWindow: '2.0M tokens',
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    provider: 'gemini',
-    description: 'Lightweight high-efficiency model for quick sysadmin tasks',
+    description: 'High-speed agentic model with structured tool-use capabilities',
     contextWindow: '1.0M tokens',
   },
   {
@@ -106,7 +151,7 @@ Be authoritative, concise, and helpful. Format output cleanly in Markdown with t
   diagnostics: `You are CST Protocol & Security Architect AI, a deep-reasoning network security and cryptographic engineer specialized in the CST/3.0-SECURE protocol.
 Your areas of expertise:
 - CST/3.0-SECURE Binary Wire Protocol (0xC5 0x71 magic header, 12-byte network-endian header, zero-allocation buffers).
-- Anti-Replay Guard with monotonic outbound/inbound sequence counters and timestamp verification.
+- Anti-Replay Guard with RFC 6479 128-bit sliding bitmap window, monotonic outbound/inbound sequence counters, and timestamp verification.
 - Cryptographic Handshakes (SHA-256 HMAC pre-shared key token verification, TLS 1.3 RFC 8446 transport security).
 - Remote Input Control (Opcode 0x08 PyAutoGUI mouse position & click injection, Opcode 0x09 media session control).
 Provide in-depth architectural reasoning, packet hex breakdowns, and rigorous diagnostics.`,
@@ -125,6 +170,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'online',
     protocol: 'CST/3.0-SECURE',
+    version: '2.6.0',
     timestamp: new Date().toISOString(),
     hasApiKey: Boolean(process.env.GEMINI_API_KEY),
     models: DYNAMIC_MODELS,
@@ -140,7 +186,7 @@ app.get('/api/ai/models', (_req: Request, res: Response) => {
   });
 });
 
-// POST Add or Update AI Model
+// POST Add or Update AI Model (Hardened with Full SSRF Protection)
 app.post('/api/ai/models', (req: Request, res: Response) => {
   try {
     const { id, name, provider = 'custom', description = '', contextWindow = '128k', endpointUrl, apiKeyUrl } = req.body;
@@ -160,14 +206,30 @@ app.post('/api/ai/models', (req: Request, res: Response) => {
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         return res.status(400).json({ error: 'endpointUrl must use http:// or https://' });
       }
-      const host = parsed.hostname.toLowerCase();
-      if (host === '169.254.169.254' || host.startsWith('169.254.') || host === 'metadata.google.internal') {
-        return res.status(400).json({ error: 'Cloud metadata endpoints are forbidden (SSRF protection)' });
+      const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+      const isCloudMetadata =
+        host === '169.254.169.254' ||
+        host.startsWith('169.254.') ||
+        host.startsWith('fe80:') ||
+        host === 'metadata.google.internal' ||
+        host.endsWith('.internal');
+      const isLoopbackOrZero =
+        host === '0.0.0.0' ||
+        host === '::' ||
+        host === '::1' ||
+        host === 'localhost' ||
+        host.startsWith('127.');
+
+      if (isCloudMetadata) {
+        return res.status(400).json({ error: 'Cloud metadata and link-local endpoints are forbidden (SSRF protection)' });
+      }
+      if (isLoopbackOrZero && provider !== 'ollama') {
+        return res.status(400).json({ error: 'Loopback endpoints are restricted to local Ollama provider (SSRF protection)' });
       }
       validatedEndpointUrl = parsed.toString();
     }
 
-    const cleanId = String(id).trim().toLowerCase().replace(/[^a-z0-9_:-]/g, '-');
+    const cleanId = String(id).trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '-');
     const existingIndex = DYNAMIC_MODELS.findIndex((m) => m.id === cleanId);
 
     const newDescriptor: AIModelDescriptor = {
@@ -244,7 +306,7 @@ app.get('/api/update/status', async (_req: Request, res: Response) => {
   try {
     const nodeVersion = process.version;
     const pythonCheck = await new Promise<string>((resolve) => {
-      exec('python --version', (err, stdout) => {
+      exec('python3 --version || python --version', (err, stdout) => {
         resolve(err ? 'Not Installed' : stdout.trim());
       });
     });
@@ -255,7 +317,7 @@ app.get('/api/update/status', async (_req: Request, res: Response) => {
       nodeVersion,
       pythonVersion: pythonCheck,
       aiModels: DYNAMIC_MODELS.map((m) => m.id),
-      agentVersion: 'v2.4.2-LTS',
+      agentVersion: 'v2.6.0-LTS',
       status: 'ready',
     });
   } catch (err: any) {
@@ -271,10 +333,10 @@ app.post('/api/update/check', async (_req: Request, res: Response) => {
       success: true,
       timestamp,
       checkedComponents: [
-        { id: 'gemini-2.5-flash', status: 'available', latestVersion: 'v2.5.0-LTS' },
+        { id: 'gemini-3.8-flash', status: 'up_to_date', latestVersion: 'v3.8.0-GA' },
         { id: 'deepseek-r1', status: 'available', latestVersion: 'v1.5.2-q4_K_M' },
-        { id: 'cst-host-agent', status: 'available', latestVersion: 'v2.4.2-LTS' },
-        { id: 'ast-security-rules', status: 'available', latestVersion: 'v2025.09-REV4' },
+        { id: 'cst-host-agent', status: 'up_to_date', latestVersion: 'v2.6.0-LTS' },
+        { id: 'ast-security-rules', status: 'up_to_date', latestVersion: 'v2026.10-REV5' },
       ],
       systemInfo: {
         nodeVersion: process.version,
@@ -312,7 +374,7 @@ app.post('/api/update/execute', async (req: Request, res: Response) => {
 
     if (componentId === 'ast-security-rules' || updateAll) {
       logs.push('[STEP 2/3] Updating AST Security Firewall policy database & de-obfuscation rules...');
-      logs.push('[FIREWALL] Caret desugaring and shlex quotation normalization rules applied.');
+      logs.push('[FIREWALL] Caret desugaring, backtick normalization, and shlex quotation rules applied.');
     }
 
     const durationMs = Date.now() - startTime;
@@ -429,7 +491,7 @@ app.post('/api/hosts/scan', async (_req: Request, res: Response) => {
   }
 });
 
-// Real Command Execution Endpoint (Hardened with AST Firewall Policy)
+// Real Command Execution Endpoint (Hardened with AST Firewall Policy v2026.10-REV5)
 app.post('/api/command/execute', async (req: Request, res: Response) => {
   try {
     const { command, hostId } = req.body;
@@ -442,19 +504,24 @@ app.post('/api/command/execute', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Command rejected: invalid length or null byte detected' });
     }
 
-    // Normalize Windows CMD caret (^) obfuscation before inspection
-    const deobfuscatedCmd = rawCmd.replace(/\^(.)/g, '$1');
+    // Normalize Windows CMD caret (^), PowerShell backtick (`), and interstitial quotes before inspection
+    const deobfuscatedCmd = rawCmd
+      .replace(/\^(.)/g, '$1')
+      .replace(/`([a-zA-Z0-9])/g, '$1')
+      .replace(/(?<=\w)["'](?=\w)/g, '');
 
-    // Unconditionally block catastrophic / remote-code-execution vectors
+    // Unconditionally block catastrophic / remote-code-execution / obfuscation vectors
     const criticalBlockPatterns = [
       /:\(\)\s*\{\s*:\|:&\s*\}\s*;?\s*:/, // Fork bomb
       /\bmkfs(?:\.[a-z0-9]+)?\b/i, // Filesystem formatting
       /\bdd\s+if=/i, // Raw block device overwrite
       /\b(?:curl|wget)\b.*\|\s*(?:ba)?sh\b/i, // Remote script pipe execution
       /\b(?:nc|ncat|netcat)\b.*-e\b/i, // Reverse shell
-      /\bpowershell(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\b/i, // Base64 encoded PowerShell
+      /\b(?:powershell|pwsh)(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\b/i, // Base64 encoded PowerShell
       /\b(?:iex|invoke-expression)\b/i, // PowerShell dynamic eval
       /\brm\s+-[rRfF]+\s+(?:\/|\*)\b/, // Root filesystem deletion
+      /%[a-zA-Z0-9_]+:~\d+,\d+%/, // Windows CMD environment variable substring slicing evasion
+      /\b(?:0x[0-9a-f]{8}|0[0-7]{10,})\b/i, // Hex/octal IP encoding evasion
     ];
 
     for (const pattern of criticalBlockPatterns) {
@@ -470,7 +537,7 @@ app.post('/api/command/execute', async (req: Request, res: Response) => {
     const isHighRisk =
       /\b(?:rmdir|del|rm|format|diskpart|shutdown|reboot|Restart-Computer|Stop-Computer|reg\s+delete|bcdedit|vssadmin)\b/i.test(
         deobfuscatedCmd
-      ) || /[;&|`$()]/.test(deobfuscatedCmd);
+      ) || /[;&|`$()]/.test(rawCmd);
 
     if (isHighRisk && !req.body.confirmed) {
       return res.status(403).json({
@@ -496,6 +563,22 @@ app.post('/api/command/execute', async (req: Request, res: Response) => {
   }
 });
 
+// Normalize deprecated model IDs to current supported Gemini 3.8 / 3.1 models
+function resolveSupportedGeminiModel(requested?: string): string {
+  if (!requested || typeof requested !== 'string') return 'gemini-3.8-flash';
+  const clean = requested.trim();
+  if (
+    clean === 'gemini-1.5-flash' ||
+    clean === 'gemini-1.5-pro' ||
+    clean === 'gemini-2.0-flash' ||
+    clean === 'gemini-2.5-flash' ||
+    clean === 'gemini-pro'
+  ) {
+    return 'gemini-3.8-flash';
+  }
+  return clean;
+}
+
 // Multi-turn Gemini & AI Chat Endpoint
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
@@ -512,8 +595,8 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
     }
 
-    // Target model selection
-    let targetModel = typeof model === 'string' && model ? model : 'gemini-2.5-flash';
+    // Target model selection (automatically upgrades deprecated aliases to gemini-3.8-flash)
+    const targetModel = resolveSupportedGeminiModel(model);
 
     // Prepare system instruction with dynamic fleet & mouse/keyboard control context
     let systemInstruction = SYSTEM_INSTRUCTIONS[role] || SYSTEM_INSTRUCTIONS.commander;
@@ -558,7 +641,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         errMsg.includes('not found');
 
       if (isRecoverableError) {
-        const fallbackCandidates = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'].filter((m) => m !== targetModel);
+        const fallbackCandidates = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'].filter(
+          (m) => m !== targetModel
+        );
         let fallbackSucceeded = false;
         for (const fallbackModel of fallbackCandidates) {
           try {

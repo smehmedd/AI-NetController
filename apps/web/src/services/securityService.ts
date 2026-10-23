@@ -28,8 +28,9 @@ const BLOCKED_PATTERNS: Array<{ regex: RegExp; reason: string }> = [
   { regex: /\bvssadmin\s+delete\s+shadows/i, reason: 'Ransomware-like shadow copy deletion prohibited' },
   { regex: /\bmkfs(\.[a-z0-9]+)?\s+\/dev\//i, reason: 'Raw disk partition formatting prohibited' },
   { regex: /\bdel(\.exe)?\s+.*(\/[fF]|\/[sS]|\/[qQ]).*[c-z]:[\\\/]/i, reason: 'System root file deletion prohibited' },
-  { regex: /\bpowershell.*-e(nc(odedcommand)?)?\s+[a-za-z0-9+/=]{40,}/i, reason: 'Obfuscated base64 PowerShell payload blocked' },
+  { regex: /\b(?:powershell|pwsh).*-e(nc(odedcommand)?)?\s+[a-z0-9+/=]{8,}/i, reason: 'Obfuscated base64 PowerShell payload blocked' },
   { regex: /nc(\.exe)?\s+(-e|-c)\s+(\/bin\/(ba)?sh|cmd\.exe|powershell)/i, reason: 'Unencrypted reverse shell payload blocked' },
+  { regex: /%[a-z0-9_]+:~\d+,\d+%/i, reason: 'Environment variable substring slicing evasion blocked' },
 ];
 
 // Critical destructive patterns that require explicit double-key / hold confirmation
@@ -53,6 +54,19 @@ const HIGH_RISK_PATTERNS: Array<{ regex: RegExp; reason: string }> = [
 ];
 
 /**
+ * Strips shell obfuscation characters (CMD caret ^, PowerShell backtick `, interstitial quotes)
+ * before running AST security pattern matching.
+ */
+export function deobfuscateShellCommand(raw: string): string {
+  return raw
+    .replace(/\^(.)/g, '$1')
+    .replace(/`([a-zA-Z0-9])/g, '$1')
+    .replace(/["']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Pre-Flight Command Inspection.
  * Evaluates user input against heuristic and regex rules before sending over the wire.
  */
@@ -69,9 +83,21 @@ export function inspectCommandSecurity(command: string): CommandSecurityVerdict 
     };
   }
 
-  // 1. Check for blocked malicious strings
+  if (trimmed.includes('\0')) {
+    return {
+      isAllowed: false,
+      riskLevel: 'CRITICAL',
+      category: 'BLOCKED_MALICIOUS',
+      reason: 'Null-byte command injection blocked',
+      requiresHoldConfirmation: true,
+    };
+  }
+
+  const normalized = deobfuscateShellCommand(trimmed);
+
+  // 1. Check for blocked malicious strings on both raw and de-obfuscated command
   for (const item of BLOCKED_PATTERNS) {
-    if (item.regex.test(trimmed)) {
+    if (item.regex.test(trimmed) || item.regex.test(normalized)) {
       return {
         isAllowed: false,
         riskLevel: 'CRITICAL',
@@ -85,7 +111,7 @@ export function inspectCommandSecurity(command: string): CommandSecurityVerdict 
 
   // 2. Check for critical destructive strings
   for (const item of CRITICAL_PATTERNS) {
-    if (item.regex.test(trimmed)) {
+    if (item.regex.test(trimmed) || item.regex.test(normalized)) {
       return {
         isAllowed: true,
         riskLevel: 'CRITICAL',
@@ -99,7 +125,7 @@ export function inspectCommandSecurity(command: string): CommandSecurityVerdict 
 
   // 3. Check for high-risk operations
   for (const item of HIGH_RISK_PATTERNS) {
-    if (item.regex.test(trimmed)) {
+    if (item.regex.test(trimmed) || item.regex.test(normalized)) {
       return {
         isAllowed: true,
         riskLevel: 'HIGH',
@@ -131,7 +157,21 @@ class RateLimiter {
 
   public checkLimit(hostId: string): { allowed: boolean; remaining: number; resetMs: number } {
     const now = Date.now();
-    const timestamps = (this.hostTimestamps.get(hostId) || []).filter(t => now - t < this.WINDOW_MS);
+    let timestamps = this.hostTimestamps.get(hostId);
+    if (!timestamps) {
+      timestamps = [now];
+      this.hostTimestamps.set(hostId, timestamps);
+      return { allowed: true, remaining: this.MAX_COMMANDS - 1, resetMs: 0 };
+    }
+
+    // Evict expired timestamps from head in-place
+    let validStart = 0;
+    while (validStart < timestamps.length && now - timestamps[validStart] >= this.WINDOW_MS) {
+      validStart++;
+    }
+    if (validStart > 0) {
+      timestamps.splice(0, validStart);
+    }
 
     if (timestamps.length >= this.MAX_COMMANDS) {
       const oldest = timestamps[0];
@@ -140,7 +180,6 @@ class RateLimiter {
     }
 
     timestamps.push(now);
-    this.hostTimestamps.set(hostId, timestamps);
     return { allowed: true, remaining: this.MAX_COMMANDS - timestamps.length, resetMs: 0 };
   }
 
@@ -258,15 +297,23 @@ export function saveAuthToken(token: string) {
 }
 
 /**
- * Anti-Replay Nonce Generator
+ * Anti-Replay Nonce Generator (CSPRNG-backed)
  */
 let packetCounter = 0;
+const NONCE_SCRATCH = new Uint32Array(2);
+
 export function generatePacketNonce(): { nonce: string; timestamp: number; sequence: number } {
   packetCounter = (packetCounter + 1) % 0xffffffff;
   const timestamp = Date.now();
-  const randomBytes = Math.random().toString(36).substring(2, 10);
+  let randomHex: string;
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(NONCE_SCRATCH);
+    randomHex = NONCE_SCRATCH[0].toString(36) + NONCE_SCRATCH[1].toString(36);
+  } else {
+    randomHex = Math.random().toString(36).substring(2, 10);
+  }
   return {
-    nonce: `${timestamp}-${packetCounter}-${randomBytes}`,
+    nonce: `${timestamp}-${packetCounter}-${randomHex}`,
     timestamp,
     sequence: packetCounter,
   };

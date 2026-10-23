@@ -44,24 +44,71 @@ let activeProtocolMode: 'auto' | 'binary' | 'json' = 'auto';
 
 let outboundSeq = 0;
 let highestInboundSeq = 0;
+let replayBitmap = 0n; // 128-bit RFC 6479 sliding anti-replay window bitmask
+const REPLAY_WINDOW_SIZE = 128n;
+const REPLAY_MASK_128 = (1n << 128n) - 1n;
 
-let latencyHistory: number[] = [];
+// Verify and record inbound sequence number against 128-packet sliding replay window
+function verifyInboundSequence(seq: number): boolean {
+  if (!Number.isInteger(seq) || seq <= 0) return false;
+  const seqBig = BigInt(seq);
+  const maxBig = BigInt(highestInboundSeq);
+
+  if (seqBig > maxBig) {
+    const shift = seqBig - maxBig;
+    if (shift >= REPLAY_WINDOW_SIZE) {
+      replayBitmap = 1n;
+    } else {
+      replayBitmap = ((replayBitmap << shift) | 1n) & REPLAY_MASK_128;
+    }
+    highestInboundSeq = seq;
+    return true;
+  }
+
+  const diff = maxBig - seqBig;
+  if (diff >= REPLAY_WINDOW_SIZE) {
+    return false; // Packet too old (outside 128-frame replay window)
+  }
+
+  const bit = 1n << diff;
+  if ((replayBitmap & bit) !== 0n) {
+    return false; // Duplicate / replayed packet rejected!
+  }
+
+  replayBitmap |= bit;
+  return true;
+}
+
+// Fixed-capacity Float64Array circular latency buffer (zero Array.shift() overhead)
+const LATENCY_CAPACITY = 20;
+const latencyRing = new Float64Array(LATENCY_CAPACITY);
+let latencyHead = 0;
+let latencyCount = 0;
+let lastRttSample = 0;
 let jitter = 0.8;
 
 // Outbound message queue for transient disconnection resilience
 const outboundQueue: Array<{ type: 'json' | 'binary'; payload: any }> = [];
 const MAX_QUEUE_SIZE = 10;
 
-function calculateJitter(currentRtt: number) {
-  if (latencyHistory.length > 0) {
-    const prevRtt = latencyHistory[latencyHistory.length - 1];
-    const diff = Math.abs(currentRtt - prevRtt);
+function calculateJitter(currentRtt: number): number[] {
+  if (latencyCount > 0) {
+    const diff = Math.abs(currentRtt - lastRttSample);
     jitter = jitter + (diff - jitter) / 16;
   }
-  latencyHistory.push(currentRtt);
-  if (latencyHistory.length > 20) {
-    latencyHistory.shift();
+  lastRttSample = currentRtt;
+  latencyRing[latencyHead] = currentRtt;
+  latencyHead = (latencyHead + 1) % LATENCY_CAPACITY;
+  if (latencyCount < LATENCY_CAPACITY) {
+    latencyCount++;
   }
+
+  const history = new Array<number>(latencyCount);
+  const start = latencyCount < LATENCY_CAPACITY ? 0 : latencyHead;
+  for (let i = 0; i < latencyCount; i++) {
+    history[i] = latencyRing[(start + i) % LATENCY_CAPACITY];
+  }
+  return history;
 }
 
 function handlePongReceived() {
@@ -74,13 +121,13 @@ function handlePongReceived() {
 
   // Ultra-precise RTT computation using performance.now()
   const rtt = Math.max(1, Math.round(performance.now() - lastPingTime));
-  calculateJitter(rtt);
+  const history = calculateJitter(rtt);
 
   self.postMessage({
     type: 'METRICS',
     latency: rtt,
     jitter: Math.round(jitter * 10) / 10,
-    history: latencyHistory,
+    history,
   });
 }
 
@@ -273,10 +320,10 @@ function establishConnection(url: string, token: string = currentToken) {
         try {
           const json = JSON.parse(e.data);
 
-          // Anti-Replay: Sequence validation if seq provided
-          if (typeof json.seq === 'number') {
-            if (json.seq > highestInboundSeq) {
-              highestInboundSeq = json.seq;
+          // Anti-Replay: RFC 6479 128-bit sliding window validation if seq provided
+          if (typeof json.seq === 'number' && json.seq > 0) {
+            if (!verifyInboundSequence(json.seq)) {
+              return; // Drop replayed or stale frame
             }
           }
 
@@ -395,8 +442,8 @@ function parseBinaryFrame(bytes: Uint8Array) {
 
   if (bytes.length < HEADER_SIZE + length) return;
 
-  if (seq > highestInboundSeq) {
-    highestInboundSeq = seq;
+  if (seq > 0 && opcode !== 0x01 && !verifyInboundSequence(seq)) {
+    return; // Reject replayed or out-of-window binary frame
   }
 
   const payloadSlice = bytes.subarray(HEADER_SIZE, HEADER_SIZE + length);

@@ -25,10 +25,10 @@ import { useUIStore } from '../store/uiStore';
 
 export type BotRole = 'commander' | 'diagnostics' | 'fast_triage';
 export type GeminiModelId =
-  | 'gemini-2.5-flash'
-  | 'gemini-3-flash-preview'
-  | 'gemini-3.1-pro-preview'
-  | 'gemini-2.0-flash';
+  | 'gemini-3.8-flash'
+  | 'gemini-3.1-flash-lite'
+  | 'gemini-flash-latest'
+  | string;
 
 export interface ChatMessage {
   id: string;
@@ -86,21 +86,21 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       {
         id: 'commander' as BotRole,
         label: language === 'bg' ? 'Флот' : 'Fleet',
-        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
+        model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Sparkles,
         placeholder: language === 'bg' ? 'Попитайте Флот Командира...' : 'Ask Fleet Copilot...',
       },
       {
         id: 'diagnostics' as BotRole,
         label: language === 'bg' ? 'Сигурност' : 'Security',
-        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
+        model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Shield,
         placeholder: language === 'bg' ? 'Анализ на CST/3.0 протокол...' : 'Analyze CST/3.0 security...',
       },
       {
         id: 'fast_triage' as BotRole,
         label: language === 'bg' ? 'Shell' : 'Shell',
-        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
+        model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Terminal,
         placeholder: language === 'bg' ? 'Бърза shell команда...' : 'Fast bash / PowerShell command...',
       },
@@ -135,7 +135,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         role: 'model',
         content: welcomeText,
         timestamp: Date.now(),
-        modelUsed: selectedModel || 'gemini-2.5-flash',
+        modelUsed: selectedModel || 'gemini-3.8-flash',
       },
     ];
   });
@@ -144,7 +144,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     setMessages((prev) =>
       prev.map((m) =>
         m.id === 'welcome'
-          ? { ...m, content: welcomeText, modelUsed: selectedModel || 'gemini-2.5-flash' }
+          ? { ...m, content: welcomeText, modelUsed: selectedModel || 'gemini-3.8-flash' }
           : m
       )
     );

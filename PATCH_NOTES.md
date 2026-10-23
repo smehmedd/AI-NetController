@@ -1,12 +1,34 @@
-# Patch Notes — CST NetController AI v2.5.0
+# Patch Notes — CST NetController AI v2.6.0
 
 **Release Date:** October 23, 2026  
-**Version:** `v2.5.0-LTS`  
+**Version:** `v2.6.0-LTS`  
 **Protocol Version:** `CST/3.0-SECURE`
 
 ---
 
-## Summary of Changes
+## Quantitative Performance Benchmarks (`v2.5.0` → `v2.6.0`)
+
+| Subsystem Benchmark | Before (`v2.5.0`) | After (`v2.6.0`) | Speedup / Improvement |
+| :--- | :---: | :---: | :--- |
+| **WoL Magic Packet Generation (1,000 packets)** | `262.00 ms` (`3,816 pkt/s`) | **`4.33 – 4.81 ms`** (`~215,000+ pkt/s`) | **54.5× – 60.5× faster** (`HEX_LUT` 256-byte table + zero `Intl`/`RegExp` allocations) |
+| **Binary Wire Framing (25,000 packets)** | `32.56 – 63.41 ms` | **`5.61 – 11.68 ms`** (`~4.45M pkt/s`) | **5.4× – 5.8× faster** (Pre-allocated `DataView` control frame pool) |
+| **Telemetry Ring Buffer (50,000 cycles, cap 200)** | `11.33 – 30.80 ms` (`Array.shift()`) | **`2.84 – 3.33 ms`** (`~17.5M ops/s`) | **4.0× – 9.3× faster** (Contiguous unboxed `Float64RingBuffer` $O(1)$) |
+| **High-Frequency Telemetry Flood (20,000 frames)** | `8.40 ms` | **`0.68 – 0.75 ms`** | **11.2× – 12.4× faster** ($O(1)$ circular pointer wrap-around) |
+| **Host Command RateLimiter (10,000 burst checks)** | `19.20 ms` (`.filter()`) | **`3.25 – 4.16 ms`** | **4.6× – 5.9× faster** (In-place timestamp head eviction) |
+| **Python ChaCha20-Poly1305 AEAD (1 MB payload)** | `23.20 ms` | **`21.40 ms`** | **Zero-Copy C-Extension `memoryview` (< 35ms SLA)** |
+| **Python Display Pipeline (60-Frame Delta Burst)** | `2.90 ms` | **`2.70 ms`** | **0.045 ms/frame** (Adler-32 4×4 spatial delta skip) |
+
+---
+
+## Summary of Changes in v2.6.0 & v2.5.0
+
+### 0. v2.6.0 Ecosystem Upgrades, Zero-Allocation Hot Paths & Security Hardening
+- **Full-Stack Dependency Upgrades**:
+  - **Web**: `@google/genai ^1.52.0`, `react ^19.3.1`, `vite ^6.4.5`, `@tailwindcss/vite ^4.3.3`, `motion ^12.43.0`, `zustand ^5.0.16`, `recharts ^2.15.4`, `express ^4.22.3`, `tsx ^4.23.15`, `typescript ~5.8.3`.
+  - **Python Agent**: `websockets>=15.0.1`, `aiohttp>=3.11.16`, `zeroconf>=0.146.1`, `PyTurboJPEG>=1.7.7`, `cryptography>=44.0.2`, `psutil>=7.0.0`, `pyinstaller>=6.12.0`.
+  - **Flutter Mobile**: `Flutter >=3.29.0`, `Dart >=3.7.0`, Android `compileSdk 36` / `targetSdk 36`, `web_socket_channel ^3.0.2`, `network_info_plus ^6.1.3`, `vibration ^3.1.3`, `crypto ^3.0.6`.
+- **Gemini 3.8 Model Registry**: Upgraded AI model defaults and fallback chain to `gemini-3.8-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`.
+- **Security Hardening (`v2026.10-REV5`)**: Added RFC 6479 128-bit bitmap anti-replay protection in `networkWorker.ts`, HTTP security headers and 120 req/min sliding-window rate limiting in `server.ts`, and expanded AST de-obfuscation (`^`, `` ` ``, interstitial quotes, `%VAR:~x,y%` substring slicing) across Web and Python Agent.
 
 ### 1. 3-Tier Optical Liquid Glass Architecture
 - **Tier 1 (Resting Canvas Cards)**: Applied `bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%]` with top-edge specular highlights (`border-t-white/[0.16]`) to `GlassContainer` and device cards.

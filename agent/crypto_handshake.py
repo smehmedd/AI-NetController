@@ -142,6 +142,10 @@ def derive_session_key(shared_secret: bytes, salt: bytes, info: bytes = INFO_STR
 # =====================================================================
 # RFC 8439 CHACHA20-POLY1305 PURE PYTHON FALLBACK
 # =====================================================================
+_STRUCT_8I = struct.Struct('<8I')
+_STRUCT_3I = struct.Struct('<3I')
+_STRUCT_16I = struct.Struct('<16I')
+
 def _rotl32(v: int, c: int) -> int:
     return ((v << c) & 0xFFFFFFFF) | (v >> (32 - c))
 
@@ -152,27 +156,65 @@ def _quarter_round(x: list, a: int, b: int, c: int, d: int):
     x[c] = (x[c] + x[d]) & 0xFFFFFFFF; x[b] = _rotl32(x[b] ^ x[c], 7)
 
 def _chacha20_block(key: bytes, counter: int, nonce: bytes) -> bytes:
-    constants = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574]
-    k = list(struct.unpack('<8I', key))
-    n = list(struct.unpack('<3I', nonce))
-    state = constants + k + [counter] + n
-    working = list(state)
+    s0, s1, s2, s3 = 0x61707865, 0x3320646e, 0x79622d32, 0x6b206574
+    s4, s5, s6, s7, s8, s9, s10, s11 = _STRUCT_8I.unpack(key)
+    s12 = counter & 0xFFFFFFFF
+    s13, s14, s15 = _STRUCT_3I.unpack(nonce)
+
+    x0, x1, x2, x3 = s0, s1, s2, s3
+    x4, x5, x6, x7 = s4, s5, s6, s7
+    x8, x9, x10, x11 = s8, s9, s10, s11
+    x12, x13, x14, x15 = s12, s13, s14, s15
 
     for _ in range(10):
-        _quarter_round(working, 0, 4, 8, 12)
-        _quarter_round(working, 1, 5, 9, 13)
-        _quarter_round(working, 2, 6, 10, 14)
-        _quarter_round(working, 3, 7, 11, 15)
-        _quarter_round(working, 0, 5, 10, 15)
-        _quarter_round(working, 1, 6, 11, 12)
-        _quarter_round(working, 2, 7, 8, 13)
-        _quarter_round(working, 3, 4, 9, 14)
+        # Column rounds
+        x0 = (x0 + x4) & 0xFFFFFFFF; d = x12 ^ x0; x12 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x8 = (x8 + x12) & 0xFFFFFFFF; b = x4 ^ x8; x4 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x0 = (x0 + x4) & 0xFFFFFFFF; d = x12 ^ x0; x12 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x8 = (x8 + x12) & 0xFFFFFFFF; b = x4 ^ x8; x4 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
 
-    out = bytearray(64)
-    for i in range(16):
-        val = (working[i] + state[i]) & 0xFFFFFFFF
-        struct.pack_into('<I', out, i * 4, val)
-    return bytes(out)
+        x1 = (x1 + x5) & 0xFFFFFFFF; d = x13 ^ x1; x13 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x9 = (x9 + x13) & 0xFFFFFFFF; b = x5 ^ x9; x5 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x1 = (x1 + x5) & 0xFFFFFFFF; d = x13 ^ x1; x13 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x9 = (x9 + x13) & 0xFFFFFFFF; b = x5 ^ x9; x5 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        x2 = (x2 + x6) & 0xFFFFFFFF; d = x14 ^ x2; x14 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x10 = (x10 + x14) & 0xFFFFFFFF; b = x6 ^ x10; x6 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x2 = (x2 + x6) & 0xFFFFFFFF; d = x14 ^ x2; x14 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x10 = (x10 + x14) & 0xFFFFFFFF; b = x6 ^ x10; x6 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        x3 = (x3 + x7) & 0xFFFFFFFF; d = x15 ^ x3; x15 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x11 = (x11 + x15) & 0xFFFFFFFF; b = x7 ^ x11; x7 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x3 = (x3 + x7) & 0xFFFFFFFF; d = x15 ^ x3; x15 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x11 = (x11 + x15) & 0xFFFFFFFF; b = x7 ^ x11; x7 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        # Diagonal rounds
+        x0 = (x0 + x5) & 0xFFFFFFFF; d = x15 ^ x0; x15 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x10 = (x10 + x15) & 0xFFFFFFFF; b = x5 ^ x10; x5 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x0 = (x0 + x5) & 0xFFFFFFFF; d = x15 ^ x0; x15 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x10 = (x10 + x15) & 0xFFFFFFFF; b = x5 ^ x10; x5 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        x1 = (x1 + x6) & 0xFFFFFFFF; d = x12 ^ x1; x12 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x11 = (x11 + x12) & 0xFFFFFFFF; b = x6 ^ x11; x6 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x1 = (x1 + x6) & 0xFFFFFFFF; d = x12 ^ x1; x12 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x11 = (x11 + x12) & 0xFFFFFFFF; b = x6 ^ x11; x6 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        x2 = (x2 + x7) & 0xFFFFFFFF; d = x13 ^ x2; x13 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x8 = (x8 + x13) & 0xFFFFFFFF; b = x7 ^ x8; x7 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x2 = (x2 + x7) & 0xFFFFFFFF; d = x13 ^ x2; x13 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x8 = (x8 + x13) & 0xFFFFFFFF; b = x7 ^ x8; x7 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+        x3 = (x3 + x4) & 0xFFFFFFFF; d = x14 ^ x3; x14 = ((d << 16) & 0xFFFFFFFF) | (d >> 16)
+        x9 = (x9 + x14) & 0xFFFFFFFF; b = x4 ^ x9; x4 = ((b << 12) & 0xFFFFFFFF) | (b >> 20)
+        x3 = (x3 + x4) & 0xFFFFFFFF; d = x14 ^ x3; x14 = ((d << 8) & 0xFFFFFFFF) | (d >> 24)
+        x9 = (x9 + x14) & 0xFFFFFFFF; b = x4 ^ x9; x4 = ((b << 7) & 0xFFFFFFFF) | (b >> 25)
+
+    return _STRUCT_16I.pack(
+        (x0 + s0) & 0xFFFFFFFF, (x1 + s1) & 0xFFFFFFFF, (x2 + s2) & 0xFFFFFFFF, (x3 + s3) & 0xFFFFFFFF,
+        (x4 + s4) & 0xFFFFFFFF, (x5 + s5) & 0xFFFFFFFF, (x6 + s6) & 0xFFFFFFFF, (x7 + s7) & 0xFFFFFFFF,
+        (x8 + s8) & 0xFFFFFFFF, (x9 + s9) & 0xFFFFFFFF, (x10 + s10) & 0xFFFFFFFF, (x11 + s11) & 0xFFFFFFFF,
+        (x12 + s12) & 0xFFFFFFFF, (x13 + s13) & 0xFFFFFFFF, (x14 + s14) & 0xFFFFFFFF, (x15 + s15) & 0xFFFFFFFF,
+    )
 
 def _poly1305_clamp(r_bytes: bytes) -> int:
     r = bytearray(r_bytes)

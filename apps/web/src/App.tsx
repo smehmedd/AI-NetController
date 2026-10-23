@@ -239,7 +239,13 @@ export default function App() {
                   onSelectHostForCommand={handleSelectHostTerminal}
                   onInspectWolPacket={handleInspectWol}
                   onWakeHost={fleet.sendWolPacket}
-                  onSendCommand={agent.sendCommand}
+                  onSendCommand={(cmd, targetOverride) =>
+                    agent.sendCommand({
+                      target_id: targetOverride || fleet.selectedTarget,
+                      command_type: 'system_command',
+                      prompt: cmd,
+                    })
+                  }
                   onViewScreen={handleViewScreen}
                   onRescan={fleet.scanMdns}
                   isScanning={fleet.isScanning}
