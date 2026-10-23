@@ -133,29 +133,6 @@ cd apps/mobile
 flutter pub get
 flutter run
 ```
-
-
-================================================================
-  CST NetController AI - Automated 14-Pillar Verification Harness
-================================================================
-  ✅ [PASS] Pillar 1 (Binary Protocol): Zero-allocation DataView reads 0xC5 0x71 magic
-  ✅ [PASS] Pillar 2 (Heartbeat Ring Buffer): Buffer capped at capacity 20 without memory leaks
-  ✅ [PASS] Pillar 6 (HITL Risk Assessment): Accurately flags destructive commands as HIGH risk
-  ...
-  VERIFICATION RESULTS: 34/34 PASSED (0 FAILED)
-
-================================================================
-  CST NetController AI - Deep Stress & Resilience Test Suite
-================================================================
-  ✅ [PASS] Parsed 25,000 binary wire frames with 100% accuracy in 2ms (~12,500,000 pkt/sec)
-  ✅ [PASS] Ring buffer strictly capped at 20 entries after 50,000 cycles in 2ms
-  ✅ [PASS] Anti-Replay Guard accepted 10,000 valid frames and rejected 1,000 replayed frames
-  ...
-  STRESS TEST RESULTS: 13/13 PASSED (0 FAILED)
-```
-
----
-
 ## License
 
 Distributed under the [MIT License](LICENSE).
