@@ -1,0 +1,754 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:vibration/vibration.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
+import 'fluid_theme.dart';
+import 'adaptive_layout_builder.dart';
+import 'responsive_device_card.dart';
+import 'viewport_stream_widget.dart';
+
+// =====================================================================
+// STATE MODELS & RIVERPOD STATE MANAGERS
+// =====================================================================
+class HostState {
+  final String id;
+  final String name;
+  final String ip;
+  final String mac;
+  final bool isOnline;
+  final int cpuUsage;
+  final int ramUsage;
+
+  HostState({
+    required this.id,
+    required this.name,
+    required this.ip,
+    required this.mac,
+    required this.isOnline,
+    this.cpuUsage = 0,
+    this.ramUsage = 0,
+  });
+
+  HostState copyWith({
+    bool? isOnline,
+    int? cpuUsage,
+    int? ramUsage,
+  }) {
+    return HostState(
+      id: id,
+      name: name,
+      ip: ip,
+      mac: mac,
+      isOnline: isOnline ?? this.isOnline,
+      cpuUsage: cpuUsage ?? this.cpuUsage,
+      ramUsage: ramUsage ?? this.ramUsage,
+    );
+  }
+}
+
+final fleetProvider =
+    StateNotifierProvider<FleetNotifier, List<HostState>>((ref) {
+  return FleetNotifier();
+});
+
+class FleetNotifier extends StateNotifier<List<HostState>> {
+  FleetNotifier()
+      : super([
+          HostState(
+            id: 'CST-LAB-PC-1',
+            name: 'CST-LAB-PC-1',
+            ip: '192.168.1.50',
+            mac: '00:1A:2B:3C:4D:5E',
+            isOnline: true,
+            cpuUsage: 22,
+            ramUsage: 45,
+          ),
+          HostState(
+            id: 'HOME-WORKSTATION',
+            name: 'HOME-WORKSTATION',
+            ip: '192.168.1.75',
+            mac: '00:2B:3C:4D:5E:6F',
+            isOnline: false,
+          ),
+          HostState(
+            id: 'NFS-STORAGE-SERVER',
+            name: 'NFS-STORAGE-SERVER',
+            ip: '192.168.1.200',
+            mac: '00:3C:4D:5E:6F:70',
+            isOnline: true,
+            cpuUsage: 68,
+            ramUsage: 82,
+          ),
+        ]);
+
+  void updateHost(String id, {bool? isOnline, int? cpu, int? ram}) {
+    state = [
+      for (final h in state)
+        if (h.id == id)
+          h.copyWith(isOnline: isOnline, cpuUsage: cpu, ramUsage: ram)
+        else
+          h
+    ];
+  }
+}
+
+final selectedHostIdProvider = StateProvider<String>((ref) => 'CST-LAB-PC-1');
+
+// =====================================================================
+// ROOT APPLICATION ENTRY WITH ACCESSIBILITY & CLAMPED SCALER
+// =====================================================================
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('ghost_devices');
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('CENTRALIZED ERROR CAUGHT: $error');
+    return true;
+  };
+
+  runApp(const ProviderScope(child: CSTControllerApp()));
+}
+
+class CSTControllerApp extends StatelessWidget {
+  const CSTControllerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'CST Agentic Controller',
+      debugShowCheckedModeBanner: false,
+      theme: CyberTheme.themeData,
+      builder: (context, child) {
+        // Enforce clamped typography scaling system-wide (0.85x to 1.25x)
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: FluidSize.clampedTextScaler(context),
+          ),
+          child: child!,
+        );
+      },
+      home: const MainAdaptiveScreen(),
+    );
+  }
+}
+
+// =====================================================================
+// MAIN ADAPTIVE APP SCREEN
+// =====================================================================
+class MainAdaptiveScreen extends ConsumerStatefulWidget {
+  const MainAdaptiveScreen({super.key});
+
+  @override
+  ConsumerState<MainAdaptiveScreen> createState() => _MainAdaptiveScreenState();
+}
+
+class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
+  int _currentTabIndex = 0;
+
+  static const List<AdaptiveNavItem> _navDestinations = [
+    AdaptiveNavItem(
+      label: 'Устройства',
+      icon: Icons.devices_rounded,
+      activeIcon: Icons.devices_rounded,
+    ),
+    AdaptiveNavItem(
+      label: 'Команди',
+      icon: Icons.terminal_rounded,
+      activeIcon: Icons.terminal_rounded,
+    ),
+    AdaptiveNavItem(
+      label: 'Настройки',
+      icon: Icons.tune_rounded,
+      activeIcon: Icons.tune_rounded,
+    ),
+  ];
+
+  Future<void> _sendWakeOnLan(String mac) async {
+    try {
+      if (await Vibration.hasVibrator()) {
+        Vibration.vibrate(duration: 40);
+      }
+      final clean = mac.replaceAll(RegExp(r'[:-]'), '');
+      if (clean.length != 12) return;
+
+      final bytes = Uint8List(6 + 16 * 6);
+      bytes.fillRange(0, 6, 0xFF);
+      final macBytes = List.generate(
+        6,
+        (i) => int.parse(clean.substring(i * 2, i * 2 + 2), radix: 16),
+      );
+      for (int i = 0; i < 16; i++) {
+        bytes.setRange(6 + i * 6, 6 + (i + 1) * 6, macBytes);
+      }
+
+      // Safe UDP datagram management: guaranteed close in finally
+      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      try {
+        socket.broadcastEnabled = true;
+        socket.send(bytes, InternetAddress('255.255.255.255'), 9);
+        socket.send(bytes, InternetAddress('192.168.1.255'), 9);
+      } finally {
+        socket.close();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: CyberColors.surfaceElevated,
+            content: Text(
+              'WoL Magic Packet dispatched to $mac',
+              style: const TextStyle(
+                  color: CyberColors.warning, fontFamily: 'monospace'),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('WoL Socket Error: $e');
+    }
+  }
+
+  void _openStreamScreen(HostState host) {
+    WakelockPlus.enable();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FullscreenStreamPage(host: host),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hosts = ref.watch(fleetProvider);
+    final selectedHostId = ref.watch(selectedHostIdProvider);
+    final selectedHost = hosts.firstWhere(
+      (h) => h.id == selectedHostId,
+      orElse: () => hosts.first,
+    );
+
+    return AdaptiveScaffold(
+      title: 'CST AUTONOMOUS BRIDGE',
+      navItems: _navDestinations,
+      selectedIndex: _currentTabIndex,
+      onIndexChanged: (idx) => setState(() => _currentTabIndex = idx),
+      actions: [
+        IconButton(
+          tooltip: 'Test HITL Security Gate',
+          icon: const Icon(Icons.shield_outlined,
+              color: CyberColors.primary, size: 20),
+          onPressed: () async {
+            final authorized = await AdaptiveHitlController.showApprovalPrompt(
+              context: context,
+              hostName: selectedHost.name,
+              command: 'rmdir /s /q C:\\CST_TempCache && format E: /fs:ntfs /q',
+              riskLevel: 'CRITICAL',
+              reasoning:
+                  'Purge volatile artifacts and sanitize auxiliary storage drive.',
+            );
+            if (mounted && authorized != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: authorized
+                      ? CyberColors.surfaceElevated
+                      : Colors.red.shade900,
+                  content: Text(
+                    authorized
+                        ? 'Operator AUTHORIZED command execution'
+                        : 'Operator REJECTED command',
+                    style: TextStyle(
+                      color: authorized ? CyberColors.success : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            }
+          },
+        ),
+      ],
+
+      // Compact Layout (<600dp): Single-column list
+      compactBody: _buildBodyForIndex(
+        tier: ScreenTier.compact,
+        hosts: hosts,
+        selectedHost: selectedHost,
+      ),
+
+      // Medium Layout (600-840dp): 2-Column Grid
+      mediumBody: _buildBodyForIndex(
+        tier: ScreenTier.medium,
+        hosts: hosts,
+        selectedHost: selectedHost,
+      ),
+
+      // Expanded Layout (>840dp): Master-Detail Split
+      expandedMasterPane: _buildMasterFleetPane(hosts, selectedHostId),
+      expandedDetailPane: _buildDetailConsolePane(selectedHost),
+    );
+  }
+
+  Widget _buildBodyForIndex({
+    required ScreenTier tier,
+    required List<HostState> hosts,
+    required HostState selectedHost,
+  }) {
+    switch (_currentTabIndex) {
+      case 0:
+        return tier == ScreenTier.medium
+            ? _buildMediumGridFleet(hosts)
+            : _buildCompactListFleet(hosts);
+      case 1:
+        return _buildTerminalCommandsTab(selectedHost);
+      case 2:
+        return _buildSettingsTab();
+      default:
+        return _buildCompactListFleet(hosts);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // 1. COMPACT FLEET VIEW (SINGLE COLUMN SCROLL)
+  // -------------------------------------------------------------------
+  Widget _buildCompactListFleet(List<HostState> hosts) {
+    final ghostBox = Hive.box('ghost_devices');
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      children: [
+        _buildSectionHeader('ACTIVE FLEET NODES (mDNS RFC 6762)'),
+        const SizedBox(height: 8),
+        ...hosts.map(
+          (host) => ResponsiveDeviceCard(
+            id: host.id,
+            name: host.name,
+            ip: host.ip,
+            mac: host.mac,
+            isOnline: host.isOnline,
+            cpuUsage: host.cpuUsage,
+            ramUsage: host.ramUsage,
+            onTap: () {
+              ref.read(selectedHostIdProvider.notifier).state = host.id;
+              if (host.isOnline) _openStreamScreen(host);
+            },
+            onWakeOnLan: () => _sendWakeOnLan(host.mac),
+            onOpenStream: () => _openStreamScreen(host),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader('OFFLINE GHOST CACHE'),
+        const SizedBox(height: 8),
+        ...ghostBox.keys.map(
+          (key) => _buildGhostCacheCard(key.toString(), ghostBox.get(key)),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // 2. MEDIUM FLEET VIEW (2-COLUMN ADAPTIVE GRID)
+  // -------------------------------------------------------------------
+  Widget _buildMediumGridFleet(List<HostState> hosts) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildSectionHeader('FLEET NODES (2-COLUMN GRID VIEW)'),
+            ),
+          ),
+          SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              mainAxisExtent: 118,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final host = hosts[index];
+                return ResponsiveDeviceCard(
+                  id: host.id,
+                  name: host.name,
+                  ip: host.ip,
+                  mac: host.mac,
+                  isOnline: host.isOnline,
+                  cpuUsage: host.cpuUsage,
+                  ramUsage: host.ramUsage,
+                  onTap: () {
+                    ref.read(selectedHostIdProvider.notifier).state = host.id;
+                    if (host.isOnline) _openStreamScreen(host);
+                  },
+                  onWakeOnLan: () => _sendWakeOnLan(host.mac),
+                  onOpenStream: () => _openStreamScreen(host),
+                );
+              },
+              childCount: hosts.length,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // 3. EXPANDED MASTER PANE (35% WIDTH)
+  // -------------------------------------------------------------------
+  Widget _buildMasterFleetPane(List<HostState> hosts, String selectedId) {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      children: [
+        _buildSectionHeader('FLEET NODES'),
+        const SizedBox(height: 8),
+        ...hosts.map(
+          (host) => ResponsiveDeviceCard(
+            id: host.id,
+            name: host.name,
+            ip: host.ip,
+            mac: host.mac,
+            isOnline: host.isOnline,
+            cpuUsage: host.cpuUsage,
+            ramUsage: host.ramUsage,
+            isSelected: host.id == selectedId,
+            onTap: () {
+              ref.read(selectedHostIdProvider.notifier).state = host.id;
+            },
+            onWakeOnLan: () => _sendWakeOnLan(host.mac),
+            onOpenStream: () => _openStreamScreen(host),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // 4. EXPANDED DETAIL PANE (65% WIDTH)
+  // -------------------------------------------------------------------
+  Widget _buildDetailConsolePane(HostState host) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Live Screen Stream Box (16:9 Aspect Ratio with dynamic downsampling)
+          if (host.isOnline)
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ViewportStreamWidget(
+                hostIp: host.ip,
+                hostName: host.name,
+                isInline: true,
+                onToggleFullscreen: () => _openStreamScreen(host),
+              ),
+            )
+          else
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: CyberColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.power_settings_new_rounded,
+                          size: 40, color: CyberColors.textTertiary),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${host.name} is currently in S3/S5 Sleep State',
+                        style:
+                            const TextStyle(color: CyberColors.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        icon:
+                            const Icon(Icons.bolt_rounded, color: Colors.black),
+                        label: const Text('WAKE ON LAN (WoL)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CyberColors.warning,
+                          foregroundColor: Colors.black,
+                        ),
+                        onPressed: () => _sendWakeOnLan(host.mac),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 16),
+          Expanded(
+            child: _buildTerminalCommandsTab(host, isEmbedded: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // COMMANDS TERMINAL TAB
+  // -------------------------------------------------------------------
+  Widget _buildTerminalCommandsTab(HostState host, {bool isEmbedded = false}) {
+    final commands = [
+      'Get-Process | Sort-Object CPU -Descending | Select -First 8',
+      'ipconfig /all',
+      'Get-Service | Where-Object Status -eq "Running"',
+      'systeminfo',
+      'nvidia-smi',
+    ];
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: isEmbedded ? EdgeInsets.zero : const EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('DISPATCH COMMAND TO: ${host.name} (${host.ip})'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: commands.map((cmd) {
+            return ActionChip(
+              backgroundColor: CyberColors.surfaceElevated,
+              side:
+                  BorderSide(color: CyberColors.primary.withValues(alpha: 0.3)),
+              label: Text(
+                cmd.split('|').first.trim(),
+                style: TextStyle(
+                  color: CyberColors.primary,
+                  fontSize: context.fluidFont(11),
+                  fontFamily: 'monospace',
+                ),
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: CyberColors.surfaceElevated,
+                    content: Text(
+                      'Dispatched: $cmd',
+                      style: const TextStyle(
+                          fontFamily: 'monospace', color: CyberColors.primary),
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _buildSectionHeader('TERMINAL CONSOLE OUTPUT (SANDBOXED JOB OBJECT)'),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(12),
+            border:
+                Border.all(color: CyberColors.primary.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PS C:\\Windows\\system32> Get-Process | Sort-Object CPU\n'
+                ' NPM(K)    PM(M)    WS(M)     CPU(s)      Id  ProcessName\n'
+                ' ------    -----    -----     ------      --  -----------\n'
+                '     45    85.23   112.54      42.12    4102  CST_HostAgent\n'
+                '     98   312.45   489.12      24.08    1184  explorer\n'
+                '     22    45.10    62.30       8.15    8912  svchost\n'
+                '     14    12.40    18.90       1.20    7210  dwmd\n'
+                '\n[Process completed in 24ms with code 0]',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  color: CyberColors.success,
+                  fontSize: context.fluidFont(10),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // SETTINGS TAB
+  // -------------------------------------------------------------------
+  Widget _buildSettingsTab() {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('NETWORK PROTOCOL & DISCOVERY'),
+        const SizedBox(height: 8),
+        _buildSettingsTile(
+          icon: Icons.wifi_tethering_rounded,
+          title: 'ZeroConf mDNS Discovery',
+          subtitle:
+              'RFC 6762 multicast service listening on _cst-agent._tcp.local',
+          trailing: const Text('PORT 8765',
+              style: TextStyle(
+                  color: CyberColors.primary, fontFamily: 'monospace')),
+        ),
+        _buildSettingsTile(
+          icon: Icons.bolt_rounded,
+          title: 'Wake-on-LAN Subnet Directed',
+          subtitle: 'Magic Packet destination: 255.255.255.255 / 192.168.1.255',
+          trailing: const Text('PORT 9',
+              style: TextStyle(
+                  color: CyberColors.warning, fontFamily: 'monospace')),
+        ),
+        const SizedBox(height: 20),
+        _buildSectionHeader('GPU GRAPHICS & SHADER PIPELINE'),
+        const SizedBox(height: 8),
+        _buildSettingsTile(
+          icon: Icons.speed_rounded,
+          title: '120 FPS Impeller Rendering',
+          subtitle: 'Vulkan / Metal hardware backend with raster cache pinning',
+          trailing: const Icon(Icons.check_circle_rounded,
+              color: CyberColors.success, size: 18),
+        ),
+        _buildSettingsTile(
+          icon: Icons.aspect_ratio_rounded,
+          title: 'Bidirectional Viewport Matching (0x09)',
+          subtitle:
+              'Dynamically scales desktop downsampling to match physical DPR',
+          trailing: const Text('ACTIVE',
+              style: TextStyle(
+                  color: CyberColors.primary, fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: CyberColors.surfaceElevated.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: CyberColors.primary, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.fluidFont(12))),
+                Text(subtitle,
+                    style: TextStyle(
+                        color: CyberColors.textSecondary,
+                        fontSize: context.fluidFont(10))),
+              ],
+            ),
+          ),
+          trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        color: CyberColors.textSecondary,
+        fontSize: context.fluidFont(10),
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+
+  Widget _buildGhostCacheCard(String key, dynamic data) {
+    final mac = data is Map ? data['mac'] : '00:00:00:00:00:00';
+    return Card(
+      color: Colors.white.withValues(alpha: 0.03),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        title: Text(key, style: const TextStyle(color: Colors.grey)),
+        subtitle: const Text('Cached from prior session',
+            style: TextStyle(fontSize: 11)),
+        trailing: IconButton(
+          icon: const Icon(Icons.bolt, color: CyberColors.warning),
+          onPressed: () => _sendWakeOnLan(mac ?? '00:00:00:00:00:00'),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================================
+// FULLSCREEN SCREEN STREAM PAGE (HARDENED & FLUID)
+// =====================================================================
+class FullscreenStreamPage extends StatelessWidget {
+  final HostState host;
+
+  const FullscreenStreamPage({super.key, required this.host});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ViewportStreamWidget(
+                hostIp: host.ip,
+                hostName: host.name,
+                isInline: false,
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 10,
+              left: 14,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.white, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

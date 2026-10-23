@@ -1,0 +1,35 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+.env*
+!.env.example
+
+# IDE
+.idea/
+.vs/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+agent/app_manifest.xml
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/key.properties
+*.jks
+*.keystore
+*.p12

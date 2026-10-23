@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg512" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0e172a" />
+      <stop offset="100%" stop-color="#050811" />
+    </linearGradient>
+    <filter id="glow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg512)" stroke="#334155" stroke-width="4" />
+  <circle cx="256" cy="256" r="144" fill="none" stroke="#22d3ee" stroke-width="6" stroke-opacity="0.25" stroke-dasharray="20 14" />
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#06b6d4" stroke-width="5" stroke-opacity="0.4" />
+  <g filter="url(#glow512)">
+    <path d="M256 144 L256 240" stroke="#38bdf8" stroke-width="16" stroke-linecap="round" />
+    <path d="M192 184 A100 100 0 1 0 320 184" fill="none" stroke="#22d3ee" stroke-width="16" stroke-linecap="round" />
+  </g>
+  <circle cx="256" cy="256" r="14" fill="#38bdf8" />
+  <circle cx="180" cy="340" r="10" fill="#34d399" />
+  <circle cx="332" cy="340" r="10" fill="#38bdf8" />
+</svg>
