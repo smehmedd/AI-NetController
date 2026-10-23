@@ -46,7 +46,8 @@ CRITICAL_COMMANDS = {
     "format", "format-volume", "diskpart", "rmdir", "del", "rm", "mkfs", "dd",
     "reg", "bcdedit", "drop", "truncate", "iptables", "netsh",
     "remove-item", "stop-process", "restart-computer",
-    "shutdown", "reboot", "poweroff", "init"
+    "shutdown", "reboot", "poweroff", "init", "vssadmin", "cipher", "takeown",
+    "icacls", "chmod", "chown", "kill", "killall", "pkill", "taskkill"
 }
 
 # Pre-compiled high-performance regular expressions
@@ -55,6 +56,16 @@ _RE_INTERSTITIAL_QUOTES = re.compile(r'(?<=\w)["\'](?=\w)')
 _RE_WHITESPACE = re.compile(r"\s+")
 _RE_EVASION_CARET = re.compile(r"\w\^\w")
 _RE_PYTHON_CMD = re.compile(r"^(python(?:3)?)(\s+|$)", flags=re.IGNORECASE)
+_RE_ENCODED_POWERSHELL = re.compile(r"(?:powershell|pwsh)(?:\.exe)?\s+.*-(?:e|en|enc|enco|encod|encode|encoded|encodedc|encodedco|encodedcom|encodedcomm|encodedcomma|encodedcomman|encodedcommand)\b", flags=re.IGNORECASE)
+_RE_SUBSHELL_INJECTION = re.compile(r"\$\([^)]+\)|`[^`]+`|\b(?:iex|invoke-expression)\b", flags=re.IGNORECASE)
+_RE_CHAIN_OPERATORS = re.compile(r"(?:&&|\|\||[;&|])")
+_RE_SAFE_ENV_VARS = re.compile(r"%(COMSPEC|SYSTEMROOT|WINDIR|TEMP|TMP|USERPROFILE|APPDATA|LOCALAPPDATA|PROGRAMFILES)%", flags=re.IGNORECASE)
+
+_SAFE_WIN_ENV_MAP = {
+    "comspec": "cmd.exe",
+    "systemroot": r"C:\Windows",
+    "windir": r"C:\Windows",
+}
 
 class CommandASTFirewall:
     """
@@ -68,14 +79,17 @@ class CommandASTFirewall:
         Desugars cmd.exe and PowerShell evasion patterns:
         - Carets: w^i^n^g^e^t -> winget
         - Interstitial Quotes: w"i"n'g'et -> winget
-        - Environment variable expansions: %COMSPEC% -> cmd.exe
+        - Safe system environment variable expansions: %COMSPEC% -> cmd.exe
+          (Never expands arbitrary secrets like %CST_AGENT_SECRET%)
         - Excessive whitespace & control characters
         """
         cleaned = raw_cmd.strip()
 
-        # 1. Expand standard Windows environment variables
-        if IS_WINDOWS:
-            cleaned = os.path.expandvars(cleaned)
+        # 1. Expand only known OS path environment variables to prevent secret leakage
+        cleaned = _RE_SAFE_ENV_VARS.sub(
+            lambda m: _SAFE_WIN_ENV_MAP.get(m.group(1).lower(), os.environ.get(m.group(1), m.group(0))),
+            cleaned,
+        )
 
         # 2. Strip Windows cmd caret escape characters
         cleaned = _RE_CARET.sub("", cleaned)
@@ -95,6 +109,12 @@ class CommandASTFirewall:
         Returns: (is_allowed, risk_level, normalized_cmd, reason)
         Risk levels: "SAFE", "REQUIRES_BIOMETRIC", "BLOCKED"
         """
+        if not isinstance(raw_cmd, str):
+            return False, "BLOCKED", "", "Command payload must be a string."
+
+        if "\x00" in raw_cmd:
+            return False, "BLOCKED", "", "Null-byte injection detected."
+
         cleaned = CommandASTFirewall.strip_obfuscation(raw_cmd)
 
         try:
@@ -106,21 +126,29 @@ class CommandASTFirewall:
             return False, "BLOCKED", cleaned, "Empty command sequence."
 
         primary_token = tokens[0].lower()
-        base_name = os.path.basename(primary_token)
 
         # Path Traversal Check
         if ".." in primary_token or "../" in cleaned or "..\\" in cleaned:
             return False, "BLOCKED", cleaned, "Path traversal pattern (..) detected."
 
+        # Block obfuscated Base64 PowerShell & subshell command substitution
+        if _RE_ENCODED_POWERSHELL.search(cleaned):
+            return False, "BLOCKED", cleaned, "Encoded PowerShell command (-EncodedCommand) is prohibited."
+
+        if _RE_SUBSHELL_INJECTION.search(cleaned):
+            return True, "REQUIRES_BIOMETRIC", cleaned, "Dynamic subshell or Invoke-Expression evaluation requires operator approval."
+
         # Obfuscation & Evasion Artifact Check
         if _RE_EVASION_CARET.search(raw_cmd) or _RE_INTERSTITIAL_QUOTES.search(raw_cmd):
             return True, "REQUIRES_BIOMETRIC", cleaned, "Command contained character evasion artifacts (^ or quotes)."
 
-        # Check for critical destruction commands with broader shell obfuscation coverage.
+        # Split tokens on shell chaining operators (; | & && ||) even when unspaced
         normalized_joined = " ".join(token.lower() for token in tokens)
         for token in tokens:
-            sub_tokens = re.split(r"[\s/\\]+", token.lower())
+            sub_tokens = re.split(r"[\s/\\;|&]+", token.lower())
             for st in sub_tokens:
+                if not st:
+                    continue
                 base_cmd = st.split(".")[0].strip('"\'`')
                 if st in CRITICAL_COMMANDS or base_cmd in CRITICAL_COMMANDS:
                     return True, "REQUIRES_BIOMETRIC", cleaned, f"Critical administrative command '{st}' requires biometric confirmation."
@@ -132,10 +160,10 @@ class CommandASTFirewall:
                     if re.search(r"\b" + re.escape(crit) + r"\b", normalized_joined, re.IGNORECASE):
                         return True, "REQUIRES_BIOMETRIC", cleaned, f"Wrapper shell contains critical command '{crit}'."
 
-        # Check for piped/chained destructive operations
-        if any(op in cleaned for op in [" | ", " & ", " && ", " ; ", " || "]):
+        # Check for piped/chained destructive operations (spaced or unspaced)
+        if _RE_CHAIN_OPERATORS.search(cleaned):
             for crit in CRITICAL_COMMANDS:
-                if re.search(r"\b" + re.escape(crit) + r"\b", normalized_joined, re.IGNORECASE):
+                if re.search(r"\b" + re.escape(crit) + r"\b", cleaned, re.IGNORECASE):
                     return True, "REQUIRES_BIOMETRIC", cleaned, f"Chained shell script contains critical command '{crit}'."
 
         return True, "SAFE", cleaned, "Command passed AST validation."

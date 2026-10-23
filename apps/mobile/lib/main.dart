@@ -439,58 +439,79 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
   // -------------------------------------------------------------------
   Widget _buildDetailConsolePane(HostState host) {
     return Padding(
+      key: ValueKey<String>(host.id),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Live Screen Stream Box (16:9 Aspect Ratio with dynamic downsampling)
-          if (host.isOnline)
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ViewportStreamWidget(
-                hostIp: host.ip,
-                hostName: host.name,
-                isInline: true,
-                onToggleFullscreen: () => _openStreamScreen(host),
-              ),
-            )
-          else
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: CyberColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.power_settings_new_rounded,
-                          size: 40, color: CyberColors.textTertiary),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${host.name} is currently in S3/S5 Sleep State',
-                        style:
-                            const TextStyle(color: CyberColors.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        icon:
-                            const Icon(Icons.bolt_rounded, color: Colors.black),
-                        label: const Text('WAKE ON LAN (WoL)'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: CyberColors.warning,
-                          foregroundColor: Colors.black,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            child: host.isOnline
+                ? AspectRatio(
+                    key: ValueKey('online-${host.id}'),
+                    aspectRatio: 16 / 9,
+                    child: ViewportStreamWidget(
+                      hostIp: host.ip,
+                      hostName: host.name,
+                      isInline: true,
+                      onToggleFullscreen: () => _openStreamScreen(host),
+                    ),
+                  )
+                : AspectRatio(
+                    key: ValueKey('offline-${host.id}'),
+                    aspectRatio: 16 / 9,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withValues(alpha: 0.06),
+                                CyberColors.surfaceElevated
+                                    .withValues(alpha: 0.75),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.power_settings_new_rounded,
+                                    size: 40, color: CyberColors.textTertiary),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '${host.name} is currently in S3/S5 Sleep State',
+                                  style: const TextStyle(
+                                      color: CyberColors.textSecondary),
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  icon: const Icon(Icons.bolt_rounded,
+                                      color: Colors.black),
+                                  label: const Text('WAKE ON LAN (WoL)'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: CyberColors.warning,
+                                    foregroundColor: Colors.black,
+                                  ),
+                                  onPressed: () => _sendWakeOnLan(host.mac),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        onPressed: () => _sendWakeOnLan(host.mac),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
+          ),
 
           const SizedBox(height: 16),
           Expanded(
@@ -517,16 +538,19 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
       physics: const BouncingScrollPhysics(),
       padding: isEmbedded ? EdgeInsets.zero : const EdgeInsets.all(16),
       children: [
-        _buildSectionHeader('DISPATCH COMMAND TO: ${host.name} (${host.ip})'),
-        const SizedBox(height: 8),
+        _buildSectionHeader('DISPATCH COMMAND TO: ${host.name} · ${host.ip}'),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: commands.map((cmd) {
             return ActionChip(
-              backgroundColor: CyberColors.surfaceElevated,
-              side:
-                  BorderSide(color: CyberColors.primary.withValues(alpha: 0.3)),
+              backgroundColor:
+                  CyberColors.surfaceElevated.withValues(alpha: 0.75),
+              side: BorderSide(
+                  color: CyberColors.primary.withValues(alpha: 0.35)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
               label: Text(
                 cmd.split('|').first.trim(),
                 style: TextStyle(
@@ -550,37 +574,43 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
             );
           }).toList(),
         ),
-        const SizedBox(height: 16),
-        _buildSectionHeader('TERMINAL CONSOLE OUTPUT (SANDBOXED JOB OBJECT)'),
+        const SizedBox(height: 18),
+        _buildSectionHeader('TERMINAL CONSOLE OUTPUT · SANDBOXED JOB OBJECT'),
         const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: CyberColors.primary.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PS C:\\Windows\\system32> Get-Process | Sort-Object CPU\n'
-                ' NPM(K)    PM(M)    WS(M)     CPU(s)      Id  ProcessName\n'
-                ' ------    -----    -----     ------      --  -----------\n'
-                '     45    85.23   112.54      42.12    4102  CST_HostAgent\n'
-                '     98   312.45   489.12      24.08    1184  explorer\n'
-                '     22    45.10    62.30       8.15    8912  svchost\n'
-                '     14    12.40    18.90       1.20    7210  dwmd\n'
-                '\n[Process completed in 24ms with code 0]',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  color: CyberColors.success,
-                  fontSize: context.fluidFont(10),
-                ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                    color: CyberColors.primary.withValues(alpha: 0.25)),
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PS C:\\Windows\\system32> Get-Process | Sort-Object CPU\n'
+                    ' NPM(K)    PM(M)    WS(M)     CPU(s)      Id  ProcessName\n'
+                    ' ------    -----    -----     ------      --  -----------\n'
+                    '     45    85.23   112.54      42.12    4102  CST_HostAgent\n'
+                    '     98   312.45   489.12      24.08    1184  explorer\n'
+                    '     22    45.10    62.30       8.15    8912  svchost\n'
+                    '     14    12.40    18.90       1.20    7210  dwmd\n'
+                    '\n[Process completed in 24ms with code 0]',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: CyberColors.success,
+                      fontSize: context.fluidFont(10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -643,35 +673,61 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
     required String subtitle,
     required Widget trailing,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: CyberColors.surfaceElevated.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: CyberColors.primary, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.07),
+                  CyberColors.surfaceElevated.withValues(alpha: 0.65),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: Row(
               children: [
-                Text(title,
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: context.fluidFont(12))),
-                Text(subtitle,
-                    style: TextStyle(
-                        color: CyberColors.textSecondary,
-                        fontSize: context.fluidFont(10))),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: CyberColors.primary.withValues(alpha: 0.12),
+                    border: Border.all(
+                        color: CyberColors.primary.withValues(alpha: 0.25)),
+                  ),
+                  child: Icon(icon, color: CyberColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: context.fluidFont(12))),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: TextStyle(
+                              color: CyberColors.textSecondary,
+                              fontSize: context.fluidFont(10))),
+                    ],
+                  ),
+                ),
+                trailing,
               ],
             ),
           ),
-          trailing,
-        ],
+        ),
       ),
     );
   }
@@ -692,7 +748,7 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
     final mac = data is Map ? data['mac'] : '00:00:00:00:00:00';
     return Card(
       color: Colors.white.withValues(alpha: 0.03),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ListTile(
         title: Text(key, style: const TextStyle(color: Colors.grey)),
         subtitle: const Text('Cached from prior session',

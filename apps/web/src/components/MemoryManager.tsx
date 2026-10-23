@@ -67,32 +67,18 @@ export const MemoryManager: React.FC<MemoryManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Overview Banner */}
-      <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-sm backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-xl">
-              <Sliders className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
-                Memory Engine: Context & Custom Rules Management
-              </h2>
-              <p className="text-xs text-slate-400">
-                Two-tier memory hierarchy: Long-term Persistent (config.json) & Session-only (RAM)
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 shrink-0">
-            <label className="text-xs text-slate-400 font-medium">Selected Host:</label>
+      {/* Compact Host Selector Bar */}
+      <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <label className="text-xs text-slate-400 font-medium shrink-0">Selected Host:</label>
+          <div className="flex-1 sm:max-w-xs min-w-0">
             <select
               value={selectedHostId}
               onChange={(e) => setSelectedHostId(e.target.value)}
-              className="bg-slate-950 border border-slate-700/80 text-xs text-teal-400 font-mono font-bold rounded-xl px-3 py-1.5 focus:outline-hidden"
+              className="w-full max-w-full truncate rounded-xl bg-white/5 border border-white/15 px-3 py-2 text-xs text-cyan-300 font-mono font-bold focus:outline-hidden"
             >
               {hosts.map(h => (
-                <option key={h.id} value={h.id}>
+                <option key={h.id} value={h.id} className="bg-slate-950 text-cyan-300">
                   {h.id} ({h.name})
                 </option>
               ))}

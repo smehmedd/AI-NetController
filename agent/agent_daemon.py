@@ -300,35 +300,53 @@ def screen_capture_worker_process(shm_name: str, stop_event: Event, ready_event:
     except Exception:
         synthetic_locked_frame = b"LOCKED"
 
+    from PIL import Image
+    import io
+    reusable_bio = io.BytesIO()
+    frame_seq = 0
+    last_raw_hash = 0
+
     while not stop_event.is_set():
         start_t = time.perf_counter()
+        data = None
 
         if WindowsSessionBridge.is_workstation_locked():
-            # Write synthetic locked screen frame to shared memory
             data = synthetic_locked_frame
         elif sct:
             try:
-                mon = sct.monitors[1]
+                mon = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
                 frame = sct.grab(mon)
-                if jpeg:
-                    data = jpeg.encode(frame.bgra, quality=65)
-                else:
-                    from PIL import Image
-                    import io
-                    img = Image.frombytes("RGB", frame.size, frame.bgra, "raw", "BGRX")
-                    bio = io.BytesIO()
-                    img.save(bio, format="JPEG", quality=60)
-                    data = bio.getvalue()
-            except Exception as e:
+                raw_mv = memoryview(frame.raw)
+                import zlib
+                curr_hash = zlib.adler32(raw_mv[::2048])
+                if curr_hash != last_raw_hash or frame_seq == 0:
+                    last_raw_hash = curr_hash
+                    if jpeg:
+                        data = jpeg.encode(frame.bgra, quality=65)
+                    else:
+                        img = Image.frombytes("RGB", frame.size, frame.bgra, "raw", "BGRX")
+                        reusable_bio.seek(0)
+                        reusable_bio.truncate(0)
+                        img.save(reusable_bio, format="JPEG", quality=60)
+                        data = reusable_bio.getvalue()
+            except Exception:
                 data = synthetic_locked_frame
         else:
             data = synthetic_locked_frame
 
-        # Write frame to shared memory: [4-byte uint32 length] + [JPEG bytes]
-        data_len = len(data)
-        if data_len < SHM_BUFFER_SIZE - 4:
-            struct.pack_into(">I", shm.buf, 0, data_len)
-            shm.buf[4:4 + data_len] = data
+        # Write frame to shared memory using lock-free seqlock:
+        # Layout: [4-byte uint32 seq (odd=writing, even=ready)] [4-byte uint32 length] [JPEG bytes]
+        if data is not None:
+            data_len = len(data)
+            if 0 < data_len < SHM_BUFFER_SIZE - 8:
+                frame_seq = (frame_seq + 2) & 0x7FFFFFFE
+                if frame_seq == 0:
+                    frame_seq = 2
+                # Mark odd sequence while writing to prevent torn reads
+                struct.pack_into(">II", shm.buf, 0, frame_seq - 1, data_len)
+                shm.buf[8:8 + data_len] = data
+                # Commit even sequence once write is complete
+                struct.pack_into(">I", shm.buf, 0, frame_seq)
 
         # Target ~30 FPS loop pacing (33ms)
         elapsed = time.perf_counter() - start_t
@@ -342,10 +360,11 @@ def screen_capture_worker_process(shm_name: str, stop_event: Event, ready_event:
 # Hardened Socket Server & I/O Reactor
 # ------------------------------------------------------------------------------
 class DaemonServer:
-    def __init__(self, host: str = "0.0.0.0", port: int = 8765, psk: str = "CST_SECURE_TOKEN_2026"):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8765, psk: Optional[str] = None):
         self.host = host
         self.port = port
-        self.psk = psk.encode("utf-8")
+        resolved_psk = psk or os.environ.get("CST_AGENT_SECRET", "CST_SECURE_TOKEN_2026")
+        self.psk = resolved_psk.encode("utf-8")
         self.running = False
         self.vault: Optional[HostCryptoVault] = None
         self.thread_pool = ThreadPoolExecutor(max_workers=4)
@@ -355,6 +374,17 @@ class DaemonServer:
         self.worker_process: Optional[Process] = None
         self.stop_event = Event()
         self.ready_event = Event()
+
+    @staticmethod
+    async def _recv_exact(loop: asyncio.AbstractEventLoop, sock: socket.socket, num_bytes: int, timeout: float = 5.0) -> Optional[bytes]:
+        """Reads exactly num_bytes from non-blocking TCP socket with timeout protection."""
+        buf = bytearray()
+        while len(buf) < num_bytes:
+            chunk = await asyncio.wait_for(loop.sock_recv(sock, num_bytes - len(buf)), timeout=timeout)
+            if not chunk:
+                return None
+            buf.extend(chunk)
+        return bytes(buf)
 
     def _bind_hardened_socket(self) -> socket.socket:
         """
@@ -421,6 +451,10 @@ class DaemonServer:
 
     async def _handle_client(self, client_sock: socket.socket, loop: asyncio.AbstractEventLoop):
         client_sock.setblocking(False)
+        try:
+            client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except Exception:
+            pass
         vault = HostCryptoVault(self.psk)
 
         try:
@@ -430,41 +464,43 @@ class DaemonServer:
             header = struct.pack(">BBBBII", 0x55, 0xAA, 0x06, 0x00, 0, len(challenge))
             await loop.sock_sendall(client_sock, header + challenge)
 
-            # 2. Receive Handshake Response
-            resp_header = await loop.sock_recv(client_sock, 12)
-            if len(resp_header) < 12:
+            # 2. Receive Handshake Response (exact 12-byte header + payload)
+            resp_header = await self._recv_exact(loop, client_sock, 12, timeout=3.0)
+            if not resp_header:
                 client_sock.close()
                 return
 
             _, _, opcode, _, _, payload_len = struct.unpack(">BBBBII", resp_header)
-            if opcode != 0x06:
+            if opcode != 0x06 or payload_len <= 0 or payload_len > 4096:
                 client_sock.close()
                 return
 
-            resp_payload = await loop.sock_recv(client_sock, payload_len)
-            if not vault.complete_handshake(resp_payload):
+            resp_payload = await self._recv_exact(loop, client_sock, payload_len, timeout=3.0)
+            if not resp_payload or not vault.complete_handshake(resp_payload):
                 logger.error("Zero-Trust Handshake Authentication Failed. Dropping peer socket.")
                 client_sock.close()
                 return
 
             logger.info("Zero-Trust Ephemeral Curve25519 Session Established.")
 
-            # 3. Active Encrypted Stream Loop
+            # 3. Active Encrypted Stream Loop with Seqlock & Delta Deduplication
+            last_sent_frame_seq = 0
             while self.running:
                 await asyncio.sleep(0.033)
-                # Read latest frame from shared memory
                 if self.shm:
-                    frame_len = struct.unpack_from(">I", self.shm.buf, 0)[0]
-                    if 0 < frame_len < SHM_BUFFER_SIZE - 4:
-                        frame_bytes = bytes(self.shm.buf[4:4 + frame_len])
-                        # Encrypt frame with AEAD ChaCha20-Poly1305
-                        encrypted_payload, seq = vault.encrypt_frame(frame_bytes)
-                        # Opcode 0x01: Video Frame, Flag 0x02: Encrypted
-                        hdr = struct.pack(">BBBBII", 0x55, 0xAA, 0x01, 0x02, seq, len(encrypted_payload))
-                        await loop.sock_sendall(client_sock, hdr + encrypted_payload)
+                    seq1, frame_len = struct.unpack_from(">II", self.shm.buf, 0)
+                    # Only read if seq1 is even (writer not active) and newer than last transmitted frame
+                    if seq1 > 0 and (seq1 & 1) == 0 and seq1 != last_sent_frame_seq and 0 < frame_len < SHM_BUFFER_SIZE - 8:
+                        frame_bytes = bytes(self.shm.buf[8:8 + frame_len])
+                        seq2 = struct.unpack_from(">I", self.shm.buf, 0)[0]
+                        if seq1 == seq2:
+                            last_sent_frame_seq = seq1
+                            encrypted_payload, seq = vault.encrypt_frame(frame_bytes)
+                            hdr = struct.pack(">BBBBII", 0x55, 0xAA, 0x01, 0x02, seq, len(encrypted_payload))
+                            await loop.sock_sendall(client_sock, hdr + encrypted_payload)
 
-        except (ConnectionResetError, BrokenPipeError):
-            logger.info("Client disconnected.")
+        except (ConnectionResetError, BrokenPipeError, asyncio.TimeoutError):
+            logger.info("Client disconnected or timed out.")
         except Exception as e:
             logger.error(f"Error handling peer: {e}")
         finally:

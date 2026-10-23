@@ -105,9 +105,9 @@ class NetworkFramer {
 
     final int unreadBytes = _writeIndex - _readIndex;
     if (unreadBytes + incomingBytes <= _accumulator.length) {
-      // Shift unread bytes to start of buffer
+      // Shift unread bytes to start of buffer in-place without allocating a sublist copy
       if (unreadBytes > 0) {
-        _accumulator.setRange(0, unreadBytes, _accumulator.sublist(_readIndex, _writeIndex));
+        _accumulator.setRange(0, unreadBytes, _accumulator, _readIndex);
       }
       _readIndex = 0;
       _writeIndex = unreadBytes;
@@ -116,7 +116,7 @@ class NetworkFramer {
       final int newCapacity = (_accumulator.length * 2) + incomingBytes;
       final Uint8List newBuf = Uint8List(newCapacity);
       if (unreadBytes > 0) {
-        newBuf.setRange(0, unreadBytes, _accumulator.sublist(_readIndex, _writeIndex));
+        newBuf.setRange(0, unreadBytes, _accumulator, _readIndex);
       }
       _accumulator = newBuf;
       _readIndex = 0;
@@ -126,9 +126,12 @@ class NetworkFramer {
 
   void _processAccumulator() {
     while ((_writeIndex - _readIndex) >= kHeaderLength) {
-      // 1. Frame Resynchronization: Verify 0x55, 0xAA Magic Header
-      if (_accumulator[_readIndex] != kSyncByte0 ||
-          _accumulator[_readIndex + 1] != kSyncByte1) {
+      // 1. Frame Resynchronization: Verify 0x55, 0xAA or 0xC5, 0x71 Magic Header
+      final int b0 = _accumulator[_readIndex];
+      final int b1 = _accumulator[_readIndex + 1];
+      final bool isSyncHeader =
+          (b0 == kSyncByte0 && b1 == kSyncByte1) || (b0 == 0xC5 && b1 == 0x71);
+      if (!isSyncHeader) {
         // Discard 1 byte and resynchronize
         _readIndex++;
         continue;
@@ -140,8 +143,8 @@ class NetworkFramer {
       final int seq = bd.getUint32(4, Endian.big);
       final int payloadLen = bd.getUint32(8, Endian.big);
 
-      // Sanity check length against safety ceiling (64MB)
-      if (payloadLen > 64 * 1024 * 1024) {
+      // Sanity check length against safety ceiling (16MB)
+      if (payloadLen > 16 * 1024 * 1024) {
         // Desynchronized corrupted length header: advance 1 byte
         _readIndex++;
         continue;
@@ -189,7 +192,20 @@ class NetworkFramer {
     final int offset = bd.getUint32(4, Endian.big);
     final int totalLength = bd.getUint32(8, Endian.big);
 
-    final Uint8List slice = fragmentPayload.sublist(kFragSubHeaderLength);
+    // Guard against forged/malicious fragment totalLength causing OOM (max 16 MB, max 32 active sessions)
+    if (totalLength <= 0 || totalLength > 16 * 1024 * 1024) return;
+    if (!_fragmentSessions.containsKey(messageId) && _fragmentSessions.length >= 32) {
+      _reapExpiredSessions();
+      if (_fragmentSessions.length >= 32) {
+        _fragmentSessions.remove(_fragmentSessions.keys.first);
+      }
+    }
+
+    final int sliceLen = fragmentPayload.length - kFragSubHeaderLength;
+    if (offset < 0 || offset + sliceLen > totalLength) return;
+
+    final Uint8List slice =
+        Uint8List.sublistView(fragmentPayload, kFragSubHeaderLength);
 
     _FragmentAssemblySession session = _fragmentSessions.putIfAbsent(
       messageId,
@@ -209,7 +225,7 @@ class NetworkFramer {
     }
 
     // Check completion condition
-    if (session.bytesReceived >= session.totalLength || (flags & WireFlags.lastFragment) != 0) {
+    if (session.bytesReceived >= session.totalLength) {
       _fragmentSessions.remove(messageId);
       _packetStreamController.add(WirePacket(
         opcode: session.opcode,

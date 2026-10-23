@@ -110,5 +110,36 @@ class CommandASTFirewall:
   }
 }
 `
+  },
+  {
+    "filename": "PATCH_NOTES.md",
+    "language": "markdown",
+    "category": "docs",
+    "description": "v2.5.0 Release Patch Notes — 3-Tier Liquid Glass, 3-Tile Bento Fleet Card & Security Hardening",
+    "code": `# Patch Notes — CST NetController AI v2.5.0
+
+**Release Date:** October 23, 2026
+**Version:** v2.5.0-LTS
+**Protocol Version:** CST/3.0-SECURE
+
+## 1. 3-Tier Optical Liquid Glass Architecture
+- Tier 1 (Resting Canvas Cards): bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%]
+- Tier 2 (Floating Chrome): bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%]
+- Tier 3 (Modals, Sheets & Popovers): bg-black/75 backdrop-blur-md backdrop + bg-[#091020]/95 backdrop-blur-3xl surface
+
+## 2. Fleet Dashboard & 3-Tile Bento Device Card
+- Top Bar Consolidation: Inline [Online • Sleeping] pill, 1-tap [Wake All (N)] broadcast button, [Cards | Map] toggle, and [EN/BG] switch.
+- Collapsed HostCard: 44x44px squircle icon, OS badge, IP, latency, 3px CPU/RAM bars, and clean Sleeping • Ready for WoL status.
+- Expanded 3-Tile Bento Grid:
+  1. Tile 1: 16:9 Live Mini-Screen Preview + Interactive Screen & Trackpad launcher
+  2. Tile 2: 2x2 1-Tap Quick OS Actions (Lock PC, Flush DNS, Restart Docker, Sleep / Wake)
+  3. Tile 3: Compact Hardware & Network Strip (1-click MAC copy, Disk usage, 60px inline sparkline, RTT/jitter)
+
+## 3. Console, Gemini Copilot & Settings Refinements
+- Flush host selector pills and bottom-anchored localized command preset chips in CommandTerminal.
+- Shared selectedModel persisted in useUIStore across Settings and Gemini Copilot header badge.
+- Collapsed-by-default Green WoL Efficiency banner & 100% EN/BG localized Weekly Energy Chart.
+- Streamlined MemoryManager host selector, fixed 12-hour schedule time subtext in WolModal, and capped SystemUpdateModal rows to 2 badges.
+`
   }
 ];

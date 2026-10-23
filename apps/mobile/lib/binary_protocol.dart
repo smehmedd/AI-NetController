@@ -23,7 +23,7 @@ class BinaryOpcode {
       0x0A; // 10: Dynamic Viewport Dimension Negotiation
   static const int displayEnum =
       0x0B; // 11: Multi-Monitor Display Enumeration & Context Switching
-  static const int llmStream = 0x0C; // 12: Local LLM Chunk Stream
+  static const int llmStream = 0x0B; // 11: Local LLM Chunk Stream (matches agent.py OP_LLM_STREAM)
   static const int fileTransfer =
       0x0C; // 12: Chunked Zero-Trust File Transfer (Opcode 0x0C)
   static const int frameSync =

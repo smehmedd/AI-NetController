@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'fluid_theme.dart';
@@ -296,76 +297,85 @@ class _FleetScreenState extends State<FleetScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          // Header Summary Banner
+          // Header Summary Banner (Liquid Glass)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF071226).withValues(alpha: 0.9),
-                      const Color(0xFF040A18).withValues(alpha: 0.95),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: NeonColors.cyan.withValues(alpha: 0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: NeonColors.cyan.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: NeonColors.cyan.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child:
-                          Icon(Icons.radar, color: NeonColors.cyan, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Autonomous PC Fleet',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$onlineCount of ${_devices.length} Nodes Active · ZeroConf mDNS Online',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.65),
-                              fontSize: 12,
-                            ),
-                          ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.09),
+                          const Color(0xFF071226).withValues(alpha: 0.78),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.16)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: NeonColors.cyan.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: Icon(Icons.add_circle_outline,
-                          color: NeonColors.cyan),
-                      onPressed: _showAddHostDialog,
-                      tooltip: 'Register Host',
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: NeonColors.cyan.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: NeonColors.cyan.withValues(alpha: 0.3)),
+                          ),
+                          child: Icon(Icons.radar,
+                              color: NeonColors.cyan, size: 26),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Autonomous PC Fleet',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$onlineCount of ${_devices.length} Nodes Active · ZeroConf mDNS',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.65),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.add_circle_outline,
+                              color: NeonColors.cyan),
+                          onPressed: _showAddHostDialog,
+                          tooltip: 'Register Host',
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -382,114 +392,139 @@ class _FleetScreenState extends State<FleetScreen> {
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF070E1C).withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: isSelected
-                              ? NeonColors.cyan
-                              : Colors.white.withValues(alpha: 0.08),
-                          width: isSelected ? 1.8 : 1.0,
-                        ),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            widget.onSelectHost(device);
-                          },
-                          borderRadius: BorderRadius.circular(18),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                Row(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutCubic,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isSelected
+                                  ? [
+                                      NeonColors.cyan.withValues(alpha: 0.16),
+                                      const Color(0xFF070E1C)
+                                          .withValues(alpha: 0.84),
+                                    ]
+                                  : [
+                                      Colors.white.withValues(alpha: 0.06),
+                                      const Color(0xFF070E1C)
+                                          .withValues(alpha: 0.75),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: isSelected
+                                  ? NeonColors.cyan.withValues(alpha: 0.7)
+                                  : Colors.white.withValues(alpha: 0.1),
+                              width: isSelected ? 1.6 : 1.0,
+                            ),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                widget.onSelectHost(device);
+                              },
+                              borderRadius: BorderRadius.circular(22),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
                                   children: [
-                                    Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: device.isOnline
-                                            ? const Color(0xFF00FF88)
-                                            : Colors.grey.shade600,
-                                        boxShadow: device.isOnline
-                                            ? [
-                                                BoxShadow(
-                                                  color: const Color(0xFF00FF88)
-                                                      .withValues(alpha: 0.6),
-                                                  blurRadius: 8,
-                                                )
-                                              ]
-                                            : null,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: device.isOnline
+                                                ? const Color(0xFF00FF88)
+                                                : Colors.grey.shade600,
+                                            boxShadow: device.isOnline
+                                                ? [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                              0xFF00FF88)
+                                                          .withValues(
+                                                              alpha: 0.6),
+                                                      blurRadius: 8,
+                                                    )
+                                                  ]
+                                                : null,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                device.name,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${device.ip}:${device.port} · ${device.mac}',
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.55),
+                                                  fontSize: 11,
+                                                  fontFamily: 'monospace',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        // Quick WoL Action
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.bolt,
+                                            color: device.isOnline
+                                                ? Colors.white
+                                                    .withValues(alpha: 0.3)
+                                                : NeonColors.violet,
+                                          ),
+                                          onPressed: () =>
+                                              _sendDirectedWol(device),
+                                          tooltip: 'Send Wake-on-LAN',
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                    if (device.isOnline) ...[
+                                      const SizedBox(height: 12),
+                                      Row(
                                         children: [
-                                          Text(
-                                            device.name,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
+                                          Expanded(
+                                            child: _MetricBar(
+                                              label: 'CPU',
+                                              value: device.cpuPercent,
+                                              color: NeonColors.cyan,
                                             ),
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${device.ip}:${device.port} · ${device.mac}',
-                                            style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.5),
-                                              fontSize: 11,
-                                              fontFamily: 'monospace',
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _MetricBar(
+                                              label: 'RAM',
+                                              value: device.ramPercent,
+                                              color: NeonColors.violet,
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    // Quick WoL Action
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.bolt,
-                                        color: device.isOnline
-                                            ? Colors.white
-                                                .withValues(alpha: 0.3)
-                                            : NeonColors.violet,
-                                      ),
-                                      onPressed: () => _sendDirectedWol(device),
-                                      tooltip: 'Send Wake-on-LAN',
-                                    ),
+                                    ],
                                   ],
                                 ),
-                                if (device.isOnline) ...[
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _MetricBar(
-                                          label: 'CPU',
-                                          value: device.cpuPercent,
-                                          color: NeonColors.cyan,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: _MetricBar(
-                                          label: 'RAM',
-                                          value: device.ramPercent,
-                                          color: NeonColors.violet,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -521,6 +556,7 @@ class _MetricBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final targetProgress = (value / 100.0).clamp(0.0, 1.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -549,11 +585,18 @@ class _MetricBar extends StatelessWidget {
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: (value / 100.0).clamp(0.0, 1.0),
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
-            valueColor: AlwaysStoppedAnimation(color),
-            minHeight: 4,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: targetProgress),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, _) {
+              return LinearProgressIndicator(
+                value: animatedValue,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                valueColor: AlwaysStoppedAnimation(color),
+                minHeight: 4,
+              );
+            },
           ),
         ),
       ],

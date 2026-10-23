@@ -141,7 +141,7 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
 
     return RepaintBoundary(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.symmetric(vertical: 5.0),
         child: GestureDetector(
           onTapDown: _onTapDown,
           onTapUp: _onTapUp,
@@ -150,50 +150,79 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
           child: ScaleTransition(
             scale: _scaleAnimation,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18.0),
+              borderRadius: BorderRadius.circular(22.0),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 14.0, sigmaY: 14.0),
+                filter: ImageFilter.blur(sigmaX: 24.0, sigmaY: 24.0),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 280),
                   curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.all(14.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? CyberColors.primary.withValues(alpha: 0.15)
-                        : CyberColors.surfaceElevated.withValues(alpha: 0.70),
-                    borderRadius: BorderRadius.circular(18.0),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isSelected
+                          ? [
+                              CyberColors.primary.withValues(alpha: 0.20),
+                              CyberColors.surfaceElevated
+                                  .withValues(alpha: 0.82),
+                            ]
+                          : [
+                              Colors.white.withValues(alpha: 0.08),
+                              CyberColors.surfaceElevated
+                                  .withValues(alpha: 0.68),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(22.0),
                     border: Border.all(
                       color: isSelected
-                          ? CyberColors.primary
+                          ? CyberColors.primary.withValues(alpha: 0.75)
                           : (isOnline
-                              ? CyberColors.primary.withValues(alpha: 0.40)
-                              : CyberColors.glassBorderIdle),
-                      width: isSelected ? 2.0 : 1.0,
+                              ? Colors.white.withValues(alpha: 0.16)
+                              : Colors.white.withValues(alpha: 0.07)),
+                      width: isSelected ? 1.6 : 1.0,
                     ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color:
-                                  CyberColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 18,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: isSelected
+                            ? CyberColors.primary.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.45),
+                        blurRadius: isSelected ? 22 : 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header Row: Node indicator, Name, IP & Online Tag
+                      // Header Row: Node indicator, Name, Clean Unboxed Metadata & Action Orb
                       Row(
                         children: [
-                          CustomPaint(
-                            size: const Size(22, 22),
-                            painter: CyberNodeBadgePainter(isOnline: isOnline),
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(13),
+                              color: isOnline
+                                  ? CyberColors.primary.withValues(alpha: 0.12)
+                                  : Colors.white.withValues(alpha: 0.04),
+                              border: Border.all(
+                                color: isOnline
+                                    ? CyberColors.primary
+                                        .withValues(alpha: 0.35)
+                                    : Colors.white.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            child: Center(
+                              child: CustomPaint(
+                                size: const Size(20, 20),
+                                painter:
+                                    CyberNodeBadgePainter(isOnline: isOnline),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,17 +230,17 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
                                 Text(
                                   widget.name,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: context.fluidFont(13),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: context.fluidFont(14),
                                     color: CyberColors.textPrimary,
-                                    letterSpacing: 0.5,
+                                    letterSpacing: -0.2,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 3),
                                 Text(
-                                  '${widget.ip} • ${isOnline ? "mDNS Active" : "Sleeping (WoL)"}',
+                                  '${widget.ip} · ${isOnline ? "Online" : "Sleeping"}',
                                   style: TextStyle(
                                     fontSize: context.fluidFont(11),
                                     color: isOnline
@@ -227,60 +256,88 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
                             ),
                           ),
 
-                          // Quick Action Buttons
+                          // Quick Action Orb (44x44px touch target)
                           if (isOnline && widget.onOpenStream != null)
-                            IconButton(
-                              tooltip: 'Open Live Stream',
-                              icon:
-                                  const Icon(Icons.videocam_rounded, size: 20),
-                              color: CyberColors.primary,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 36, minHeight: 36),
-                              onPressed: widget.onOpenStream,
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    CyberColors.primary.withValues(alpha: 0.12),
+                                border: Border.all(
+                                  color: CyberColors.primary
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: IconButton(
+                                tooltip: 'Open Live Stream',
+                                icon: const Icon(Icons.videocam_rounded,
+                                    size: 19),
+                                color: CyberColors.primary,
+                                padding: EdgeInsets.zero,
+                                onPressed: widget.onOpenStream,
+                              ),
                             )
                           else if (!isOnline && widget.onWakeOnLan != null)
-                            IconButton(
-                              tooltip: 'Send Wake-on-LAN Magic Packet',
-                              icon: const Icon(Icons.bolt_rounded, size: 20),
-                              color: CyberColors.warning,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 36, minHeight: 36),
-                              onPressed: widget.onWakeOnLan,
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    CyberColors.warning.withValues(alpha: 0.14),
+                                border: Border.all(
+                                  color: CyberColors.warning
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: IconButton(
+                                tooltip: 'Send Wake-on-LAN Magic Packet',
+                                icon: const Icon(Icons.bolt_rounded, size: 19),
+                                color: CyberColors.warning,
+                                padding: EdgeInsets.zero,
+                                onPressed: widget.onWakeOnLan,
+                              ),
                             ),
                         ],
                       ),
 
-                      // Optional Telemetry Gauges when host is Online
-                      if (isOnline) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildMiniTelemetryBar(
-                                context: context,
-                                label: 'CPU',
-                                value: widget.cpuUsage,
-                                color: widget.cpuUsage > 80
-                                    ? CyberColors.accent
-                                    : CyberColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildMiniTelemetryBar(
-                                context: context,
-                                label: 'RAM',
-                                value: widget.ramUsage,
-                                color: widget.ramUsage > 85
-                                    ? CyberColors.warning
-                                    : CyberColors.secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      // Smooth Animated Telemetry Gauges when host is Online
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        child: isOnline
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildMiniTelemetryBar(
+                                        context: context,
+                                        label: 'CPU',
+                                        value: widget.cpuUsage,
+                                        color: widget.cpuUsage > 80
+                                            ? CyberColors.accent
+                                            : CyberColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: _buildMiniTelemetryBar(
+                                        context: context,
+                                        label: 'RAM',
+                                        value: widget.ramUsage,
+                                        color: widget.ramUsage > 85
+                                            ? CyberColors.warning
+                                            : CyberColors.secondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ),
                 ),
@@ -309,7 +366,7 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
               label,
               style: TextStyle(
                 fontSize: context.fluidFont(9),
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: CyberColors.textSecondary,
                 letterSpacing: 0.8,
               ),
@@ -325,27 +382,34 @@ class _ResponsiveDeviceCardState extends State<ResponsiveDeviceCard>
             ),
           ],
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         ClipRRect(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(4),
           child: Container(
             height: 4,
             width: double.infinity,
             color: Colors.white.withValues(alpha: 0.08),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: clampedPercent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.6),
-                      blurRadius: 4,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: clampedPercent),
+              duration: const Duration(milliseconds: 520),
+              curve: Curves.easeOutCubic,
+              builder: (context, animatedFactor, _) {
+                return FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: animatedFactor,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: color,
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.6),
+                          blurRadius: 6,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),

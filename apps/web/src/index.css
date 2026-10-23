@@ -81,65 +81,65 @@
   animation: rubber-bounce-bottom 0.42s var(--ease-elastic);
 }
 
-/* Apple Liquid Glass Material System */
+/* Apple VisionOS & One UI 7 Liquid Glass Material System */
+@keyframes liquid-aurora-drift {
+  0% {
+    transform: translate3d(0%, 0%, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.06) rotate(4deg);
+  }
+  100% {
+    transform: translate3d(-2%, 3%, 0) scale(0.97) rotate(-3deg);
+  }
+}
+
+.liquid-aurora-orb {
+  animation: liquid-aurora-drift 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Tier 1 — Resting Canvas Cards */
 .glass-liquid {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.09) 0%,
-    rgba(255, 255, 255, 0.025) 45%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  backdrop-filter: blur(28px) saturate(190%) brightness(108%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(108%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.32);
-  border-left-color: rgba(255, 255, 255, 0.2);
-  border-right-color: rgba(255, 255, 255, 0.06);
-  border-bottom-color: rgba(255, 255, 255, 0.04);
-  box-shadow:
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.32),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35),
-    0 20px 40px -12px rgba(0, 0, 0, 0.6);
+  background: rgba(11, 19, 36, 0.55);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  transition: transform 0.22s var(--ease-bubbly), filter 0.2s var(--ease-samsung), box-shadow 0.2s var(--ease-samsung), border-color 0.2s var(--ease-samsung);
+  transition:
+    transform 0.26s var(--ease-bubbly),
+    filter 0.22s var(--ease-samsung),
+    box-shadow 0.24s var(--ease-samsung),
+    border-color 0.22s var(--ease-samsung),
+    background 0.24s var(--ease-samsung);
 }
 
 .glass-liquid-subtle {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  backdrop-filter: blur(20px) saturate(170%) brightness(105%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%) brightness(105%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top-color: rgba(255, 255, 255, 0.22);
-  border-left-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22),
-    0 10px 28px -8px rgba(0, 0, 0, 0.4);
+  background: rgba(11, 19, 36, 0.55);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  transition: transform 0.2s var(--ease-bubbly), filter 0.18s var(--ease-samsung);
+  transition:
+    transform 0.22s var(--ease-bubbly),
+    filter 0.18s var(--ease-samsung),
+    border-color 0.2s var(--ease-samsung);
 }
 
+/* Tier 2 — Floating Chrome (FloatingPillNav, Sticky Inputs, Header Capsules) */
 .glass-liquid-elevated {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.13) 0%,
-    rgba(255, 255, 255, 0.04) 40%,
-    rgba(255, 255, 255, 0.085) 100%
-  );
-  backdrop-filter: blur(36px) saturate(210%) brightness(112%);
-  -webkit-backdrop-filter: blur(36px) saturate(210%) brightness(112%);
+  background: rgba(7, 12, 24, 0.88);
+  backdrop-filter: blur(64px) saturate(190%);
+  -webkit-backdrop-filter: blur(64px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-top-color: rgba(255, 255, 255, 0.42);
-  border-left-color: rgba(255, 255, 255, 0.24);
-  box-shadow:
-    inset 0 2px 3px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.45),
-    0 32px 64px -16px rgba(0, 0, 0, 0.7);
+  border-top-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
 }
@@ -147,26 +147,27 @@
 /* Samsung One UI Bubbly Pill Capsule */
 .samsung-pill {
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px) saturate(170%);
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.25);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 8px 20px -4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.22s var(--ease-bubbly), box-shadow 0.2s var(--ease-samsung), border-color 0.2s var(--ease-samsung);
+  border-top-color: rgba(255, 255, 255, 0.26);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.24), 0 8px 20px -4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.24s var(--ease-bubbly), box-shadow 0.2s var(--ease-samsung), border-color 0.2s var(--ease-samsung);
 }
 
 .samsung-card {
-  border-radius: 2rem;
-  transition: transform 0.24s var(--ease-bubbly), filter 0.2s var(--ease-samsung), box-shadow 0.2s var(--ease-samsung);
+  border-radius: 1.75rem;
+  transition: transform 0.26s var(--ease-bubbly), filter 0.2s var(--ease-samsung), box-shadow 0.22s var(--ease-samsung);
   will-change: transform;
 }
 
 .samsung-card:hover {
-  transform: translateY(-3px) scale(1.015);
+  transform: translateY(-2.5px) scale(1.01);
 }
 
 .samsung-card-active:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 /* Elastic Bubbly Interaction Effects */
@@ -176,12 +177,16 @@ button, [role="button"] {
 }
 
 .bubble-tap {
-  transition: transform 0.22s var(--ease-elastic), filter 0.15s ease, box-shadow 0.22s var(--ease-elastic);
+  transition: transform 0.24s var(--ease-bubbly), filter 0.18s ease, box-shadow 0.22s var(--ease-samsung);
   will-change: transform;
 }
 
+.bubble-tap:hover {
+  transform: translateY(-1.5px) scale(1.025);
+}
+
 .bubble-tap:active {
-  transform: scale(0.91) translateY(1px);
+  transform: scale(0.92) translateZ(0);
   transition-duration: 0.08s;
 }
 
@@ -197,20 +202,14 @@ button, [role="button"] {
   transform: scale(0.93) translateY(1px);
   transition-duration: 0.08s;
 }
-.bubble-tap:active {
-  transform: scale(0.9) translateZ(0);
-}
-.bubble-tap:hover {
-  transform: translateY(-2px) scale(1.03);
-}
 
-/* Samsung One UI Luminous Glows */
+/* Luminous Glows */
 .samsung-glow-cyan {
-  box-shadow: 0 0 24px -2px rgba(0, 212, 255, 0.45), inset 0 0 10px rgba(0, 212, 255, 0.28);
+  box-shadow: 0 0 24px -2px rgba(56, 189, 248, 0.42), inset 0 0 10px rgba(56, 189, 248, 0.24);
 }
 
 .samsung-glow-emerald {
-  box-shadow: 0 0 24px -2px rgba(0, 230, 118, 0.45), inset 0 0 10px rgba(0, 230, 118, 0.28);
+  box-shadow: 0 0 24px -2px rgba(52, 211, 153, 0.42), inset 0 0 10px rgba(52, 211, 153, 0.24);
 }
 
 /* Smooth Scrollbar */

@@ -81,6 +81,11 @@ except ImportError:
     HostFileWriter = None
 
 try:
+    from command_ast_firewall import CommandASTFirewall
+except ImportError:
+    CommandASTFirewall = None
+
+try:
     from network_fuzzer_shield import NetworkFuzzerShield, ChaosProfile, ConnectionState
 except ImportError:
     NetworkFuzzerShield = None
@@ -359,28 +364,36 @@ class AdaptiveScreenPipeline:
             if Image and (raw_shot.width != self.target_res[0] or raw_shot.height != self.target_res[1]):
                 img = Image.frombytes("RGB", raw_shot.size, raw_shot.bgra, "raw", "BGRX")
                 img = img.resize(self.target_res, Image.Resampling.BILINEAR)
-                with io.BytesIO() as buf:
-                    img.save(buf, format="JPEG", quality=self.jpeg_quality, optimize=False)
-                    return buf.getvalue(), False
+                buf = getattr(self._local, 'bio_buf', None)
+                if buf is None:
+                    buf = io.BytesIO()
+                    self._local.bio_buf = buf
+                else:
+                    buf.seek(0)
+                    buf.truncate(0)
+                img.save(buf, format="JPEG", quality=self.jpeg_quality, optimize=False)
+                return buf.getvalue(), False
 
-            # Fast encode for 1:1 desktop resolution
-            raw_bytes = bytes(raw_shot.raw)
+            # Zero-copy encode for 1:1 desktop resolution (pass raw_shot.raw directly without bytes() copy)
             if self.turbo:
-                # Fast BGRX encode via libjpeg-turbo
                 encoded = self.turbo.encode(
-                    raw_bytes,
+                    raw_shot.raw,
                     quality=self.jpeg_quality,
                     pixel_format=2,  # TJPF_BGRX
-                    width=raw_shot.width,
-                    height=raw_shot.height
                 )
                 return encoded, False
             elif Image:
-                # Optimized Pillow fallback
+                # Optimized Pillow fallback with reusable thread-local BytesIO
                 img = Image.frombytes("RGB", raw_shot.size, raw_shot.bgra, "raw", "BGRX")
-                with io.BytesIO() as buf:
-                    img.save(buf, format="JPEG", quality=self.jpeg_quality, optimize=False)
-                    return buf.getvalue(), False
+                buf = getattr(self._local, 'bio_buf', None)
+                if buf is None:
+                    buf = io.BytesIO()
+                    self._local.bio_buf = buf
+                else:
+                    buf.seek(0)
+                    buf.truncate(0)
+                img.save(buf, format="JPEG", quality=self.jpeg_quality, optimize=False)
+                return buf.getvalue(), False
             return None, False
         except Exception as e:
             logger.debug(f"Frame capture error: {e}")
@@ -431,6 +444,11 @@ class AstCommandInspector:
         if not normalized:
             return True, "Empty command submitted for execution"
 
+        if CommandASTFirewall is not None:
+            is_allowed, risk, _, reason = CommandASTFirewall.inspect_and_sanitize(normalized)
+            if not is_allowed or risk in ("BLOCKED", "REQUIRES_BIOMETRIC"):
+                return True, reason
+
         lower_cmd = normalized.lower()
         for pattern in CRITICAL_COMMAND_PATTERNS:
             if pattern in lower_cmd:
@@ -440,14 +458,14 @@ class AstCommandInspector:
         collapsed = lower_cmd.replace("^", "").replace("'", "").replace('"', "")
         if any(hazard in collapsed for hazard in [";", "&&", "||", "| rm", "> /dev", "taskkill", "shutdown", "format", "remove-item", "stop-process", "cmd /c", "powershell -command", "rm -rf"]):
             return True, "Command contains restricted chaining or pipeline tokens"
-            
+
+        exact_hazards = {"taskkill", "shutdown", "format", "rm", "del", "rmdir", "remove-item", "stop-process", "reboot", "poweroff", "mkfs", "diskpart"}
         try:
             tokens = shlex.split(normalized, posix=True)
             for t in tokens:
-                token = t.lower().strip().replace('"', '').replace("'", "")
-                if token in {p.lower() for p in CRITICAL_COMMAND_PATTERNS} or any(
-                    keyword == token or keyword in token for keyword in ("taskkill", "shutdown", "format", "rm", "del", "remove-item", "stop-process", "reboot", "poweroff")
-                ):
+                token = os.path.basename(t.lower().strip().replace('"', '').replace("'", ""))
+                base_token = token.split(".")[0]
+                if token in exact_hazards or base_token in exact_hazards:
                     return True, f"Dangerous command in execution chain: '{t}'"
         except ValueError:
             return True, "Unbalanced quotation marks or invalid shell syntax"
@@ -1033,15 +1051,16 @@ class HostAgentDaemon:
             frame = await self.screen_pipeline.get_next_frame()
             if frame:
                 packet = pack_packet(OP_FRAME, frame)
-                # Send to authenticated clients concurrently
-                disconnected = []
-                for ws in self.authenticated_clients:
-                    try:
-                        await ws.send(packet)
-                    except Exception:
-                        disconnected.append(ws)
-                for ws in disconnected:
-                    self.authenticated_clients.discard(ws)
+                # Send to authenticated clients concurrently to prevent slow-client head-of-line blocking
+                clients_snapshot = list(self.authenticated_clients)
+                if clients_snapshot:
+                    results = await asyncio.gather(
+                        *(ws.send(packet) for ws in clients_snapshot),
+                        return_exceptions=True
+                    )
+                    for ws, res in zip(clients_snapshot, results):
+                        if isinstance(res, Exception):
+                            self.authenticated_clients.discard(ws)
 
             # Adaptive sleep based on motion
             if self.screen_pipeline.consecutive_static > 2:
@@ -1085,11 +1104,12 @@ class HostAgentDaemon:
                 payload = json.dumps(telemetry).encode('utf-8')
                 packet = pack_packet(OP_TELEMETRY, payload)
 
-                for ws in list(self.authenticated_clients):
-                    try:
-                        await ws.send(packet)
-                    except Exception:
-                        pass
+                clients_snapshot = list(self.authenticated_clients)
+                if clients_snapshot:
+                    await asyncio.gather(
+                        *(ws.send(packet) for ws in clients_snapshot),
+                        return_exceptions=True
+                    )
             except Exception as e:
                 logger.debug(f"Telemetry error: {e}")
 
@@ -1115,8 +1135,15 @@ class HostAgentDaemon:
 
         if self.zeroconf and self.service_info:
             try:
-                asyncio.run(self.zeroconf.async_unregister_service(self.service_info))
-                asyncio.run(self.zeroconf.async_close())
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.run_coroutine_threadsafe(
+                        self.zeroconf.async_unregister_service(self.service_info), loop
+                    )
+                    asyncio.run_coroutine_threadsafe(self.zeroconf.async_close(), loop)
+                else:
+                    loop.run_until_complete(self.zeroconf.async_unregister_service(self.service_info))
+                    loop.run_until_complete(self.zeroconf.async_close())
             except Exception:
                 pass
 

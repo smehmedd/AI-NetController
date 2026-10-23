@@ -195,15 +195,19 @@ def _poly1305_mac(msg: bytes, key: bytes) -> bytes:
     return tag_int.to_bytes(16, 'little')
 
 def _chacha20_crypt(key: bytes, nonce: bytes, data: bytes, initial_counter: int = 1) -> bytes:
-    out = bytearray(len(data))
+    if not data:
+        return b""
+    blocks = []
     counter = initial_counter
-    for i in range(0, len(data), 64):
-        block = _chacha20_block(key, counter, nonce)
-        chunk = data[i:i + 64]
-        for j in range(len(chunk)):
-            out[i + j] = chunk[j] ^ block[j]
+    bytes_left = len(data)
+    while bytes_left > 0:
+        blk = _chacha20_block(key, counter, nonce)
+        blocks.append(blk[:bytes_left])
+        bytes_left -= len(blk)
         counter += 1
-    return bytes(out)
+    stream = b"".join(blocks)
+    n = len(data)
+    return (int.from_bytes(data, "little") ^ int.from_bytes(stream, "little")).to_bytes(n, "little")
 
 def pure_chacha20_poly1305_encrypt(key: bytes, nonce: bytes, plaintext: bytes, aad: bytes = b"") -> bytes:
     otk = _chacha20_block(key, 0, nonce)[:32]

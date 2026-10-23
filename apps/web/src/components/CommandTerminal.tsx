@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Terminal,
   Sparkles,
@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HostDevice, AgentExecutionResponse } from '../types';
-import { DEMO_PRESET_COMMANDS } from '../data/mockHosts';
 import { GlassContainer } from './ui/GlassContainer';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
@@ -36,7 +35,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   lastExecutionResult,
   onViewScreen,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const logScrollRef = useRef<HTMLDivElement>(null);
 
@@ -45,9 +44,47 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       logScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100); // Allow AnimatePresence layout to mount before scrolling
+    }, 100);
     return () => clearTimeout(timeoutId);
   }, [lastExecutionResult, isExecuting]);
+
+  const localizedPresets = useMemo(
+    () => [
+      {
+        id: 'updates',
+        label: language === 'bg' ? 'Провери обновления' : 'Check Updates',
+        prompt:
+          language === 'bg'
+            ? 'Провери за системни обновления на Windows и инсталирани пакети'
+            : 'Check for pending OS system updates and installed packages',
+      },
+      {
+        id: 'restart',
+        label: language === 'bg' ? 'Рестартирай хоста' : 'Restart Host',
+        prompt:
+          language === 'bg'
+            ? 'Планирай безопасен рестарт на работната станция след 30 секунди'
+            : 'Schedule a safe workstation restart in 30 seconds',
+      },
+      {
+        id: 'browser',
+        label: language === 'bg' ? 'Отвори браузър' : 'Open Browser',
+        prompt:
+          language === 'bg'
+            ? 'Отвори системния браузър с таблото за мониторинг'
+            : 'Open default system browser to network status dashboard',
+      },
+      {
+        id: 'stats',
+        label: language === 'bg' ? 'CPU и RAM Статистика' : 'CPU & RAM Stats',
+        prompt:
+          language === 'bg'
+            ? 'Покажи топ 10 процеса по натоварване на CPU и RAM памет'
+            : 'List top 10 processes sorted by CPU and RAM utilization',
+      },
+    ],
+    [language]
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,39 +111,33 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between select-none relative pb-[calc(env(safe-area-inset-bottom,20px)+1rem)]">
-      {/* 1. Header & Target Selector Pills (No Clipping) */}
+    <div className="w-full flex-1 flex flex-col justify-between select-none relative pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)]">
+      {/* 1. Header & Flush Target Selector Pills */}
       <div className="py-1.5 flex items-center justify-between gap-2 mb-3 max-w-full overflow-hidden">
         <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-1 py-1">
           {hosts.map((h) => {
             const isSelected = h.id === selectedTarget;
             return (
-              <motion.button
+              <button
                 key={h.id}
                 type="button"
-                whileTap={{ scale: 0.94 }}
                 onClick={() => {
                   triggerHapticFeedback('selection');
                   onSelectTarget(h.id);
                 }}
-                className="relative min-w-[40px] min-h-[40px] px-3 py-1.5 rounded-full text-xs font-mono transition flex items-center space-x-2 shrink-0 bg-white/[0.03] backdrop-blur-xl border border-white/10 text-white/60 hover:text-white overflow-hidden cursor-pointer bubble-tap"
+                className={`relative min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-mono transition-all flex items-center space-x-2 shrink-0 overflow-hidden cursor-pointer border ${
+                  isSelected
+                    ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200 font-bold shadow-[0_0_16px_rgba(56,189,248,0.25)]'
+                    : 'bg-[#070c18]/88 border-white/12 text-white/65 hover:text-white hover:border-white/25'
+                }`}
               >
-                {isSelected && (
-                  <motion.div
-                    layoutId="terminalTargetActivePill"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 via-blue-500/20 to-cyan-500/15 border border-cyan-400/50 shadow-[0_0_14px_rgba(0,212,255,0.25)] pointer-events-none"
-                    transition={{ type: 'spring', stiffness: 420, damping: 28, mass: 0.7 }}
-                  />
-                )}
                 <span
-                  className={`relative z-10 w-1.5 h-1.5 rounded-full ${
+                  className={`w-2 h-2 rounded-full shrink-0 ${
                     h.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-white/30'
                   }`}
                 />
-                <span className={`relative z-10 ${isSelected ? 'text-cyan-300 font-bold' : ''}`}>
-                  {h.name}
-                </span>
-              </motion.button>
+                <span className="whitespace-nowrap">{h.name}</span>
+              </button>
             );
           })}
         </div>
@@ -114,13 +145,13 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
         {selectedHost && (
           <motion.button
             type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => {
               triggerHapticFeedback('light');
               onViewScreen(selectedHost);
             }}
-            className="min-w-[40px] min-h-[40px] px-3 py-1.5 rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 hover:brightness-110 active:scale-95 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer bubble-tap"
+            className="min-h-[38px] px-3.5 py-1.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
           >
             <Eye className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t('term_view_screen')}</span>
@@ -128,40 +159,42 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
         )}
       </div>
 
-      {/* 2. Main Terminal Output Surface */}
-      <GlassContainer className="flex-1 p-3.5 sm:p-5 flex flex-col justify-between min-h-[300px] sm:min-h-[340px] mb-4 overflow-hidden">
-        {/* Terminal Header with Non-Clipping Truncation */}
-        <div className="flex items-center justify-between gap-2 pb-3 text-xs text-white/50 border-b border-white/[0.06] overflow-hidden">
+      {/* 2. Main Terminal Output Surface (Tier 1 Resting Card) */}
+      <GlassContainer className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-h-[300px] sm:min-h-[360px] mb-3 overflow-hidden">
+        {/* Terminal Header */}
+        <div className="flex items-center justify-between gap-2 pb-3 text-xs text-white/50 border-b border-white/[0.08] overflow-hidden">
           <div className="flex items-center space-x-2 min-w-0 flex-1">
             <Terminal className="w-4 h-4 text-cyan-400 shrink-0" />
             <span className="font-semibold text-white truncate">{t('term_agent_context')}</span>
           </div>
-          <span className="font-mono text-[10px] sm:text-[11px] text-white/60 shrink-0 pl-1">{selectedHost?.ip}:8765</span>
+          <span className="font-mono text-[11px] text-cyan-300/80 shrink-0 pl-1 tabular-nums">
+            {selectedHost?.ip}:8765
+          </span>
         </div>
 
         {/* Scrollable Command Output */}
-        <div className="flex-1 min-h-[160px] max-h-[45vh] sm:max-h-[50vh] py-4 font-mono text-xs leading-relaxed space-y-3 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 min-h-[200px] max-h-[50vh] py-4 font-mono text-xs leading-relaxed space-y-3 overflow-y-auto scrollbar-thin">
           <div className="text-white/50">
-            [SYS] {t('term_connected_to', { name: selectedHost?.name || 'host', os: selectedHost?.os || 'Windows 11' })}
+            {t('term_connected_to', { name: selectedHost?.name || 'host', os: selectedHost?.os || 'Windows 11' })}
           </div>
 
           <AnimatePresence mode="popLayout">
             {lastExecutionResult && (
               <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="p-3.5 rounded-2xl bg-black/40 border border-white/[0.08] space-y-1.5"
+                transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+                className="p-3.5 rounded-2xl bg-[#070c18]/90 border border-cyan-400/25 space-y-1.5"
               >
-                <div className="flex items-center justify-between text-[11px] text-white/50">
-                  <span className="text-emerald-400 flex items-center gap-1 font-semibold">
+                <div className="flex items-center justify-between text-[11px] text-white/50 tabular-nums">
+                  <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {t('term_exec_success', { time: lastExecutionResult.execution_time_ms })}
                   </span>
-                  <span className="text-white/50">{lastExecutionResult.timestamp}</span>
+                  <span className="text-white/45">{lastExecutionResult.timestamp}</span>
                 </div>
-                <pre className="text-white text-xs whitespace-pre-wrap font-mono">
+                <pre className="text-white/95 text-xs whitespace-pre-wrap font-mono">
                   {lastExecutionResult.output}
                 </pre>
               </motion.div>
@@ -170,9 +203,9 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 
           {isExecuting && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center space-x-2 text-cyan-400"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-cyan-300"
             >
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               <span>{t('term_executing')}</span>
@@ -181,32 +214,31 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 
           <div ref={logScrollRef} />
         </div>
+      </GlassContainer>
 
-        {/* 2x2 Quick Action Presets */}
-        <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {DEMO_PRESET_COMMANDS.map((preset, idx) => (
+      {/* 3. Bottom-Anchored Compact Horizontal Preset Chip Strip + Tier 2 Input Bar */}
+      <div className="w-full space-y-2 pt-1">
+        {/* Compact Horizontally Scrollable Preset Chip Strip (Zero Truncation) */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5">
+          {localizedPresets.map((preset) => (
             <motion.button
-              key={idx}
+              key={preset.id}
               type="button"
-              whileTap={{ scale: 0.94 }}
+              whileHover={{ y: -1.5 }}
+              whileTap={{ scale: 0.95 }}
               disabled={isExecuting}
               onClick={() => handleRunPreset(preset.prompt)}
-              className="min-h-[44px] p-2.5 rounded-2xl bg-white/[0.03] backdrop-blur-xl hover:bg-white/[0.06] active:scale-95 text-left transition disabled:opacity-40 flex flex-col justify-center cursor-pointer border border-white/[0.06]"
+              className="h-9 px-3.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition cursor-pointer disabled:opacity-40"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white truncate">{preset.label}</span>
-                <Sparkles className="w-3 h-3 text-cyan-400 shrink-0 ml-1" />
-              </div>
-              <p className="text-[10px] text-white/50 truncate mt-0.5">{preset.prompt}</p>
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>{preset.label}</span>
             </motion.button>
           ))}
         </div>
-      </GlassContainer>
 
-      {/* 3. Anchored Chat Prompt Input Container with Gradient Mask */}
-      <div className="sticky bottom-0 z-30 pt-3 pb-[calc(env(safe-area-inset-bottom,20px)+5rem)] bg-gradient-to-t from-[#060913] via-[#060913]/90 to-transparent">
-        <form onSubmit={handleSubmit} className="w-full relative px-1">
-          <div className="min-h-[52px] h-14 rounded-full bg-white/[0.04] backdrop-blur-[48px] backdrop-saturate-[200%] border border-white/[0.1] border-t-white/[0.22] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.65)] px-4 flex items-center space-x-3 focus-within:border-cyan-400/60 transition">
+        {/* Tier 2 Liquid Glass Prompt Input Capsule */}
+        <form onSubmit={handleSubmit} className="w-full relative">
+          <div className="min-h-[54px] h-14 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] px-4 flex items-center space-x-3 focus-within:border-cyan-400/60 transition">
             <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
             <input
               type="text"
@@ -216,10 +248,12 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               disabled={isExecuting}
               className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40 disabled:opacity-50"
             />
-            <button
+            <motion.button
               type="submit"
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.9 }}
               disabled={!prompt.trim() || isExecuting}
-              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 active:scale-90 text-slate-950 flex items-center justify-center transition shadow-md shrink-0 cursor-pointer"
+              className="min-w-[42px] min-h-[42px] w-10 h-10 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 hover:brightness-110 disabled:opacity-35 text-slate-950 flex items-center justify-center transition shadow-[0_0_16px_rgba(56,189,248,0.45)] shrink-0 cursor-pointer"
               aria-label={t('term_send_btn')}
             >
               {isExecuting ? (
@@ -227,7 +261,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               ) : (
                 <ArrowUp className="w-5 h-5 stroke-[2.5]" />
               )}
-            </button>
+            </motion.button>
           </div>
         </form>
       </div>

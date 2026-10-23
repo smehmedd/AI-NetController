@@ -67,15 +67,17 @@ let DYNAMIC_MODELS: AIModelDescriptor[] = [
   },
 ];
 
-// Server-side initialization of GoogleGenAI SDK
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
+// Lazy Server-side initialization of GoogleGenAI SDK
+function getGenAI() {
+  return new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
     },
-  },
-});
+  });
+}
 
 // Role-specific System Instructions with Mouse & Keyboard Control Capabilities
 const SYSTEM_INSTRUCTIONS: Record<string, string> = {
@@ -146,6 +148,25 @@ app.post('/api/ai/models', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Model ID and Name are required' });
     }
 
+    let validatedEndpointUrl: string | undefined;
+    if (endpointUrl) {
+      const rawUrl = String(endpointUrl).trim();
+      let parsed: URL;
+      try {
+        parsed = new URL(rawUrl);
+      } catch {
+        return res.status(400).json({ error: 'Invalid endpointUrl format' });
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return res.status(400).json({ error: 'endpointUrl must use http:// or https://' });
+      }
+      const host = parsed.hostname.toLowerCase();
+      if (host === '169.254.169.254' || host.startsWith('169.254.') || host === 'metadata.google.internal') {
+        return res.status(400).json({ error: 'Cloud metadata endpoints are forbidden (SSRF protection)' });
+      }
+      validatedEndpointUrl = parsed.toString();
+    }
+
     const cleanId = String(id).trim().toLowerCase().replace(/[^a-z0-9_:-]/g, '-');
     const existingIndex = DYNAMIC_MODELS.findIndex((m) => m.id === cleanId);
 
@@ -156,7 +177,7 @@ app.post('/api/ai/models', (req: Request, res: Response) => {
       description: String(description).trim() || 'Custom AI Model Endpoint',
       contextWindow: String(contextWindow).trim() || '128k tokens',
       isCustom: true,
-      endpointUrl: endpointUrl ? String(endpointUrl).trim() : undefined,
+      endpointUrl: validatedEndpointUrl,
       apiKeyUrl: apiKeyUrl ? String(apiKeyUrl).trim() : undefined,
     };
 
@@ -323,6 +344,17 @@ app.post('/api/wol', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid MAC address format (must be 12 hex characters)' });
     }
 
+    const targetPort = Number(port);
+    if (!Number.isInteger(targetPort) || targetPort < 1 || targetPort > 65535) {
+      return res.status(400).json({ error: 'Invalid UDP port (must be 1-65535)' });
+    }
+
+    const ipv4Regex = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+    const cleanBroadcastIp = String(broadcastIp).trim();
+    if (!ipv4Regex.test(cleanBroadcastIp)) {
+      return res.status(400).json({ error: 'Invalid IPv4 broadcast address' });
+    }
+
     const macBytes = Buffer.from(cleanMac, 'hex');
     const magicPacket = Buffer.alloc(102);
     magicPacket.fill(0xff, 0, 6);
@@ -335,18 +367,18 @@ app.post('/api/wol', async (req: Request, res: Response) => {
       client.setBroadcast(true);
     });
 
-    client.send(magicPacket, 0, magicPacket.length, Number(port), String(broadcastIp), (err) => {
+    client.send(magicPacket, 0, magicPacket.length, targetPort, cleanBroadcastIp, (err) => {
       client.close();
       if (err) {
         console.error('[WoL Send Error]:', err);
         return res.status(500).json({ error: err.message });
       }
-      console.log(`[WoL Sent] 102-byte Magic Packet sent to ${mac} via ${broadcastIp}:${port}`);
+      console.log(`[WoL Sent] 102-byte Magic Packet sent to ${mac} via ${cleanBroadcastIp}:${targetPort}`);
       return res.json({
         success: true,
         mac,
-        broadcastIp,
-        port,
+        broadcastIp: cleanBroadcastIp,
+        port: targetPort,
         timestamp: new Date().toISOString(),
       });
     });
@@ -397,15 +429,49 @@ app.post('/api/hosts/scan', async (_req: Request, res: Response) => {
   }
 });
 
-// Real Command Execution Endpoint
+// Real Command Execution Endpoint (Hardened with AST Firewall Policy)
 app.post('/api/command/execute', async (req: Request, res: Response) => {
   try {
     const { command, hostId } = req.body;
-    if (!command) {
-      return res.status(400).json({ error: 'Command is required' });
+    if (!command || typeof command !== 'string') {
+      return res.status(400).json({ error: 'Command string is required' });
     }
 
-    const isHighRisk = /rmdir|del \/f|format|shutdown|reboot/i.test(command);
+    const rawCmd = command.trim();
+    if (rawCmd.length > 2048 || rawCmd.includes('\0')) {
+      return res.status(400).json({ error: 'Command rejected: invalid length or null byte detected' });
+    }
+
+    // Normalize Windows CMD caret (^) obfuscation before inspection
+    const deobfuscatedCmd = rawCmd.replace(/\^(.)/g, '$1');
+
+    // Unconditionally block catastrophic / remote-code-execution vectors
+    const criticalBlockPatterns = [
+      /:\(\)\s*\{\s*:\|:&\s*\}\s*;?\s*:/, // Fork bomb
+      /\bmkfs(?:\.[a-z0-9]+)?\b/i, // Filesystem formatting
+      /\bdd\s+if=/i, // Raw block device overwrite
+      /\b(?:curl|wget)\b.*\|\s*(?:ba)?sh\b/i, // Remote script pipe execution
+      /\b(?:nc|ncat|netcat)\b.*-e\b/i, // Reverse shell
+      /\bpowershell(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\b/i, // Base64 encoded PowerShell
+      /\b(?:iex|invoke-expression)\b/i, // PowerShell dynamic eval
+      /\brm\s+-[rRfF]+\s+(?:\/|\*)\b/, // Root filesystem deletion
+    ];
+
+    for (const pattern of criticalBlockPatterns) {
+      if (pattern.test(deobfuscatedCmd)) {
+        return res.status(403).json({
+          error: 'Command permanently blocked by CST AST Security Firewall',
+          blocked: true,
+          riskLevel: 'CRITICAL',
+        });
+      }
+    }
+
+    const isHighRisk =
+      /\b(?:rmdir|del|rm|format|diskpart|shutdown|reboot|Restart-Computer|Stop-Computer|reg\s+delete|bcdedit|vssadmin)\b/i.test(
+        deobfuscatedCmd
+      ) || /[;&|`$()]/.test(deobfuscatedCmd);
+
     if (isHighRisk && !req.body.confirmed) {
       return res.status(403).json({
         error: 'High-risk command requires Human-in-the-Loop approval',
@@ -415,7 +481,7 @@ app.post('/api/command/execute', async (req: Request, res: Response) => {
     }
 
     const startTime = Date.now();
-    exec(command, { timeout: 15000 }, (error, stdout, stderr) => {
+    exec(rawCmd, { timeout: 15000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
       const durationMs = Date.now() - startTime;
       return res.json({
         success: !error,
@@ -468,6 +534,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const startTime = Date.now();
     let response: any = null;
     let actualModelUsed = targetModel;
+    const ai = getGenAI();
 
     // Primary generation attempt
     try {
@@ -550,7 +617,7 @@ async function startServer() {
       configFile: path.resolve(__dirname, 'vite.config.ts'),
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR !== 'true',
+        hmr: false,
       },
       appType: 'spa',
     });

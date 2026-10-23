@@ -1,6 +1,8 @@
 node_modules/
 build/
 dist/
+apps/web/dist/
+.aistudio/
 coverage/
 .DS_Store
 Thumbs.db

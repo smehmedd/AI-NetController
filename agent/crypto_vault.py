@@ -16,7 +16,7 @@ import struct
 import secrets
 import hashlib
 import ctypes
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, Any
 
 # Try hardware-accelerated cryptography primitives; fallback to pure-Python
 try:
@@ -238,10 +238,18 @@ def _poly1305_mac(msg: bytes, key: bytes) -> bytes:
 
 class FallbackChaCha20Poly1305:
     @staticmethod
+    def _xor_bytes(data: bytes, stream: bytes) -> bytes:
+        if not data:
+            return b""
+        n = len(data)
+        return (int.from_bytes(data, "little") ^ int.from_bytes(stream[:n], "little")).to_bytes(n, "little")
+
+    @staticmethod
     def encrypt(key: bytes, nonce: bytes, plaintext: bytes, aad: bytes = b"") -> bytes:
         poly_key_block = _chacha20_block(key, 0, nonce)
         poly_key = poly_key_block[:32]
-        ciphertext = bytes(a ^ b for a, b in zip(plaintext, _chacha20_stream(key, nonce, 1, len(plaintext))))
+        stream = _chacha20_stream(key, nonce, 1, len(plaintext))
+        ciphertext = FallbackChaCha20Poly1305._xor_bytes(plaintext, stream)
 
         mac_data = bytearray()
         mac_data.extend(aad)
@@ -278,7 +286,8 @@ class FallbackChaCha20Poly1305:
         if not hmac.compare_digest(computed_tag, expected_tag):
             return None
 
-        return bytes(a ^ b for a, b in zip(ciphertext, _chacha20_stream(key, nonce, 1, len(ciphertext))))
+        stream = _chacha20_stream(key, nonce, 1, len(ciphertext))
+        return FallbackChaCha20Poly1305._xor_bytes(ciphertext, stream)
 
 # ------------------------------------------------------------------------------
 # HKDF-SHA256 Key Derivation Function (RFC 5869)
@@ -308,6 +317,8 @@ class HostCryptoVault:
         self.psk = bytearray(psk_secret)
         self.k_send: Optional[bytearray] = None
         self.k_recv: Optional[bytearray] = None
+        self._send_cipher: Optional[ Any ] = None
+        self._recv_cipher: Optional[ Any ] = None
         self.is_established: bool = False
         self.tx_seq: int = 0
         self.replay_guard = SlidingWindowReplayProtector(WINDOW_SIZE)
@@ -371,6 +382,9 @@ class HostCryptoVault:
 
         self.k_send = bytearray(host_tx)
         self.k_recv = bytearray(host_rx)
+        if HAS_CRYPTOGRAPHY_ACCEL:
+            self._send_cipher = ChaCha20Poly1305(bytes(self.k_send))
+            self._recv_cipher = ChaCha20Poly1305(bytes(self.k_recv))
         self.is_established = True
 
         # Secure zeroization of intermediate ephemeral shared secret
@@ -397,9 +411,8 @@ class HostCryptoVault:
         # Nonce format: 4 zero bytes + 8-byte big-endian sequence
         nonce = struct.pack(">IQ", 0, seq)
 
-        if HAS_CRYPTOGRAPHY_ACCEL:
-            cipher = ChaCha20Poly1305(bytes(self.k_send))
-            ct = cipher.encrypt(nonce, plaintext, aad)
+        if self._send_cipher is not None:
+            ct = self._send_cipher.encrypt(nonce, plaintext, aad)
         else:
             ct = FallbackChaCha20Poly1305.encrypt(bytes(self.k_send), nonce, plaintext, aad)
 
@@ -424,11 +437,12 @@ class HostCryptoVault:
             return None
 
         try:
-            if HAS_CRYPTOGRAPHY_ACCEL:
-                cipher = ChaCha20Poly1305(bytes(self.k_recv))
-                plaintext = cipher.decrypt(nonce, ciphertext_and_tag, aad)
+            if self._recv_cipher is not None:
+                plaintext = self._recv_cipher.decrypt(nonce, ciphertext_and_tag, aad)
             else:
                 plaintext = FallbackChaCha20Poly1305.decrypt(bytes(self.k_recv), nonce, ciphertext_and_tag, aad)
+            if plaintext is None:
+                return None
             return plaintext, seq
         except Exception:
             return None
@@ -443,4 +457,6 @@ class HostCryptoVault:
             self.k_recv = None
         if self.psk:
             scrub_memory(self.psk)
+        self._send_cipher = None
+        self._recv_cipher = None
         self.is_established = False

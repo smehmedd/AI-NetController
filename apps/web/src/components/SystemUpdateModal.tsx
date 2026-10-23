@@ -598,11 +598,11 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in select-none"
     >
       <div
         id="system-update-modal"
-        className="w-full max-w-5xl bg-white/[0.05] backdrop-blur-[40px] backdrop-saturate-[180%] border border-white/[0.05] border-t-white/[0.15] border-l-white/[0.1] rounded-[24px] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] overflow-hidden"
+        className="w-full max-w-5xl bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.85)] flex flex-col max-h-[92vh] overflow-hidden"
       >
         {/* Header with Title and Global Action Buttons */}
         <div className="p-4 sm:p-5 bg-white/[0.02] flex flex-wrap items-center justify-between gap-3">
@@ -844,34 +844,16 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                             Налична {comp.latestVersion}
                           </span>
                         )}
-
-                        {/* Version Drift Badge */}
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                            comp.driftSeverity === 'none'
-                              ? 'bg-emerald-950/50 text-emerald-400 border-emerald-500/30'
-                              : comp.driftSeverity === 'minor'
-                              ? 'bg-blue-950/50 text-blue-300 border-blue-500/30'
-                              : 'bg-amber-950/50 text-amber-300 border-amber-500/40'
-                          }`}
-                        >
-                          Drift: {comp.driftDescription}
-                        </span>
                       </div>
 
                       <p className="text-xs text-gray-400 mt-1 font-sans">
                         {comp.description}
                       </p>
 
-                      {/* Compatibility Requirement & Release Notes */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono">
-                        <span className="text-gray-500">
-                          Текуща: <span className="text-gray-300">{comp.currentVersion}</span> • Нова: <span className="text-cyan-400">{comp.latestVersion}</span>
-                        </span>
-                        <span className="text-cyan-300/80 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 text-[10px]">
-                          {comp.compatibilityRequirement}
-                        </span>
-                      </div>
+                      {/* Subtle Subtitle: Compatibility Requirement & Drift Notes */}
+                      <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                        Текуща: <span className="text-gray-300">{comp.currentVersion}</span> • Нова: <span className="text-cyan-400">{comp.latestVersion}</span> • Drift: <span className="text-gray-300">{comp.driftDescription}</span> • <span className="text-cyan-300/80">{comp.compatibilityRequirement}</span>
+                      </p>
                     </div>
                   </div>
 

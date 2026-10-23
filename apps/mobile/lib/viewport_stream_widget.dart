@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -14,18 +16,32 @@ const int magicByte0 = 0xC5;
 const int magicByte1 = 0x71;
 const int _streamHeaderSize = 12;
 const int _maxStreamPayloadBytes = 10 * 1024 * 1024;
+const String _defaultSharedSecret = 'cst_thesis_2026_secret_key';
 
 enum StreamOpcode {
-  ping, // 1 (0x01)
-  telemetry, // 2 (0x02)
-  frame, // 3 (0x03)
-  shell, // 4 (0x04)
-  hitl, // 5 (0x05)
-  auth, // 6 (0x06)
-  clip, // 7 (0x07)
-  error, // 8 (0x08)
-  viewportResize, // 9 (0x09) - Bidirectional Resolution Matching
-  llmStream, // 10 (0x0A)
+  ping(0x01), // 1 (0x01)
+  telemetry(0x02), // 2 (0x02)
+  frame(0x03), // 3 (0x03)
+  shell(0x04), // 4 (0x04)
+  hitl(0x05), // 5 (0x05)
+  auth(0x06), // 6 (0x06)
+  clip(0x07), // 7 (0x07)
+  input(0x08), // 8 (0x08)
+  audio(0x09), // 9 (0x09)
+  viewportResize(0x0A), // 10 (0x0A) - Bidirectional Resolution Matching
+  llmStream(0x0B), // 11 (0x0B)
+  fileTransfer(0x0C), // 12 (0x0C)
+  error(0xEE); // 238 (0xEE)
+
+  final int code;
+  const StreamOpcode(this.code);
+
+  static StreamOpcode? fromCode(int code) {
+    for (final op in StreamOpcode.values) {
+      if (op.code == code) return op;
+    }
+    return null;
+  }
 }
 
 class StreamBinaryPacket {
@@ -43,21 +59,21 @@ class StreamBinaryPacket {
       return null;
     }
 
-    final opIndex = view.getUint8(2);
+    final opCodeByte = view.getUint8(2);
     final flags = view.getUint8(3);
     final seqId = view.getUint32(4, Endian.big);
     final length = view.getUint32(8, Endian.big);
 
-    if (opIndex < 1 || opIndex > StreamOpcode.values.length) return null;
+    final opcode = StreamOpcode.fromCode(opCodeByte);
+    if (opcode == null) return null;
     if (length > _maxStreamPayloadBytes ||
-        bytes.length != _streamHeaderSize + length) {
+        bytes.length < _streamHeaderSize + length) {
       return null;
     }
 
-    final payload = Uint8List.view(
-        bytes.buffer, bytes.offsetInBytes + _streamHeaderSize, length);
-    return StreamBinaryPacket(
-        StreamOpcode.values[opIndex - 1], flags, seqId, payload);
+    final payload = Uint8List.sublistView(
+        bytes, _streamHeaderSize, _streamHeaderSize + length);
+    return StreamBinaryPacket(opcode, flags, seqId, payload);
   }
 
   static Uint8List pack(StreamOpcode opcode, int seqId, Uint8List payload,
@@ -66,7 +82,7 @@ class StreamBinaryPacket {
     final view = ByteData.sublistView(bytes);
     view.setUint8(0, magicByte0);
     view.setUint8(1, magicByte1);
-    view.setUint8(2, opcode.index + 1);
+    view.setUint8(2, opcode.code);
     view.setUint8(3, flags);
     view.setUint32(4, seqId, Endian.big);
     view.setUint32(8, payload.length, Endian.big);
@@ -75,7 +91,7 @@ class StreamBinaryPacket {
     return bytes;
   }
 
-  /// Packs 0x09 VIEWPORT_RESIZE control payload containing target width and height
+  /// Packs 0x0A VIEWPORT_RESIZE control payload containing target width and height
   static Uint8List packViewportResize(int width, int height) {
     final payload = Uint8List(8);
     final view = ByteData.sublistView(payload);
@@ -94,6 +110,7 @@ class ViewportStreamWidget extends StatefulWidget {
   final int wsPort;
   final bool isInline;
   final VoidCallback? onToggleFullscreen;
+  final String sharedSecret;
 
   const ViewportStreamWidget({
     super.key,
@@ -102,6 +119,7 @@ class ViewportStreamWidget extends StatefulWidget {
     this.wsPort = 8765,
     this.isInline = true,
     this.onToggleFullscreen,
+    this.sharedSecret = _defaultSharedSecret,
   });
 
   @override
@@ -125,6 +143,7 @@ class _ViewportStreamWidgetState extends State<ViewportStreamWidget> {
   int _lastPhysicalHeight = 0;
   int _lastSentPhysicalWidth = 0;
   int _lastSentPhysicalHeight = 0;
+  bool _resizeScheduled = false;
 
   // Metrics
   int _fpsCount = 0;
@@ -171,7 +190,29 @@ class _ViewportStreamWidgetState extends State<ViewportStreamWidget> {
           if (message is Uint8List) {
             final packet = StreamBinaryPacket.parse(message);
             if (packet != null) {
-              if (packet.opcode == StreamOpcode.frame) {
+              if (packet.opcode == StreamOpcode.auth) {
+                // Respond to 16-byte HMAC-SHA256 challenge from agent.py
+                if (packet.payload.length == 16) {
+                  final hmacSha256 =
+                      Hmac(sha256, utf8.encode(widget.sharedSecret));
+                  final digest = hmacSha256.convert(packet.payload);
+                  final authReply = StreamBinaryPacket.pack(
+                    StreamOpcode.auth,
+                    packet.seqId,
+                    Uint8List.fromList(digest.bytes),
+                  );
+                  _channel?.sink.add(authReply);
+                } else {
+                  final statusStr =
+                      utf8.decode(packet.payload, allowMalformed: true);
+                  if (statusStr == 'AUTH_OK' && mounted) {
+                    setState(() {
+                      _isConnected = true;
+                      _isConnecting = false;
+                    });
+                  }
+                }
+              } else if (packet.opcode == StreamOpcode.frame) {
                 _fpsCount++;
                 if (!_frameController.isClosed) {
                   _frameController.add(packet.payload);
@@ -235,7 +276,7 @@ class _ViewportStreamWidgetState extends State<ViewportStreamWidget> {
     }
   }
 
-  /// Sends 0x09 VIEWPORT_RESIZE when container layout changes
+  /// Sends 0x0A VIEWPORT_RESIZE when container layout changes (deferred post-frame)
   void _syncPhysicalViewport(BoxConstraints constraints, BuildContext context) {
     if (!constraints.hasBoundedWidth || constraints.maxWidth <= 0) return;
 
@@ -249,21 +290,27 @@ class _ViewportStreamWidgetState extends State<ViewportStreamWidget> {
     _lastPhysicalWidth = physicalWidth;
     _lastPhysicalHeight = physicalHeight;
 
-    // Track sent dimensions separately so a layout calculated before connect
-    // is still sent once the socket is ready.
     final dimensionsChanged =
         (physicalWidth - _lastSentPhysicalWidth).abs() > 16 ||
             (physicalHeight - _lastSentPhysicalHeight).abs() > 16;
-    if (dimensionsChanged && _channel != null && _isConnected) {
-      try {
-        final resizePacket = StreamBinaryPacket.packViewportResize(
-            physicalWidth, physicalHeight);
-        _channel?.sink.add(resizePacket);
-        _lastSentPhysicalWidth = physicalWidth;
-        _lastSentPhysicalHeight = physicalHeight;
-      } catch (e) {
-        debugPrint('Failed to send Viewport Resize: $e');
-      }
+    if (dimensionsChanged &&
+        _channel != null &&
+        _isConnected &&
+        !_resizeScheduled) {
+      _resizeScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _resizeScheduled = false;
+        if (!mounted || _channel == null || !_isConnected) return;
+        try {
+          final resizePacket = StreamBinaryPacket.packViewportResize(
+              _lastPhysicalWidth, _lastPhysicalHeight);
+          _channel?.sink.add(resizePacket);
+          _lastSentPhysicalWidth = _lastPhysicalWidth;
+          _lastSentPhysicalHeight = _lastPhysicalHeight;
+        } catch (e) {
+          debugPrint('Failed to send Viewport Resize: $e');
+        }
+      });
     }
   }
 

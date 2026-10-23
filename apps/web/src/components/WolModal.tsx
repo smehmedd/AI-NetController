@@ -322,10 +322,9 @@ export const WolModal: React.FC<WolModalProps> = ({
             className="
               relative z-10 w-full max-w-3xl
               rounded-t-[2.5rem]
-              bg-white/[0.05]
-              backdrop-blur-[32px] backdrop-saturate-[180%]
-              border border-white/[0.05] border-t-white/[0.15] border-l-white/[0.1]
-              shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)]
+              bg-[#091020]/95 backdrop-blur-3xl
+              border border-white/15 border-t-white/25
+              shadow-[0_24px_64px_rgba(0,0,0,0.85)]
               flex flex-col overflow-hidden
               transform-gpu will-change-transform
               max-h-[92vh]
@@ -589,9 +588,6 @@ export const WolModal: React.FC<WolModalProps> = ({
                       <h4 className="text-sm font-bold text-white font-display">
                         Устойчиви графици за събуждане (Recurring Schedules)
                       </h4>
-                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-full">
-                        localStorage Sync
-                      </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       Фоновият таймер проверява времето всяка минута и изпраща UDP Magic Packet (напр. събуждане на CST Lab компютрите в 08:00 ч.).
@@ -972,7 +968,7 @@ export const WolModal: React.FC<WolModalProps> = ({
                                 {schedule.time}
                               </div>
                               <div className="text-[10px] text-amber-300 font-mono">
-                                {formatTimeDisplay(schedule.time).split(' ')[1] || '24-часов'}
+                                {formatTimeDisplay(schedule.time).match(/\(([^)]+)\)/)?.[1] || '24-часов'}
                               </div>
                             </div>
                           </div>

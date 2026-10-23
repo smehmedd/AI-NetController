@@ -116,20 +116,65 @@ class AdaptiveScaffold extends StatelessWidget {
         backgroundColor: CyberColors.background,
         resizeToAvoidBottomInset:
             false, // Insets manually offset floating overlays
-        body: SafeArea(
-          top: true,
-          bottom: false, // Edge-to-edge drawing under navigation dock
-          child: Builder(
-            builder: (context) {
-              if (tier == ScreenTier.expanded) {
-                return _buildExpandedSplitView(context);
-              } else if (tier == ScreenTier.medium) {
-                return _buildMediumRailView(context);
-              } else {
-                return _buildCompactView(context, padding, insets);
-              }
-            },
-          ),
+        body: Stack(
+          children: [
+            // Ambient Futuristic Liquid Glass Refraction Glows
+            Positioned(
+              top: -110,
+              right: -70,
+              child: IgnorePointer(
+                child: Container(
+                  width: 340,
+                  height: 340,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        CyberColors.primary.withValues(alpha: 0.14),
+                        CyberColors.secondary.withValues(alpha: 0.04),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -90,
+              left: -80,
+              child: IgnorePointer(
+                child: Container(
+                  width: 320,
+                  height: 320,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        CyberColors.secondary.withValues(alpha: 0.12),
+                        CyberColors.primary.withValues(alpha: 0.03),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              top: true,
+              bottom: false, // Edge-to-edge drawing under navigation dock
+              child: Builder(
+                builder: (context) {
+                  if (tier == ScreenTier.expanded) {
+                    return _buildExpandedSplitView(context);
+                  } else if (tier == ScreenTier.medium) {
+                    return _buildMediumRailView(context);
+                  } else {
+                    return _buildCompactView(context, padding, insets);
+                  }
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -154,9 +199,27 @@ class AdaptiveScaffold extends StatelessWidget {
                   padding: EdgeInsets.only(
                     bottom: isKeyboardVisible
                         ? insets.bottom
-                        : (padding.bottom + 76.0),
+                        : (padding.bottom + 80.0),
                   ),
-                  child: compactBody,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 280),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0.0, 0.03),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(position: slide, child: child),
+                      );
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(selectedIndex),
+                      child: compactBody,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -175,28 +238,40 @@ class AdaptiveScaffold extends StatelessWidget {
     );
   }
 
-  // Floating Glassmorphic Pill Dock for Mobile
+  // Floating Liquid Glass Pill Dock for Mobile
   Widget _buildFloatingPillNav(BuildContext context) {
     return RepaintBoundary(
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            height: 60,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: CyberColors.surfaceElevated.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.12),
+                  CyberColors.surfaceElevated.withValues(alpha: 0.78),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: CyberColors.primary.withValues(alpha: 0.3),
-                width: 1.2,
+                color: Colors.white.withValues(alpha: 0.18),
+                width: 1.1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withValues(alpha: 0.65),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+                BoxShadow(
+                  color: CyberColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 20,
+                  spreadRadius: -2,
                 ),
               ],
             ),
@@ -209,45 +284,74 @@ class AdaptiveScaffold extends StatelessWidget {
                   onTap: () => onIndexChanged(index),
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutBack,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSelected ? 16 : 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? CyberColors.primary.withValues(alpha: 0.15)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(20),
+                      gradient: isSelected
+                          ? LinearGradient(
+                              colors: [
+                                CyberColors.primary.withValues(alpha: 0.24),
+                                CyberColors.secondary.withValues(alpha: 0.16),
+                              ],
+                            )
+                          : null,
+                      color: isSelected ? null : Colors.transparent,
+                      borderRadius: BorderRadius.circular(22),
                       border: isSelected
                           ? Border.all(
-                              color: CyberColors.primary.withValues(alpha: 0.4),
+                              color:
+                                  CyberColors.primary.withValues(alpha: 0.45),
                               width: 1)
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color:
+                                    CyberColors.primary.withValues(alpha: 0.22),
+                                blurRadius: 12,
+                              ),
+                            ]
                           : null,
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          isSelected
-                              ? (item.activeIcon ?? item.icon)
-                              : item.icon,
-                          size: 18,
-                          color: isSelected
-                              ? CyberColors.primary
-                              : CyberColors.textSecondary,
-                        ),
-                        if (isSelected) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            item.label,
-                            style: TextStyle(
-                              color: CyberColors.primary,
-                              fontSize: context.fluidFont(11),
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
+                        AnimatedScale(
+                          scale: isSelected ? 1.08 : 1.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            isSelected
+                                ? (item.activeIcon ?? item.icon)
+                                : item.icon,
+                            size: 19,
+                            color: isSelected
+                                ? CyberColors.primary
+                                : CyberColors.textSecondary,
                           ),
-                        ],
+                        ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          child: isSelected
+                              ? Padding(
+                                  padding: const EdgeInsets.only(left: 7),
+                                  child: Text(
+                                    item.label,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: context.fluidFont(11),
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
                     ),
                   ),
@@ -272,7 +376,16 @@ class AdaptiveScaffold extends StatelessWidget {
           child: Column(
             children: [
               _buildAppBar(context, showNavIcon: false),
-              Expanded(child: mediumBody ?? compactBody),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  child: KeyedSubtree(
+                    key: ValueKey<int>(selectedIndex),
+                    child: mediumBody ?? compactBody,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -308,14 +421,18 @@ class AdaptiveScaffold extends StatelessWidget {
         Expanded(
           flex: ((1.0 - expandedMasterWidthFraction) * 100).round(),
           child: Container(
-            color: CyberColors.surface.withValues(alpha: 0.4),
-            child: expandedDetailPane ??
-                const Center(
-                  child: Text(
-                    'Select an active host to view live stream & console',
-                    style: TextStyle(color: CyberColors.textSecondary),
+            color: CyberColors.surface.withValues(alpha: 0.35),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              switchInCurve: Curves.easeOutCubic,
+              child: expandedDetailPane ??
+                  const Center(
+                    child: Text(
+                      'Select an active host to view live stream & console',
+                      style: TextStyle(color: CyberColors.textSecondary),
+                    ),
                   ),
-                ),
+            ),
           ),
         ),
       ],

@@ -33,7 +33,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-md"
+            className="fixed inset-0 bg-black/75 backdrop-blur-md"
           />
 
           {/* Sheet / Dialog Surface */}
@@ -47,7 +47,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.75 }}
             className="
-              glass-liquid-elevated
+              bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.85)]
               relative z-10 w-full max-w-xl
               rounded-t-[2.5rem] sm:rounded-[2.4rem]
               flex flex-col overflow-hidden

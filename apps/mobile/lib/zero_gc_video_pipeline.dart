@@ -59,11 +59,21 @@ class _ZeroGcVideoRendererState extends State<ZeroGcVideoRenderer> {
 
   ui.Image? _activeGpuImage;
   bool _isDecoding = false;
+  int? _cachedTargetWidth;
 
   @override
   void initState() {
     super.initState();
     _subscribeToFrames();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final double logicalWidth = MediaQuery.sizeOf(context).width;
+    final double dpr = MediaQuery.devicePixelRatioOf(context);
+    final int physicalWidth = (logicalWidth * dpr).round();
+    _cachedTargetWidth = physicalWidth > 0 ? physicalWidth : null;
   }
 
   @override
@@ -88,7 +98,7 @@ class _ZeroGcVideoRendererState extends State<ZeroGcVideoRenderer> {
   /// Copies frame into pre-allocated ring buffer and directly decodes to ui.Image
   Future<void> _processIncomingFrame(Uint8List rawBytes) async {
     // If GPU rasterizer is currently congested, discard frame to maintain real-time SLA
-    if (_isDecoding) {
+    if (_isDecoding || !mounted) {
       return;
     }
 
@@ -112,9 +122,7 @@ class _ZeroGcVideoRendererState extends State<ZeroGcVideoRenderer> {
 
       codec = await ui.instantiateImageCodec(
         frameSlice,
-        targetWidth: widget.fit == BoxFit.contain
-            ? null
-            : MediaQuery.of(context).size.width.toInt(),
+        targetWidth: widget.fit == BoxFit.contain ? null : _cachedTargetWidth,
       );
       pendingImage = (await codec.getNextFrame()).image;
 

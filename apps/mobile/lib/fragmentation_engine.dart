@@ -122,11 +122,12 @@ class PacketFragmenter {
       bd.setUint32(kHeaderSize + 4, offset, Endian.big);
       bd.setUint32(kHeaderSize + 8, totalLength, Endian.big);
 
-      // Chunk Payload
+      // Chunk Payload (Zero-allocation view copy)
       framedPacket.setRange(
         kHeaderSize + kFragmentHeaderSize,
         kHeaderSize + packetPayloadLength,
-        payload.sublist(offset, offset + chunkSize),
+        payload,
+        offset,
       );
 
       packets.add(framedPacket);
@@ -172,7 +173,10 @@ class PacketReassembler {
     final int seq = bd.getUint32(4, Endian.big);
     final int payloadLength = bd.getUint32(8, Endian.big);
 
-    if (rawBytes.length < kHeaderSize + payloadLength) return null;
+    if (payloadLength > 16 * 1024 * 1024 ||
+        rawBytes.length < kHeaderSize + payloadLength) {
+      return null;
+    }
 
     final bool isFragmented = (flags & kFlagIsFragmented) != 0;
 
@@ -194,6 +198,21 @@ class PacketReassembler {
     final int totalLength = bd.getUint32(kHeaderSize + 8, Endian.big);
     final int chunkBytesLength = payloadLength - kFragmentHeaderSize;
 
+    // Guard against forged/corrupted fragment headers causing OOM
+    if (totalLength <= 0 ||
+        totalLength > 16 * 1024 * 1024 ||
+        offset < 0 ||
+        offset + chunkBytesLength > totalLength) {
+      return null;
+    }
+
+    if (!_sessions.containsKey(messageId) && _sessions.length >= 32) {
+      _purgeStaleSessions();
+      if (_sessions.length >= 32) {
+        _sessions.remove(_sessions.keys.first);
+      }
+    }
+
     // Detect skipped frame in video stream (Opcode 0x03)
     if (opcode == BinaryOpcode.frame) {
       if (messageId > _lastVideoMessageId + 1 && _lastVideoMessageId != 0) {
@@ -203,7 +222,8 @@ class PacketReassembler {
       _lastVideoMessageId = messageId;
     }
 
-    final Uint8List chunkData = rawBytes.sublist(
+    final Uint8List chunkData = Uint8List.sublistView(
+      rawBytes,
       kHeaderSize + kFragmentHeaderSize,
       kHeaderSize + payloadLength,
     );

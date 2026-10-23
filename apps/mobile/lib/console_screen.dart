@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'binary_protocol.dart';
@@ -176,43 +177,57 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
       backgroundColor: Colors.transparent,
       body: Column(
         children: [
-          // Quadrant HUD Telemetry Bar
+          // Quadrant HUD Telemetry Bar (Liquid Glass)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF070E1C).withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: NeonColors.cyan.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _HudItem(
-                    label: 'CPU',
-                    value:
-                        '${telemetry?.cpuPercent.toStringAsFixed(1) ?? '22.4'}%',
-                    color: NeonColors.cyan,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.08),
+                        const Color(0xFF070E1C).withValues(alpha: 0.78),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.14)),
                   ),
-                  _HudItem(
-                    label: 'RAM',
-                    value:
-                        '${telemetry?.ramPercent.toStringAsFixed(1) ?? '56.1'}%',
-                    color: NeonColors.violet,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _HudItem(
+                        label: 'CPU',
+                        value:
+                            '${telemetry?.cpuPercent.toStringAsFixed(1) ?? '22.4'}%',
+                        color: NeonColors.cyan,
+                      ),
+                      _HudItem(
+                        label: 'RAM',
+                        value:
+                            '${telemetry?.ramPercent.toStringAsFixed(1) ?? '56.1'}%',
+                        color: NeonColors.violet,
+                      ),
+                      const _HudItem(
+                        label: 'NET PING',
+                        value: '1.8 ms',
+                        color: Color(0xFF00FF88),
+                      ),
+                      _HudItem(
+                        label: 'FPS',
+                        value: '60.0',
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ],
                   ),
-                  const _HudItem(
-                    label: 'NET PING',
-                    value: '1.8 ms',
-                    color: Color(0xFF00FF88),
-                  ),
-                  _HudItem(
-                    label: 'FPS',
-                    value: '60.0',
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -221,6 +236,7 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
           SizedBox(
             height: 38,
             child: ListView(
+              physics: const BouncingScrollPhysics(),
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
@@ -245,6 +261,7 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
                   label: _isTrackpadOpen ? 'Hide Trackpad' : 'Virtual Trackpad',
                   icon: Icons.touch_app,
                   onTap: () {
+                    HapticFeedback.selectionClick();
                     setState(() => _isTrackpadOpen = !_isTrackpadOpen);
                   },
                 ),
@@ -252,200 +269,258 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
             ),
           ),
 
-          // Terminal Execution Output Stream
+          // Terminal Execution Output Stream (Liquid Glass)
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF040812).withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: _history.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Autonomous Shell Terminal Ready\nType command or AI prompt below...',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 12,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      itemCount: _history.length,
-                      itemBuilder: (context, index) {
-                        final item = _history[index];
-                        final isError = item.exitCode != 0;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '> ${item.command}',
-                                style: const TextStyle(
-                                  color: NeonColors.cyan,
-                                  fontFamily: 'monospace',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item.output,
-                                style: TextStyle(
-                                  color: isError
-                                      ? Colors.redAccent
-                                      : Colors.white.withValues(alpha: 0.85),
-                                  fontFamily: 'monospace',
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF040812).withValues(alpha: 0.78),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1)),
                     ),
+                    child: _history.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Autonomous Shell Terminal Ready\nType command or AI prompt below...',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            controller: _scrollController,
+                            itemCount: _history.length,
+                            itemBuilder: (context, index) {
+                              final item = _history[index];
+                              final isError = item.exitCode != 0;
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '> ${item.command}',
+                                      style: const TextStyle(
+                                        color: NeonColors.cyan,
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item.output,
+                                      style: TextStyle(
+                                        color: isError
+                                            ? Colors.redAccent
+                                            : Colors.white
+                                                .withValues(alpha: 0.85),
+                                        fontFamily: 'monospace',
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ),
             ),
           ),
 
-          // Slide-up Virtual Trackpad Surface (if active)
-          if (_isTrackpadOpen)
-            Container(
-              height: 180,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF070E1C).withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(20),
-                border:
-                    Border.all(color: NeonColors.cyan.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                children: [
-                  // Trackpad Area
-                  Expanded(
-                    child: GestureDetector(
-                      onPanStart: (details) {
-                        _lastTrackpadPos = details.localPosition;
-                      },
-                      onPanUpdate: (details) {
-                        final delta = details.localPosition - _lastTrackpadPos;
-                        _lastTrackpadPos = details.localPosition;
-                        widget.onSendInput({
-                          'action': 'move',
-                          'dx': delta.dx * 1.5,
-                          'dy': delta.dy * 1.5,
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.1)),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Drag to move cursor · Tap buttons below',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 11,
+          // Smooth Animated Slide-up Virtual Trackpad Surface
+          AnimatedSize(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            child: _isTrackpadOpen
+                ? Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                        child: Container(
+                          height: 180,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withValues(alpha: 0.08),
+                                const Color(0xFF070E1C).withValues(alpha: 0.88),
+                              ],
                             ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                                color: NeonColors.cyan.withValues(alpha: 0.35)),
+                          ),
+                          child: Column(
+                            children: [
+                              // Trackpad Area
+                              Expanded(
+                                child: GestureDetector(
+                                  onPanStart: (details) {
+                                    _lastTrackpadPos = details.localPosition;
+                                  },
+                                  onPanUpdate: (details) {
+                                    final delta = details.localPosition -
+                                        _lastTrackpadPos;
+                                    _lastTrackpadPos = details.localPosition;
+                                    widget.onSendInput({
+                                      'action': 'move',
+                                      'dx': delta.dx * 1.5,
+                                      'dy': delta.dy * 1.5,
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.4),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.1)),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Drag to move cursor · Tap buttons below',
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.45),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Mouse & Media Buttons
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Colors.white.withValues(alpha: 0.1),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => widget.onSendInput(
+                                        {'action': 'click', 'button': 'left'}),
+                                    child: const Text('Left Click'),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Colors.white.withValues(alpha: 0.1),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => widget.onSendInput(
+                                        {'action': 'click', 'button': 'right'}),
+                                    child: const Text('Right Click'),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.volume_down,
+                                        color: Colors.white),
+                                    onPressed: () =>
+                                        widget.onSendAudioAction('volume_down'),
+                                    tooltip: 'Volume Down',
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.volume_up,
+                                        color: Colors.white),
+                                    onPressed: () =>
+                                        widget.onSendAudioAction('volume_up'),
+                                    tooltip: 'Volume Up',
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.play_arrow,
+                                        color: NeonColors.cyan),
+                                    onPressed: () =>
+                                        widget.onSendAudioAction('play_pause'),
+                                    tooltip: 'Play / Pause',
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+
+          // Command Input Bar (Liquid Glass Capsule)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.09),
+                        const Color(0xFF070E1C).withValues(alpha: 0.85),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                        color: NeonColors.cyan.withValues(alpha: 0.35)),
                   ),
-                  const SizedBox(height: 8),
-                  // Mouse & Media Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: Row(
                     children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          foregroundColor: Colors.white,
+                      Icon(Icons.chevron_right,
+                          color: NeonColors.cyan, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _inputController,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontFamily: 'monospace'),
+                          decoration: InputDecoration(
+                            hintText: 'Enter command or AI prompt...',
+                            hintStyle: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                fontSize: 13),
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _handleSubmit(),
                         ),
-                        onPressed: () => widget
-                            .onSendInput({'action': 'click', 'button': 'left'}),
-                        child: const Text('Left Click'),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () => widget.onSendInput(
-                            {'action': 'click', 'button': 'right'}),
-                        child: const Text('Right Click'),
                       ),
                       IconButton(
-                        icon:
-                            const Icon(Icons.volume_down, color: Colors.white),
-                        onPressed: () =>
-                            widget.onSendAudioAction('volume_down'),
-                        tooltip: 'Volume Down',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.volume_up, color: Colors.white),
-                        onPressed: () => widget.onSendAudioAction('volume_up'),
-                        tooltip: 'Volume Up',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.play_arrow,
-                            color: NeonColors.cyan),
-                        onPressed: () => widget.onSendAudioAction('play_pause'),
-                        tooltip: 'Play / Pause',
+                        icon: Icon(Icons.send_rounded,
+                            color: NeonColors.cyan, size: 20),
+                        onPressed: _handleSubmit,
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-          // Command Input Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF070E1C).withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(24),
-                border:
-                    Border.all(color: NeonColors.cyan.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.chevron_right, color: NeonColors.cyan, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontFamily: 'monospace'),
-                      decoration: InputDecoration(
-                        hintText: 'Enter command or AI prompt...',
-                        hintStyle: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            fontSize: 13),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _handleSubmit(),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.send_rounded,
-                        color: NeonColors.cyan, size: 20),
-                    onPressed: _handleSubmit,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

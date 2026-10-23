@@ -21,13 +21,14 @@ import {
 import { triggerHapticFeedback } from '../services/hapticService';
 import { HostDevice, WolSchedule } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
+import { useUIStore } from '../store/uiStore';
 
 export type BotRole = 'commander' | 'diagnostics' | 'fast_triage';
 export type GeminiModelId =
-  | 'gemini-3.8-flash'
-  | 'gemini-3.5-flash'
+  | 'gemini-2.5-flash'
+  | 'gemini-3-flash-preview'
   | 'gemini-3.1-pro-preview'
-  | 'gemini-3.1-flash-lite';
+  | 'gemini-2.0-flash';
 
 export interface ChatMessage {
   id: string;
@@ -70,32 +71,41 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   wolSchedules = [],
 }) => {
   const { t, language } = useTranslation();
+  const selectedModel = useUIStore((s) => s.selectedModel);
+
+  const welcomeText = useMemo(
+    () =>
+      language === 'bg'
+        ? 'Здравейте. Аз съм Вашият CST мрежов асистент с Gemini AI. Мога да управлявам флот от работни станции, да изпращам Wake-on-LAN пакети и да анализирам телеметрия на протокол CST/3.0-SECURE.'
+        : 'Hello. I am your CST fleet copilot powered by Gemini AI. I can orchestrate workstations, dispatch Wake-on-LAN packets, and inspect CST/3.0-SECURE telemetry.',
+    [language]
+  );
 
   const ROLES = useMemo(
     () => [
       {
         id: 'commander' as BotRole,
         label: language === 'bg' ? 'Флот' : 'Fleet',
-        model: 'gemini-3.8-flash' as GeminiModelId,
+        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
         icon: Sparkles,
         placeholder: language === 'bg' ? 'Попитайте Флот Командира...' : 'Ask Fleet Copilot...',
       },
       {
         id: 'diagnostics' as BotRole,
         label: language === 'bg' ? 'Сигурност' : 'Security',
-        model: 'gemini-3.1-pro-preview' as GeminiModelId,
+        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
         icon: Shield,
         placeholder: language === 'bg' ? 'Анализ на CST/3.0 протокол...' : 'Analyze CST/3.0 security...',
       },
       {
         id: 'fast_triage' as BotRole,
         label: language === 'bg' ? 'Shell' : 'Shell',
-        model: 'gemini-3.1-flash-lite' as GeminiModelId,
+        model: (selectedModel || 'gemini-2.5-flash') as GeminiModelId,
         icon: Terminal,
         placeholder: language === 'bg' ? 'Бърза shell команда...' : 'Fast bash / PowerShell command...',
       },
     ],
-    [language]
+    [language, selectedModel]
   );
 
   const [activeRole, setActiveRole] = useState<BotRole>(() => {
@@ -123,15 +133,22 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       {
         id: 'welcome',
         role: 'model',
-        content:
-          language === 'bg'
-            ? 'Здравейте. Аз съм Вашият CST мрежов асистент с Gemini AI. Мога да управлявам флот от работни станции, да изпращам Wake-on-LAN пакети и да анализирам телеметрия на протокол CST/3.0-SECURE.'
-            : 'Hello. I am your CST fleet copilot powered by Gemini AI. I can orchestrate workstations, dispatch Wake-on-LAN packets, and inspect CST/3.0-SECURE telemetry.',
+        content: welcomeText,
         timestamp: Date.now(),
-        modelUsed: 'gemini-3.8-flash',
+        modelUsed: selectedModel || 'gemini-2.5-flash',
       },
     ];
   });
+
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === 'welcome'
+          ? { ...m, content: welcomeText, modelUsed: selectedModel || 'gemini-2.5-flash' }
+          : m
+      )
+    );
+  }, [welcomeText, selectedModel]);
 
   const [inputPrompt, setInputPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -420,9 +437,9 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)] max-w-3xl mx-auto px-2 sm:px-3 pb-3 select-none">
+    <div className="flex flex-col min-h-[calc(100vh-180px)] max-w-3xl mx-auto px-2 sm:px-3 pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] select-none">
       {/* 1. Liquid Glass Header Bar with Samsung Style Role Pills */}
-      <header className="flex-none py-2.5 px-3 mb-2 rounded-full glass-liquid-elevated border border-white/12 flex items-center justify-between shadow-lg relative">
+      <header className="flex-none py-2.5 px-3 mb-2 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-between relative">
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
         {/* Gemini Identity */}
@@ -435,15 +452,15 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               <span>Gemini Copilot</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
             </h2>
-            <span className="text-[10px] font-mono text-cyan-300/70">
-              {activeRoleConfig.model.replace('gemini-', '')}
+            <span className="text-[10px] font-mono text-cyan-300/80">
+              {selectedModel || activeRoleConfig.model}
             </span>
           </div>
         </div>
 
-        {/* Samsung Style Segmented Pill Nav */}
+        {/* Liquid Glass Segmented Role Selector with Sliding Lens */}
         <div className="flex items-center space-x-1.5">
-          <div className="flex items-center bg-white/[0.05] p-0.5 rounded-full border border-white/10">
+          <div className="flex items-center glass-liquid-subtle p-1 rounded-full">
             {ROLES.map((r) => {
               const isSelected = activeRole === r.id;
               const Icon = r.icon;
@@ -452,12 +469,19 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   key={r.id}
                   type="button"
                   onClick={() => handleRoleSelect(r.id)}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-200 cursor-pointer flex items-center space-x-1 ${
+                  className={`relative px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 ${
                     isSelected
-                      ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(0,212,255,0.2)]'
-                      : 'text-white/50 hover:text-white/80'
+                      ? 'text-cyan-200'
+                      : 'text-white/50 hover:text-white/85'
                   }`}
                 >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="geminiRoleLens"
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 to-sky-500/20 border border-cyan-400/45 shadow-[0_0_12px_rgba(56,189,248,0.25)] -z-10"
+                      transition={{ type: 'spring', stiffness: 460, damping: 28, mass: 0.6 }}
+                    />
+                  )}
                   <Icon className="w-3 h-3" />
                   <span>{r.label}</span>
                 </button>
@@ -466,14 +490,16 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           </div>
 
           {messages.length > 1 && (
-            <button
+            <motion.button
               type="button"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.9 }}
               onClick={handleClearHistory}
-              className="w-7 h-7 rounded-full bg-white/[0.04] hover:bg-white/10 text-white/40 hover:text-white flex items-center justify-center transition border border-white/8 cursor-pointer"
+              className="w-8 h-8 rounded-full glass-liquid-subtle hover:bg-white/10 text-white/45 hover:text-white flex items-center justify-center transition cursor-pointer"
               title="Clear chat"
             >
               <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            </motion.button>
           )}
         </div>
       </header>

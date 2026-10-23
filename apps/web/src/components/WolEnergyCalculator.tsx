@@ -71,7 +71,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
   defaultHostCount = 15
 }) => {
   const { t, language } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // User input parameters
   const [hostCount, setHostCount] = useState<number>(defaultHostCount > 0 ? defaultHostCount : 15);
@@ -200,31 +200,55 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
         </button>
       </div>
 
-      <div className="glass-liquid-elevated w-full rounded-[2rem] overflow-hidden relative border border-white/12 shadow-xl">
-        <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] w-full rounded-[2rem] overflow-hidden relative">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            triggerHapticFeedback('light');
+            setIsExpanded((prev) => !prev);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsExpanded((prev) => !prev);
+            }
+          }}
+          className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.02] transition"
+        >
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_12px_rgba(0,255,163,0.2)] shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                <h4 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
-                  {t('calc_baseline_vs_wol')}
+              <div className="flex items-center flex-wrap gap-2">
+                <h4 className="text-xs sm:text-sm font-bold text-white tracking-wide">
+                  {language === 'bg' ? 'Зелена WoL Ефективност' : 'Green WoL Efficiency'}
                 </h4>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                  -{stats.percentSaved.toFixed(0)}%
+                <span className="text-white/30">•</span>
+                <span className="text-xs sm:text-sm font-mono font-bold text-emerald-300">
+                  {language === 'bg' ? 'Прогнозни спестявания:' : 'Est. Savings:'}{' '}
+                  {Math.round(stats.savedAnnualCost).toLocaleString(language === 'bg' ? 'bg-BG' : 'en-US')}{' '}
+                  {currencySymbol} / {language === 'bg' ? 'год.' : 'yr'} (-{stats.percentSaved.toFixed(0)}%{' '}
+                  {language === 'bg' ? 'енергия' : 'energy'})
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-center justify-end">
-            <div className="text-right px-3.5 py-1.5 rounded-2xl bg-black/40 border border-emerald-500/30 w-full sm:w-auto">
-              <div className="text-[10px] text-slate-400 font-mono uppercase">{t('calc_annual_savings')}</div>
-              <div className="text-base font-bold text-emerald-400 font-mono tracking-tight">
-                {stats.savedAnnualCost.toLocaleString(language === 'bg' ? 'bg-BG' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}
-              </div>
-            </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <span className="px-3.5 py-1.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-xs font-semibold text-cyan-200 flex items-center gap-1.5 transition">
+              <span>
+                {isExpanded
+                  ? language === 'bg'
+                    ? 'Свий графиката'
+                    : 'Hide Chart'
+                  : language === 'bg'
+                  ? 'Персонализирай и виж графика'
+                  : 'Customize & View Chart'}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+            </span>
           </div>
         </div>
 
@@ -443,6 +467,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
 
             {/* Weekly Chart */}
             <WolEnergyWeeklyChart
+              schedules={wolSchedules}
               activeHoursPerDay={activeHoursPerDay}
               daysPerWeek={daysPerWeek}
               hostCount={hostCount}

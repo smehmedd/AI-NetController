@@ -110,7 +110,7 @@ class FileTransferEngine {
     initPayload.setRange(13, 77, ascii.encode(shaHex));
     initPayload.setRange(77, 77 + filenameBytes.length, filenameBytes);
 
-    sendPacket(packPacket(BinaryOpcode.llmStream, initPayload)); // 0x0C opcode
+    sendPacket(packPacket(BinaryOpcode.fileTransfer, initPayload)); // 0x0C opcode
 
     yield TransferProgress(
       transferId: transferId,
@@ -141,7 +141,7 @@ class FileTransferEngine {
         bdChunk.setUint64(5, bytesSent, Endian.big);
         chunkPayload.setRange(13, 13 + chunkBytes.length, chunkBytes);
 
-        sendPacket(packPacket(BinaryOpcode.llmStream, chunkPayload));
+        sendPacket(packPacket(BinaryOpcode.fileTransfer, chunkPayload));
         bytesSent += chunkBytes.length;
 
         final double elapsedSec = stopwatch.elapsedMilliseconds / 1000.0;
@@ -169,7 +169,7 @@ class FileTransferEngine {
         ByteData.sublistView(abortPayload)
           ..setUint8(0, kFileCmdAbort)
           ..setUint32(1, transferId, Endian.big);
-        sendPacket(packPacket(BinaryOpcode.llmStream, abortPayload));
+        sendPacket(packPacket(BinaryOpcode.fileTransfer, abortPayload));
 
         yield TransferProgress(
           transferId: transferId,
@@ -188,14 +188,15 @@ class FileTransferEngine {
       ByteData.sublistView(finishPayload)
         ..setUint8(0, kFileCmdFinish)
         ..setUint32(1, transferId, Endian.big);
-      sendPacket(packPacket(BinaryOpcode.llmStream, finishPayload));
+      sendPacket(packPacket(BinaryOpcode.fileTransfer, finishPayload));
 
+      final double totalElapsedSec = max(stopwatch.elapsedMilliseconds / 1000.0, 0.001);
       yield TransferProgress(
         transferId: transferId,
         filename: filename,
         totalBytes: totalBytes,
         bytesSent: totalBytes,
-        speedBytesPerSec: (totalBytes / (stopwatch.elapsedMilliseconds / 1000.0)).clamp(0, double.infinity),
+        speedBytesPerSec: totalBytes > 0 ? (totalBytes / totalElapsedSec) : 0.0,
         eta: Duration.zero,
         state: TransferState.completed,
       );

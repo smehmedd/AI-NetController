@@ -68,16 +68,23 @@ class BiometricSecurityGate {
     required String shellCommand,
     required String targetHostId,
     required String riskLevel,
+    bool allowFallbackWhenUnavailable = false,
   }) async {
     final bool isAvailable = await isBiometricAvailable();
 
     if (!isAvailable) {
-      // In simulator environments or devices without lockscreen security,
-      // log warning and enforce manual confirmation
       debugPrint('⚠️ Secure Enclave / Biometrics unavailable on host device.');
+      if (!allowFallbackWhenUnavailable) {
+        return BiometricAuthResult(
+          isApproved: false,
+          message: 'Отхвърлено: Устройството няма настроен хардуерен Enclave / ПИН заключване',
+          errorCode: auth_error.notAvailable,
+          timestamp: DateTime.now(),
+        );
+      }
       return BiometricAuthResult(
         isApproved: true,
-        message: 'Одобрено без хардуерен Enclave (устройството няма заключване)',
+        message: 'Одобрено в симулационен режим (без хардуерен Enclave)',
         timestamp: DateTime.now(),
       );
     }

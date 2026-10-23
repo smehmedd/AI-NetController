@@ -139,61 +139,94 @@ export default function App() {
 
   return (
     <GlobalErrorBoundary>
-      <div className="min-h-[100dvh] bg-[#050811] text-white flex flex-col font-sans selection:bg-cyan-500/30 relative overflow-x-hidden">
-        {/* Liquid Glass Ambient Refraction Field */}
-        <div
-          className="fixed inset-0 pointer-events-none z-0"
-          aria-hidden="true"
-          style={{
-            background:
-              'radial-gradient(circle at 85% 5%, rgba(0,212,255,0.08) 0%, transparent 45%), radial-gradient(circle at 10% 45%, rgba(99,102,241,0.07) 0%, transparent 50%), radial-gradient(circle at 80% 90%, rgba(14,165,233,0.06) 0%, transparent 45%)',
-          }}
-        />
+      <div className="min-h-[100dvh] bg-[#040711] text-white flex flex-col font-sans selection:bg-cyan-500/30 relative overflow-x-hidden">
+        {/* Futuristic Liquid Glass Ambient Refraction Field */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          <div
+            className="liquid-aurora-orb absolute -top-[18%] -right-[10%] w-[520px] h-[520px] rounded-full opacity-90"
+            style={{
+              background: 'radial-gradient(circle, rgba(56,189,248,0.13) 0%, rgba(14,165,233,0.04) 45%, transparent 70%)',
+              filter: 'blur(40px)',
+            }}
+          />
+          <div
+            className="liquid-aurora-orb absolute top-[28%] -left-[15%] w-[480px] h-[480px] rounded-full opacity-80"
+            style={{
+              background: 'radial-gradient(circle, rgba(99,102,241,0.11) 0%, rgba(56,189,248,0.03) 50%, transparent 72%)',
+              filter: 'blur(48px)',
+              animationDelay: '-6s',
+            }}
+          />
+          <div
+            className="liquid-aurora-orb absolute -bottom-[15%] right-[12%] w-[440px] h-[440px] rounded-full opacity-75"
+            style={{
+              background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(56,189,248,0.04) 48%, transparent 70%)',
+              filter: 'blur(44px)',
+              animationDelay: '-12s',
+            }}
+          />
+        </div>
 
-        {agent.unreachableAlert && (
-          <div className="fixed top-[env(safe-area-inset-top,10px)] left-1/2 -translate-x-1/2 z-[90] w-11/12 max-w-lg bg-rose-950/90 border border-rose-500/50 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-rose-200">
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-              <div className="text-xs leading-snug">{agent.unreachableAlert.message}</div>
-            </div>
-            <button
-              onClick={agent.clearUnreachableAlert}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg text-rose-300 cursor-pointer"
-              aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+        <AnimatePresence>
+          {agent.unreachableAlert && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              className="fixed top-[env(safe-area-inset-top,12px)] left-1/2 -translate-x-1/2 z-[90] w-11/12 max-w-lg glass-liquid-elevated border border-rose-500/40 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-rose-100"
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {agent.securityAlert && (
-          <div className="fixed top-[calc(env(safe-area-inset-top,10px)+60px)] left-1/2 -translate-x-1/2 z-[95] w-11/12 max-w-lg bg-amber-950/95 border border-amber-500/60 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-amber-200">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-amber-100">{agent.securityAlert.title}</div>
-                <div className="text-[11px] leading-snug text-amber-300/90 mt-0.5 break-words">{agent.securityAlert.reason}</div>
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                <div className="text-xs leading-snug">{agent.unreachableAlert.message}</div>
               </div>
-            </div>
-            <button
-              onClick={agent.clearSecurityAlert}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-lg text-amber-300 shrink-0 hover:text-white cursor-pointer"
-              aria-label={language === 'bg' ? 'Затвори' : 'Close'}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+              <button
+                onClick={agent.clearUnreachableAlert}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-full hover:bg-white/10 text-rose-300 cursor-pointer bubble-tap"
+                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <main className="w-full max-w-3xl mx-auto px-4 pt-3 pb-24 sm:pb-28 flex-1 flex flex-col overflow-x-hidden">
+        <AnimatePresence>
+          {agent.securityAlert && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              className="fixed top-[calc(env(safe-area-inset-top,12px)+60px)] left-1/2 -translate-x-1/2 z-[95] w-11/12 max-w-lg glass-liquid-elevated border border-amber-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-amber-100"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-amber-100">{agent.securityAlert.title}</div>
+                  <div className="text-[11px] leading-snug text-amber-200/90 mt-0.5 break-words">{agent.securityAlert.reason}</div>
+                </div>
+              </div>
+              <button
+                onClick={agent.clearSecurityAlert}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-1 rounded-full hover:bg-white/10 text-amber-300 shrink-0 hover:text-white cursor-pointer bubble-tap"
+                aria-label={language === 'bg' ? 'Затвори' : 'Close'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <main className="relative z-10 w-full max-w-3xl mx-auto px-4 pt-3.5 pb-24 sm:pb-28 flex-1 flex flex-col overflow-x-hidden">
           <AnimatePresence mode="wait" initial={false}>
             {activeTab === 'fleet' && (
               <motion.div
                 key="fleet"
-                initial={{ opacity: 0, y: 8, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.99, transition: { duration: 0.1 } }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <FleetDashboard
@@ -205,6 +238,8 @@ export default function App() {
                   onPanicKill={agent.panicKillAll}
                   onSelectHostForCommand={handleSelectHostTerminal}
                   onInspectWolPacket={handleInspectWol}
+                  onWakeHost={fleet.sendWolPacket}
+                  onSendCommand={agent.sendCommand}
                   onViewScreen={handleViewScreen}
                   onRescan={fleet.scanMdns}
                   isScanning={fleet.isScanning}
@@ -217,10 +252,10 @@ export default function App() {
             {activeTab === 'terminal' && (
               <motion.div
                 key="terminal"
-                initial={{ opacity: 0, y: 8, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.99, transition: { duration: 0.1 } }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>
@@ -243,10 +278,10 @@ export default function App() {
             {activeTab === 'chat' && (
               <motion.div
                 key="chat"
-                initial={{ opacity: 0, y: 8, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.99, transition: { duration: 0.1 } }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>
@@ -268,10 +303,10 @@ export default function App() {
             {activeTab === 'settings' && (
               <motion.div
                 key="settings"
-                initial={{ opacity: 0, y: 8, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.99, transition: { duration: 0.1 } }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>

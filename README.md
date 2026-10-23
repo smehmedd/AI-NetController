@@ -21,9 +21,27 @@
   * **HMAC-SHA256 Handshake**: Constant-time authentication with single-use monotonic nonces.
   * **Sandboxed Execution**: Windows Kernel Job Object memory containment (256MB hard cap) with escalating termination supervision (`SIGINT -> SIGTERM -> SIGKILL`).
 * **Agentic Gemini AI Copilot**: Multi-turn natural language diagnostic shell powered by `@google/genai` with prompt routing for Fleet, Security, and Terminal triage.
-* **Apple Liquid Glass UI System**: Responsive glassmorphic layout with Samsung One UI pill navigation, 120Hz spring physics, and full Bulgarian (`BG`) / English (`EN`) localization.
+* **Apple Liquid Glass UI System (3-Tier Optical Density)**: VisionOS-inspired 3-tier optical glass hierarchy (`Tier 1` resting cards, `Tier 2` floating chrome, `Tier 3` deep modal & dropdown surfaces), 3-Tile Bento Device Card expansion, 120Hz spring physics, and full Bulgarian (`BG`) / English (`EN`) localization.
 * **Zero-GC Display Pipeline**: 60–120 FPS remote desktop streaming with Adler-32 spatial delta hashing and recycled VRAM texture slots.
-* **Wake-on-LAN & Energy Calculator**: Scheduled waking routines with interactive green energy efficiency calculator.
+* **Wake-on-LAN & Energy Calculator**: 1-Tap Fleet Wake All, scheduled waking routines, and interactive green energy efficiency calculator.
+
+---
+
+## What's New in v2.5.0 (Patch Notes)
+
+See [CHANGELOG.md](CHANGELOG.md) and [PATCH_NOTES.md](PATCH_NOTES.md) for the complete release history.
+
+* **3-Tier Optical Liquid Glass Density**: Eliminated floating-layer text bleed-through with calibrated optical tiers (`bg-[#0b1324]/55` resting cards, `bg-[#070c18]/88` floating pill nav & sticky chrome, and `bg-[#091020]/95` modals/sheets over `bg-black/75 backdrop-blur-md` backdrops).
+* **Fleet Dashboard & 3-Tile Bento Card Expansion**:
+  * Streamlined header with inline `[ 🟢 Online • Sleeping ]` status pill, 1-tap **`[ ⚡ Wake All (N) ]`** broadcast button, `[Cards | Map]` toggle, and unified search (`⌘K`), filter pills, and compact `Sort ▾` menu.
+  * Redesigned `HostCard` with 3px `CPU`/`RAM` telemetry bars, clean `Sleeping • Ready for WoL` offline state, and a **3-Tile Bento Drawer** (16:9 Live Mini-Screen Preview, 2×2 1-Tap Quick OS Actions, and Compact Hardware & Network Strip with 1-click MAC copy & 60px RTT/jitter sparkline).
+* **Console & Gemini AI Copilot Synchronization**:
+  * Flush-left host selector pills and bottom-anchored, non-truncating localized command preset chips in `CommandTerminal`.
+  * Shared `selectedModel` persisted in `useUIStore` synced between **Settings** and the **Gemini Copilot** header badge, plus dynamically localized EN/BG welcome greetings.
+* **Settings, Modals & Stability**:
+  * Collapsed-by-default Green WoL Efficiency summary banner and 100% EN/BG localized Weekly Energy Chart.
+  * Streamlined `MemoryManager` host selector, fixed 12-hour schedule time subtext in `WolModal`, and simplified `SystemUpdateModal` rows to 2 badges (`Size` + `Status`).
+  * Fixed `@vite/client` HMR WebSocket errors in Express middleware mode and updated GitHub Actions CI.
 
 ---
 
@@ -48,6 +66,8 @@ cst-netcontroller-ai/
 │       └── tests/                 # 34-Pillar verification and 13-phase stress test harnesses
 ├── docs/                          # Comprehensive technical architecture & compilation guides
 ├── .github/workflows/ci.yml       # GitHub Actions CI workflow
+├── CHANGELOG.md                   # Detailed version history & architectural changelog
+├── PATCH_NOTES.md                 # Latest release patch notes (v2.5.0)
 ├── CONTRIBUTING.md                # Open-source contribution guidelines
 ├── LICENSE                        # MIT Open Source License
 ├── package.json                   # Web console dependencies & npm scripts

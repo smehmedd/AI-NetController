@@ -10,6 +10,7 @@ export interface UIState {
   modalPayload: any | null;
   isOmnibarOpen: boolean;
   language: Language;
+  selectedModel: string;
 
   setActiveTab: (tab: NavTab) => void;
   openModal: (type: ModalType, payload?: any) => void;
@@ -18,6 +19,7 @@ export interface UIState {
   setOmnibarOpen: (isOpen: boolean) => void;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
+  setSelectedModel: (model: string) => void;
 }
 
 const getInitialLanguage = (): Language => {
@@ -31,12 +33,21 @@ const getInitialLanguage = (): Language => {
   return 'bg';
 };
 
+const getInitialModel = (): string => {
+  try {
+    const saved = localStorage.getItem('wakeflow_selected_model');
+    if (saved) return saved;
+  } catch {}
+  return 'gemini-2.5-flash';
+};
+
 export const useUIStore = create<UIState>((set) => ({
   activeTab: 'fleet',
   activeModal: 'none',
   modalPayload: null,
   isOmnibarOpen: false,
   language: getInitialLanguage(),
+  selectedModel: getInitialModel(),
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   openModal: (type, payload = null) => set({ activeModal: type, modalPayload: payload }),
@@ -57,4 +68,10 @@ export const useUIStore = create<UIState>((set) => ({
       } catch {}
       return { language: nextLang };
     }),
+  setSelectedModel: (model) => {
+    try {
+      localStorage.setItem('wakeflow_selected_model', model);
+    } catch {}
+    set({ selectedModel: model });
+  },
 }));

@@ -357,6 +357,33 @@ function scheduleReconnect() {
   }, delay);
 }
 
+const UTF8_DECODER = new TextDecoder();
+
+async function respondToBinaryAuthChallenge(nonceBytes: Uint8Array, seq: number) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  const secretStr = currentToken || 'cst_thesis_2026_secret_key';
+  const keyData = new TextEncoder().encode(secretStr);
+  const cryptoKey = await self.crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBuffer = await self.crypto.subtle.sign('HMAC', cryptoKey, nonceBytes);
+  const sigBytes = new Uint8Array(sigBuffer);
+  const packet = new Uint8Array(HEADER_SIZE + sigBytes.length);
+  const view = new DataView(packet.buffer);
+  packet[0] = MAGIC_0;
+  packet[1] = MAGIC_1;
+  packet[2] = 0x06; // OP_AUTH
+  packet[3] = 0x00;
+  view.setUint32(4, seq, false);
+  view.setUint32(8, sigBytes.length, false);
+  packet.set(sigBytes, HEADER_SIZE);
+  socket.send(packet.buffer);
+}
+
 function parseBinaryFrame(bytes: Uint8Array) {
   if (bytes.length < HEADER_SIZE) return;
   if (bytes[0] !== MAGIC_0 || bytes[1] !== MAGIC_1) return;
@@ -366,25 +393,54 @@ function parseBinaryFrame(bytes: Uint8Array) {
   const seq = view.getUint32(4, false);
   const length = view.getUint32(8, false);
 
+  if (bytes.length < HEADER_SIZE + length) return;
+
   if (seq > highestInboundSeq) {
     highestInboundSeq = seq;
   }
 
+  const payloadSlice = bytes.subarray(HEADER_SIZE, HEADER_SIZE + length);
+
   if (opcode === 0x01) {
     // Binary OP_PING response
     handlePongReceived();
-  } else if (opcode === 0x02 && bytes.length >= HEADER_SIZE + length) {
+  } else if (opcode === 0x02) {
     // OP_TELEMETRY frame
-    const payloadStr = new TextDecoder().decode(bytes.subarray(HEADER_SIZE, HEADER_SIZE + length));
     try {
-      self.postMessage({ type: 'TELEMETRY', data: JSON.parse(payloadStr) });
+      self.postMessage({ type: 'TELEMETRY', data: JSON.parse(UTF8_DECODER.decode(payloadSlice)) });
     } catch {
       // Ignore parse failure
     }
-  } else if (opcode === 0x03 && bytes.length >= HEADER_SIZE + length) {
+  } else if (opcode === 0x03) {
     // OP_FRAME (pass fresh sliced ArrayBuffer as Transferable to avoid memory copies)
-    const frameBuffer = bytes.subarray(HEADER_SIZE, HEADER_SIZE + length).slice().buffer;
+    const frameBuffer = payloadSlice.slice().buffer;
     (self as unknown as Worker).postMessage({ type: 'SCREEN_FRAME', buffer: frameBuffer }, [frameBuffer]);
+  } else if (opcode === 0x04) {
+    // OP_SHELL response
+    try {
+      self.postMessage({ type: 'JSON_FRAME', data: { event: 'SHELL_RESULT', ...JSON.parse(UTF8_DECODER.decode(payloadSlice)) } });
+    } catch {
+      // Ignore
+    }
+  } else if (opcode === 0x05) {
+    // OP_HITL security interrupt
+    try {
+      self.postMessage({ type: 'JSON_FRAME', data: { event: 'HITL_REQUIRED', ...JSON.parse(UTF8_DECODER.decode(payloadSlice)) } });
+    } catch {
+      // Ignore
+    }
+  } else if (opcode === 0x06) {
+    // OP_AUTH challenge (16-byte nonce) or status
+    if (length === 16) {
+      void respondToBinaryAuthChallenge(payloadSlice, seq);
+    }
+  } else if (opcode === 0xee) {
+    // OP_ERR structured error
+    try {
+      self.postMessage({ type: 'JSON_FRAME', data: { event: 'ERROR', ...JSON.parse(UTF8_DECODER.decode(payloadSlice)) } });
+    } catch {
+      // Ignore
+    }
   }
 }
 

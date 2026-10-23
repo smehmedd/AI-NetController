@@ -101,8 +101,8 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-[12px] animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-[24px] bg-white/[0.05] backdrop-blur-[40px] backdrop-saturate-[180%] border border-white/[0.05] border-t-white/[0.15] border-l-white/[0.1] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-[24px] bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden">
         {/* Header Bar */}
         <div className="px-6 py-4 bg-white/[0.02] flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">

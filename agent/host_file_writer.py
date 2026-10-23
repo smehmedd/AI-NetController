@@ -64,6 +64,8 @@ class ActiveTransfer:
         self.file_handle = open(self.temp_path, "r+b" if self.temp_path.exists() else "wb")
 
     def write_chunk(self, offset: int, data: bytes):
+        if offset < 0 or offset + len(data) > MAX_FILE_SIZE or offset > self.total_size:
+            raise ValueError(f"Chunk offset {offset} + len {len(data)} exceeds permitted bounds")
         if not self.file_handle:
             self.open()
         self.file_handle.seek(offset)
