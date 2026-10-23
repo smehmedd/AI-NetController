@@ -22,24 +22,28 @@ import {
   Sparkles,
   RotateCcw,
   HardDrive,
+  Star,
 } from 'lucide-react';
 import { HostDevice } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { getLatencyConfig, FleetSortMode } from './FleetDashboard';
 import { useTranslation, Language } from '../i18n/useTranslation';
+import { clampPercentage } from '../utils/viewportScale';
 
 export interface HostCardProps {
   host: HostDevice;
   language?: Language;
   isSelected: boolean;
   isExpanded: boolean;
+  isPinned?: boolean;
   isQuarantined: boolean;
   isCircuitTripped: boolean;
   sortMode: FleetSortMode;
   remainingWakeSeconds?: number;
   onSelect: (hostId: string) => void;
   onToggleExpand: (hostId: string) => void;
+  onTogglePin?: (hostId: string) => void;
   onInspectWolPacket: (device: HostDevice) => void;
   onViewScreen: (device: HostDevice) => void;
   onSelectForCommand?: (hostId: string) => void;
@@ -49,6 +53,7 @@ export interface HostCardProps {
 }
 
 export const getBatteryConfig = (percentage: number, isCharging?: boolean) => {
+  const safePct = clampPercentage(percentage, 100);
   if (isCharging) {
     return {
       icon: BatteryCharging,
@@ -57,7 +62,7 @@ export const getBatteryConfig = (percentage: number, isCharging?: boolean) => {
       iconColor: 'text-amber-400',
     };
   }
-  if (percentage >= 70) {
+  if (safePct >= 70) {
     return {
       icon: BatteryFull,
       colorText: 'text-emerald-400',
@@ -65,7 +70,7 @@ export const getBatteryConfig = (percentage: number, isCharging?: boolean) => {
       iconColor: 'text-emerald-400',
     };
   }
-  if (percentage >= 30) {
+  if (safePct >= 30) {
     return {
       icon: BatteryMedium,
       colorText: 'text-cyan-300',
@@ -73,7 +78,7 @@ export const getBatteryConfig = (percentage: number, isCharging?: boolean) => {
       iconColor: 'text-cyan-400',
     };
   }
-  if (percentage >= 15) {
+  if (safePct >= 15) {
     return {
       icon: BatteryLow,
       colorText: 'text-amber-300',
@@ -102,10 +107,11 @@ const InlineMiniSparkline: React.FC<{
     );
   }
 
+  const safePing = Number.isFinite(ping) && ping > 0 ? ping : 12;
   const samples =
     history && history.length >= 3
-      ? history.slice(-12).map((d) => d.latency)
-      : [ping, ping + 1, Math.max(1, ping - 1), ping, ping + 1, ping];
+      ? history.slice(-12).map((d) => (Number.isFinite(d.latency) ? d.latency : safePing))
+      : [safePing, safePing + 1, Math.max(1, safePing - 1), safePing, safePing + 1, safePing];
 
   const minVal = Math.min(...samples, 1);
   const maxVal = Math.max(...samples, minVal + 4);
@@ -140,11 +146,13 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   language: propLang,
   isSelected,
   isExpanded,
+  isPinned = false,
   isQuarantined,
   isCircuitTripped,
   remainingWakeSeconds,
   onSelect,
   onToggleExpand,
+  onTogglePin,
   onViewScreen,
   onSelectForCommand,
   onQuickCommand,
@@ -154,6 +162,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const currentLang = propLang || storeLang;
   const isOffline = !host.isOnline;
   const [copiedMac, setCopiedMac] = useState(false);
+  const [copiedIp, setCopiedIp] = useState(false);
   const [dispatchedAction, setDispatchedAction] = useState<string | null>(null);
 
   const handleCopyMac = (e: React.MouseEvent) => {
@@ -162,6 +171,14 @@ const HostCardComponent: React.FC<HostCardProps> = ({
     navigator.clipboard?.writeText(host.mac);
     setCopiedMac(true);
     setTimeout(() => setCopiedMac(false), 1800);
+  };
+
+  const handleCopyIp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHapticFeedback('light');
+    navigator.clipboard?.writeText(host.ip);
+    setCopiedIp(true);
+    setTimeout(() => setCopiedIp(false), 1600);
   };
 
   const handleQuickAction = (e: React.MouseEvent, actionId: string, command: string) => {
@@ -178,38 +195,42 @@ const HostCardComponent: React.FC<HostCardProps> = ({
     }, 1600);
   };
 
+  const safeId = host.id || 'HOST';
   let DeviceIcon = Monitor;
   if (
     host.deviceType === 'laptop' ||
-    host.id.includes('LAPTOP') ||
-    host.id.includes('WORKSTATION')
+    safeId.includes('LAPTOP') ||
+    safeId.includes('WORKSTATION')
   ) {
     DeviceIcon = Laptop;
   } else if (
     host.deviceType === 'server' ||
-    host.id.includes('SERVER') ||
-    host.id.includes('SRV')
+    safeId.includes('SERVER') ||
+    safeId.includes('SRV')
   ) {
     DeviceIcon = Server;
   }
 
   const isLaptop =
     host.deviceType === 'laptop' ||
-    host.id.toLowerCase().includes('laptop') ||
+    safeId.toLowerCase().includes('laptop') ||
     host.tags?.some((tag) => tag.toLowerCase() === 'laptop' || tag.toLowerCase() === 'mobile');
+  const safeBatteryPct =
+    host.batteryPercentage !== undefined ? clampPercentage(host.batteryPercentage, 100) : undefined;
   const batteryConfig =
-    host.isOnline && host.batteryPercentage !== undefined
-      ? getBatteryConfig(host.batteryPercentage, host.isCharging)
+    host.isOnline && safeBatteryPct !== undefined
+      ? getBatteryConfig(safeBatteryPct, host.isCharging)
       : null;
   const BatteryIcon = batteryConfig?.icon || Battery;
 
-  const latencyConfig = getLatencyConfig(host.ping, host.isOnline, host.id, currentLang);
-  const cpuVal = host.cpuUsage ?? 15;
-  const ramVal = host.ramUsage ?? 40;
+  const latencyConfig = getLatencyConfig(host.ping, host.isOnline, safeId, currentLang);
+  const cpuVal = clampPercentage(host.cpuUsage, 15);
+  const ramVal = clampPercentage(host.ramUsage, 40);
   const osBadge = host.os === 'windows' ? 'Win 11' : 'Linux';
 
   const rttMs = latencyConfig.latency ?? 12;
-  const jitterMs = ((host.id.charCodeAt(0) % 7) * 0.1 + 0.3).toFixed(1);
+  const firstChar = safeId.length > 0 ? safeId.charCodeAt(0) : 65;
+  const jitterMs = ((firstChar % 7) * 0.1 + 0.3).toFixed(1);
 
   const quickActions = [
     {
@@ -260,8 +281,9 @@ const HostCardComponent: React.FC<HostCardProps> = ({
       initial={{ opacity: 0, y: 16, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-      whileHover={{ y: -2, scale: 1.005 }}
+      whileHover={{ y: -2, scale: 1.004 }}
       transition={{ type: 'spring', stiffness: 420, damping: 28, mass: 0.7 }}
+      className={isExpanded ? 'lg:col-span-2' : ''}
     >
       {/* Tier 1 — Resting Canvas Card */}
       <div
@@ -281,7 +303,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
         }}
         className={`
           bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)]
-          w-full rounded-[1.75rem] p-4 sm:p-5 text-left cursor-pointer select-none relative overflow-hidden transition-colors
+          w-full rounded-[1.75rem] p-3.5 sm:p-5 text-left cursor-pointer select-none relative overflow-hidden transition-colors
           ${
             isSelected
               ? 'border-cyan-400/50 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.7),0_0_28px_rgba(56,189,248,0.18)]'
@@ -293,9 +315,9 @@ const HostCardComponent: React.FC<HostCardProps> = ({
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
 
         {/* Collapsed Header Row */}
-        <div className="relative z-10 flex items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: 44x44px Squircle Icon + Hostname + OS Badge + Monospace IP + Latency / Sleeping state */}
-          <div className="flex items-center space-x-3.5 min-w-0 flex-1">
+          <div className="flex items-center space-x-3 sm:space-x-3.5 min-w-0 flex-1">
             <div
               className={`
                 w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden
@@ -310,13 +332,40 @@ const HostCardComponent: React.FC<HostCardProps> = ({
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                <span className="text-[15px] sm:text-base font-bold text-white tracking-tight truncate">
-                  {host.name}
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
+                <span className="text-[14px] sm:text-base font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
+                  {host.name || safeId}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono font-semibold text-white/75 shrink-0">
                   {osBadge}
                 </span>
+                {onTogglePin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerHapticFeedback('selection');
+                      onTogglePin(host.id);
+                    }}
+                    className={`p-1 rounded-full transition cursor-pointer shrink-0 ${
+                      isPinned
+                        ? 'text-amber-300 hover:text-amber-200'
+                        : 'text-white/25 hover:text-white/70'
+                    }`}
+                    title={
+                      isPinned
+                        ? currentLang === 'bg'
+                          ? 'Откачи от върха'
+                          : 'Unpin host'
+                        : currentLang === 'bg'
+                        ? 'Закачи най-отгоре'
+                        : 'Pin host to top'
+                    }
+                    aria-label="Pin host"
+                  >
+                    <Star className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400 text-amber-400' : ''}`} />
+                  </button>
+                )}
                 {isQuarantined && (
                   <span className="text-[10px] font-mono font-semibold text-rose-400 shrink-0">
                     · {t('host_quarantined')}
@@ -329,11 +378,21 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 )}
               </div>
 
-              {/* Clean Scannable Metadata Sub-row (Bug Fix: No fake battery or latency when offline) */}
+              {/* Clean Scannable Metadata Sub-row (1-Click Copy IP + Online RTT or Offline Ready state) */}
               <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs mt-1 tabular-nums">
-                <span className="font-mono text-cyan-300/95 text-[11.5px] font-medium">
-                  {host.ip}
-                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyIp}
+                  className="inline-flex items-center gap-1 font-mono text-cyan-300/95 hover:text-cyan-200 text-[11.5px] font-medium transition cursor-pointer group/ip"
+                  title={currentLang === 'bg' ? 'Кликни за копиране на IP' : 'Click to copy IP address'}
+                >
+                  <span>{host.ip}</span>
+                  {copiedIp ? (
+                    <Check className="w-3 h-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-2.5 h-2.5 opacity-0 group-hover/ip:opacity-70 transition-opacity" />
+                  )}
+                </button>
                 <span className="text-white/25" aria-hidden="true">•</span>
                 {isOffline ? (
                   <span className="text-amber-300/80 text-[11.5px] font-medium">
@@ -345,15 +404,15 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
                       {rttMs}ms
                     </span>
-                    {isLaptop && host.batteryPercentage !== undefined && batteryConfig && (
+                    {isLaptop && safeBatteryPct !== undefined && batteryConfig && (
                       <>
                         <span className="text-white/25" aria-hidden="true">•</span>
                         <span
                           className={`inline-flex items-center space-x-1 text-[11px] font-mono tabular-nums ${batteryConfig.colorText}`}
-                          title={`Battery: ${host.batteryPercentage}%${host.isCharging ? ' (Charging)' : ''}`}
+                          title={`Battery: ${safeBatteryPct}%${host.isCharging ? ' (Charging)' : ''}`}
                         >
                           <BatteryIcon className="w-3.5 h-3.5" />
-                          <span>{host.batteryPercentage}%</span>
+                          <span>{safeBatteryPct}%</span>
                           {host.isCharging && <Zap className="w-2.5 h-2.5 text-amber-300 fill-current" />}
                         </span>
                       </>
@@ -363,6 +422,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
               </div>
             </div>
           </div>
+
 
           {/* Right: Primary 1-tap action buttons + expand chevron */}
           <div className="flex items-center space-x-1.5 shrink-0">
@@ -725,6 +785,7 @@ export const HostCard = React.memo(HostCardComponent, (prev, next) => {
     prev.host.isCharging === next.host.isCharging &&
     prev.isSelected === next.isSelected &&
     prev.isExpanded === next.isExpanded &&
+    prev.isPinned === next.isPinned &&
     prev.isQuarantined === next.isQuarantined &&
     prev.isCircuitTripped === next.isCircuitTripped &&
     prev.sortMode === next.sortMode &&
@@ -733,3 +794,4 @@ export const HostCard = React.memo(HostCardComponent, (prev, next) => {
     prev.host.latencyHistory === next.host.latencyHistory
   );
 });
+

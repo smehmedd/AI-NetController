@@ -437,29 +437,29 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-180px)] max-w-3xl mx-auto px-2 sm:px-3 pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] select-none">
+    <div className="flex flex-col min-h-[calc(100dvh-170px)] w-full max-w-5xl mx-auto px-1 sm:px-3 pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] select-none">
       {/* 1. Liquid Glass Header Bar with Samsung Style Role Pills */}
-      <header className="flex-none py-2.5 px-3 mb-2 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-between relative">
+      <header className="flex-none py-2.5 px-3 mb-2 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-between relative gap-2">
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
         {/* Gemini Identity */}
-        <div className="flex items-center space-x-2.5 pl-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)]">
+        <div className="flex items-center space-x-2.5 pl-1 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)] shrink-0">
             <Sparkles className="w-4 h-4 text-cyan-300" />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <h2 className="text-xs font-bold text-white tracking-wide flex items-center space-x-1.5">
-              <span>Gemini Copilot</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+              <span className="truncate">Gemini Copilot</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
             </h2>
-            <span className="text-[10px] font-mono text-cyan-300/80">
+            <span className="text-[10px] font-mono text-cyan-300/80 truncate">
               {selectedModel || activeRoleConfig.model}
             </span>
           </div>
         </div>
 
         {/* Liquid Glass Segmented Role Selector with Sliding Lens */}
-        <div className="flex items-center space-x-1.5">
+        <div className="flex items-center space-x-1.5 shrink-0">
           <div className="flex items-center glass-liquid-subtle p-1 rounded-full">
             {ROLES.map((r) => {
               const isSelected = activeRole === r.id;
@@ -469,7 +469,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   key={r.id}
                   type="button"
                   onClick={() => handleRoleSelect(r.id)}
-                  className={`relative px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 ${
+                  className={`relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 whitespace-nowrap ${
                     isSelected
                       ? 'text-cyan-200'
                       : 'text-white/50 hover:text-white/85'
@@ -482,7 +482,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                       transition={{ type: 'spring', stiffness: 460, damping: 28, mass: 0.6 }}
                     />
                   )}
-                  <Icon className="w-3 h-3" />
+                  <Icon className="w-3 h-3 shrink-0" />
                   <span>{r.label}</span>
                 </button>
               );
@@ -523,26 +523,41 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               <div
                 className={`text-xs sm:text-[13px] leading-relaxed relative ${
                   isUser
-                    ? 'glass-liquid-elevated bg-cyan-500/20 text-white border border-cyan-400/35 rounded-[1.5rem] rounded-tr-xs px-4 py-2.5 max-w-[85%] shadow-[0_8px_20px_rgba(0,212,255,0.15)]'
-                    : 'glass-liquid text-slate-100 rounded-[1.75rem] rounded-tl-xs p-4 max-w-[92%] sm:max-w-[88%] border border-white/10 shadow-lg'
+                    ? 'glass-liquid-elevated bg-cyan-500/20 text-white border border-cyan-400/35 rounded-[1.5rem] rounded-tr-xs px-4 py-2.5 max-w-[85%] lg:max-w-[75%] shadow-[0_8px_20px_rgba(0,212,255,0.15)]'
+                    : 'glass-liquid text-slate-100 rounded-[1.75rem] rounded-tl-xs p-4 max-w-[94%] sm:max-w-[88%] lg:max-w-[82%] border border-white/10 shadow-lg'
                 }`}
               >
                 {!isUser && (
-                  <div className="flex items-center justify-between mb-2 text-[10px] text-cyan-300/80 font-mono border-b border-white/6 pb-1.5">
-                    <span className="flex items-center space-x-1 font-semibold">
-                      <Bot className="w-3 h-3" />
-                      <span>{msg.modelUsed || activeRoleConfig.model}</span>
+                  <div className="flex items-center justify-between gap-3 mb-2 text-[10px] text-cyan-300/80 font-mono border-b border-white/6 pb-1.5">
+                    <span className="flex items-center space-x-1 font-semibold truncate">
+                      <Bot className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{msg.modelUsed || activeRoleConfig.model}</span>
                     </span>
-                    {msg.durationMs && (
-                      <span className="flex items-center space-x-0.5 text-white/40">
-                        <Clock className="w-2.5 h-2.5" />
-                        <span>{msg.durationMs}ms</span>
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {msg.durationMs && (
+                        <span className="flex items-center space-x-0.5 text-white/40 tabular-nums">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{msg.durationMs}ms</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(msg.id, msg.content.replace(/\[ACTION:[^\]]+\]/gi, '').trim())}
+                        className="text-white/45 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer"
+                        title={language === 'bg' ? 'Копирай отговора' : 'Copy response'}
+                      >
+                        {copiedId === msg.id ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {renderFormattedContent(msg.content)}
+
 
                 {/* Interactive Samsung Action Pills */}
                 {msg.actions && msg.actions.length > 0 && (

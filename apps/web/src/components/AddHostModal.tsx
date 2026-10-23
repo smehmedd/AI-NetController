@@ -6,17 +6,12 @@ import {
   Monitor,
   Laptop,
   Server,
-  Cpu,
-  Radio,
-  CheckCircle2,
   Sparkles,
-  Tag,
-  Hash,
-  Activity,
-  Layers
+  Tag
 } from 'lucide-react';
 import { HostDevice, OSType } from '../types';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { useTranslation } from '../i18n/useTranslation';
 
 export interface AddHostModalProps {
   isOpen: boolean;
@@ -31,6 +26,9 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
   onAddHost,
   existingHostsCount = 3
 }) => {
+  const { language } = useTranslation();
+  const isBg = language === 'bg';
+
   const [name, setName] = useState('');
   const [ip, setIp] = useState('192.168.1.');
   const [mac, setMac] = useState('');
@@ -64,7 +62,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
     const suffix = existingHostsCount + 1;
     if (type === 'workstation') {
       setName(`DEV-WORKSTATION-0${suffix}`);
-      setIp(`192.168.1.${100 + suffix}`);
+      setIp(`192.168.1.${Math.min(254, 100 + suffix)}`);
       setDeviceType('pc');
       setOs('windows');
       setInitialStatus('ready');
@@ -72,7 +70,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
       handleGenerateMac();
     } else if (type === 'server') {
       setName(`BACKUP-NAS-0${suffix}`);
-      setIp(`192.168.1.${200 + suffix}`);
+      setIp(`192.168.1.${Math.min(254, 200 + suffix)}`);
       setDeviceType('server');
       setOs('linux');
       setInitialStatus('ready');
@@ -80,7 +78,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
       handleGenerateMac();
     } else {
       setName(`MOBILE-LAPTOP-0${suffix}`);
-      setIp(`192.168.1.${70 + suffix}`);
+      setIp(`192.168.1.${Math.min(254, 70 + suffix)}`);
       setDeviceType('laptop');
       setOs('windows');
       setInitialStatus('sleeping');
@@ -93,17 +91,27 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
     const newErrors: { [key: string]: string } = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Въведете име на хоста';
+      newErrors.name = isBg ? 'Въведете име на хоста' : 'Please enter a hostname';
     }
 
     const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     if (!ip.trim() || !ipRegex.test(ip.trim())) {
-      newErrors.ip = 'Невалиден IPv4 адрес (напр. 192.168.1.120)';
+      newErrors.ip = isBg
+        ? 'Невалиден IPv4 адрес (напр. 192.168.1.120)'
+        : 'Invalid IPv4 address (e.g. 192.168.1.120)';
     }
 
-    const macClean = mac.trim().replace(/[:-]/g, '');
+    // Support colons, hyphens, and Cisco dots (001A.2B3C.4D5E)
+    const macClean = mac.trim().replace(/[:.-]/g, '');
     if (!macClean || macClean.length !== 12 || !/^[0-9A-Fa-f]{12}$/.test(macClean)) {
-      newErrors.mac = 'Невалиден MAC адрес (12 шестнайсетични знака, напр. 00:1A:2B:3C:4D:5E)';
+      newErrors.mac = isBg
+        ? 'Невалиден MAC адрес (12 шестнайсетични знака, напр. 00:1A:2B:3C:4D:5E)'
+        : 'Invalid MAC address (12 hex digits, e.g. 00:1A:2B:3C:4D:5E)';
+    }
+
+    const parsedPort = Number(port.trim());
+    if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+      newErrors.port = isBg ? 'Порт 1–65535' : 'Port 1–65535';
     }
 
     setErrors(newErrors);
@@ -120,7 +128,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
     triggerHapticFeedback('medium');
 
     // Format MAC with colons
-    const cleanMac = mac.trim().replace(/[:-]/g, '').toUpperCase();
+    const cleanMac = mac.trim().replace(/[:.-]/g, '').toUpperCase();
     const formattedMac = cleanMac.match(/.{1,2}/g)?.join(':') || mac.toUpperCase();
 
     // Clean tags
@@ -133,9 +141,15 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
     }
 
     const isOnline = initialStatus === 'ready';
+    const safeId =
+      name
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9-_]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `HOST-${Date.now()}`;
 
     const newHost: HostDevice = {
-      id: name.trim().toUpperCase().replace(/\s+/g, '-'),
+      id: safeId,
       name: name.trim().toUpperCase(),
       ip: ip.trim(),
       mac: formattedMac,
@@ -149,7 +163,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
       ramUsage: isOnline ? Math.floor(Math.random() * 35) + 30 : 0,
       diskUsage: '256 GB / 1024 GB (25%)',
       persistentInstructions: [
-        `Custom host configured on port ${port || '8765'}`
+        `Custom host configured on port ${port.trim() || '8765'}`
       ],
       sessionInstructions: []
     };
@@ -168,29 +182,29 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 14 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 14 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="relative w-full max-w-lg bg-slate-900/95 border border-cyan-500/30 rounded-2xl sm:rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden my-auto"
+          className="relative w-full max-w-lg bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-2xl sm:rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden my-auto landscape-compact-modal"
         >
           {/* Cyber Accent Top Bar */}
           <div className="h-1 w-full bg-gradient-to-r from-cyan-500 via-teal-400 to-violet-500" />
 
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800/80">
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">
                 <Plus className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-100 font-display tracking-wide uppercase">
-                  Добавяне на Хост Машина
+                  {isBg ? 'Добавяне на Хост Машина' : 'Add Host Machine'}
                 </h3>
                 <p className="text-[11px] text-slate-400 font-mono">
-                  Ръчно конфигуриране в CST мрежовия флот
+                  {isBg ? 'Ръчно конфигуриране в CST мрежовия флот' : 'Manual node registration in CST network fleet'}
                 </p>
               </div>
             </div>
@@ -201,20 +215,20 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                 triggerHapticFeedback('light');
                 onClose();
               }}
-              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-100 flex items-center justify-center transition border border-slate-700/60 cursor-pointer"
-              aria-label="Затвори"
+              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-400 hover:text-slate-100 flex items-center justify-center transition border border-white/10 cursor-pointer"
+              aria-label={isBg ? 'Затвори' : 'Close'}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[82dvh] overflow-y-auto">
             {/* Quick Presets Row */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-mono uppercase text-slate-400 font-semibold flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-cyan-400" />
-                  Бързи шаблони (Presets):
+                  {isBg ? 'Бързи шаблони (Presets):' : 'Quick Templates (Presets):'}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -224,7 +238,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                   className="min-h-[44px] px-2.5 py-2 rounded-xl bg-slate-800/80 hover:bg-cyan-950/40 border border-slate-700/70 hover:border-cyan-500/40 text-[11px] font-mono text-slate-300 hover:text-cyan-300 flex items-center justify-center space-x-1.5 transition active:scale-98 cursor-pointer"
                 >
                   <Monitor className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span className="truncate">Десктоп PC</span>
+                  <span className="truncate">{isBg ? 'Десктоп PC' : 'Desktop PC'}</span>
                 </button>
                 <button
                   type="button"
@@ -232,7 +246,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                   className="min-h-[44px] px-2.5 py-2 rounded-xl bg-slate-800/80 hover:bg-violet-950/40 border border-slate-700/70 hover:border-violet-500/40 text-[11px] font-mono text-slate-300 hover:text-violet-300 flex items-center justify-center space-x-1.5 transition active:scale-98 cursor-pointer"
                 >
                   <Server className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                  <span className="truncate">AI Сървър</span>
+                  <span className="truncate">{isBg ? 'AI Сървър' : 'AI Server'}</span>
                 </button>
                 <button
                   type="button"
@@ -240,7 +254,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                   className="min-h-[44px] px-2.5 py-2 rounded-xl bg-slate-800/80 hover:bg-emerald-950/40 border border-slate-700/70 hover:border-emerald-500/40 text-[11px] font-mono text-slate-300 hover:text-emerald-300 flex items-center justify-center space-x-1.5 transition active:scale-98 cursor-pointer"
                 >
                   <Laptop className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="truncate">Лаптоп WoL</span>
+                  <span className="truncate">{isBg ? 'Лаптоп WoL' : 'WoL Laptop'}</span>
                 </button>
               </div>
             </div>
@@ -248,13 +262,13 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             {/* Host Name Field */}
             <div>
               <label className="block text-xs font-mono font-medium text-slate-300 mb-1">
-                ИМЕ НА ХОСТ (HOSTNAME) <span className="text-cyan-400">*</span>
+                {isBg ? 'ИМЕ НА ХОСТ (HOSTNAME)' : 'HOSTNAME'} <span className="text-cyan-400">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value.toUpperCase())}
-                placeholder="напр. CST-LAB-PC-2 или BACKUP-NODE"
+                placeholder={isBg ? 'напр. CST-LAB-PC-2 или BACKUP-NODE' : 'e.g. CST-LAB-PC-2 or BACKUP-NODE'}
                 className={`w-full px-3.5 py-2 rounded-xl bg-slate-950 border ${
                   errors.name ? 'border-rose-500/70' : 'border-slate-700/80 focus:border-cyan-400'
                 } text-slate-100 font-mono text-xs focus:outline-none transition`}
@@ -266,7 +280,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-mono font-medium text-slate-300 mb-1">
-                  IP АДРЕС (IPv4) <span className="text-cyan-400">*</span>
+                  {isBg ? 'IP АДРЕС (IPv4)' : 'IPv4 ADDRESS'} <span className="text-cyan-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -282,15 +296,18 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
 
               <div>
                 <label className="block text-xs font-mono font-medium text-slate-300 mb-1">
-                  АГЕНТ ПОРТ
+                  {isBg ? 'АГЕНТ ПОРТ' : 'AGENT PORT'}
                 </label>
                 <input
                   type="text"
                   value={port}
                   onChange={e => setPort(e.target.value)}
                   placeholder="8765"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700/80 focus:border-cyan-400 text-slate-100 font-mono text-xs focus:outline-none transition"
+                  className={`w-full px-3.5 py-2 rounded-xl bg-slate-950 border ${
+                    errors.port ? 'border-rose-500/70' : 'border-slate-700/80 focus:border-cyan-400'
+                  } text-slate-100 font-mono text-xs focus:outline-none transition`}
                 />
+                {errors.port && <p className="text-[11px] text-rose-400 font-mono mt-1">{errors.port}</p>}
               </div>
             </div>
 
@@ -298,15 +315,15 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-mono font-medium text-slate-300">
-                  MAC АДРЕС (За Wake-on-LAN) <span className="text-cyan-400">*</span>
+                  {isBg ? 'MAC АДРЕС (За Wake-on-LAN)' : 'MAC ADDRESS (For Wake-on-LAN)'} <span className="text-cyan-400">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={handleGenerateMac}
-                  className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition flex items-center space-x-1"
+                  className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition flex items-center space-x-1 cursor-pointer"
                 >
                   <Sparkles className="w-3 h-3" />
-                  <span>Генерирай MAC</span>
+                  <span>{isBg ? 'Генерирай MAC' : 'Generate MAC'}</span>
                 </button>
               </div>
               <input
@@ -324,13 +341,13 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             {/* Device Type Selector */}
             <div>
               <label className="block text-xs font-mono font-medium text-slate-300 mb-1.5">
-                ТИП УСТРОЙСТВО
+                {isBg ? 'ТИП УСТРОЙСТВО' : 'DEVICE TYPE'}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'pc' as const, label: 'Десктоп PC', icon: Monitor },
-                  { id: 'laptop' as const, label: 'Лаптоп', icon: Laptop },
-                  { id: 'server' as const, label: 'Сървър / NAS', icon: Server }
+                  { id: 'pc' as const, label: isBg ? 'Десктоп PC' : 'Desktop PC', icon: Monitor },
+                  { id: 'laptop' as const, label: isBg ? 'Лаптоп' : 'Laptop', icon: Laptop },
+                  { id: 'server' as const, label: isBg ? 'Сървър / NAS' : 'Server / NAS', icon: Server }
                 ].map(item => {
                   const Icon = item.icon;
                   const isSelected = deviceType === item.id;
@@ -342,7 +359,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                         triggerHapticFeedback('light');
                         setDeviceType(item.id);
                       }}
-                      className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 transition text-xs font-mono ${
+                      className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 transition text-xs font-mono cursor-pointer ${
                         isSelected
                           ? 'bg-cyan-500/15 border-cyan-400 text-cyan-300 font-bold shadow-sm'
                           : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -361,7 +378,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
               {/* OS Selection */}
               <div>
                 <label className="block text-xs font-mono font-medium text-slate-300 mb-1.5">
-                  ОПЕРАЦИОННА СИСТЕМА
+                  {isBg ? 'ОПЕРАЦИОННА СИСТЕМА' : 'OPERATING SYSTEM'}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -370,7 +387,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                       triggerHapticFeedback('light');
                       setOs('windows');
                     }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center ${
+                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center cursor-pointer ${
                       os === 'windows'
                         ? 'bg-cyan-500/15 border-cyan-400 text-cyan-300 font-bold'
                         : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -384,7 +401,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                       triggerHapticFeedback('light');
                       setOs('linux');
                     }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center ${
+                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center cursor-pointer ${
                       os === 'linux'
                         ? 'bg-violet-500/15 border-violet-400 text-violet-300 font-bold'
                         : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -398,7 +415,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
               {/* Status */}
               <div>
                 <label className="block text-xs font-mono font-medium text-slate-300 mb-1.5">
-                  НАЧАЛЕН СТАТУС
+                  {isBg ? 'НАЧАЛЕН СТАТУС' : 'INITIAL STATE'}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -407,14 +424,14 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                       triggerHapticFeedback('light');
                       setInitialStatus('ready');
                     }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center flex items-center justify-center space-x-1 ${
+                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center flex items-center justify-center space-x-1 cursor-pointer ${
                       initialStatus === 'ready'
                         ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300 font-bold'
                         : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Готов (Online)</span>
+                    <span>{isBg ? 'Готов (Online)' : 'Online'}</span>
                   </button>
                   <button
                     type="button"
@@ -422,14 +439,14 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
                       triggerHapticFeedback('light');
                       setInitialStatus('sleeping');
                     }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center flex items-center justify-center space-x-1 ${
+                    className={`py-2 px-3 rounded-xl border text-xs font-mono transition text-center flex items-center justify-center space-x-1 cursor-pointer ${
                       initialStatus === 'sleeping'
                         ? 'bg-amber-500/15 border-amber-400 text-amber-300 font-bold'
                         : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    <span>Приспан (WoL)</span>
+                    <span>{isBg ? 'Приспан (WoL)' : 'Sleeping (WoL)'}</span>
                   </button>
                 </div>
               </div>
@@ -438,7 +455,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             {/* Tags Input */}
             <div>
               <label className="block text-xs font-mono font-medium text-slate-300 mb-1">
-                ЕТИКЕТИ (TAGS, разделени със запетая)
+                {isBg ? 'ЕТИКЕТИ (TAGS, разделени със запетая)' : 'TAGS (comma-separated)'}
               </label>
               <div className="relative">
                 <input
@@ -453,23 +470,23 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
             </div>
 
             {/* Footer Buttons */}
-            <div className="pt-3 border-t border-slate-800/80 flex items-center justify-end space-x-3">
+            <div className="pt-3 border-t border-white/10 flex items-center justify-end space-x-3">
               <button
                 type="button"
                 onClick={() => {
                   triggerHapticFeedback('light');
                   onClose();
                 }}
-                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-mono text-xs font-medium transition cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 font-mono text-xs font-medium transition cursor-pointer"
               >
-                Отказ
+                {isBg ? 'Отказ' : 'Cancel'}
               </button>
               <button
                 type="submit"
                 className="min-h-[44px] px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold transition shadow-[0_0_15px_rgba(6,182,212,0.4)] active:scale-95 flex items-center space-x-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Добави във Флота</span>
+                <span>{isBg ? 'Добави във Флота' : 'Add to Fleet'}</span>
               </button>
             </div>
           </form>

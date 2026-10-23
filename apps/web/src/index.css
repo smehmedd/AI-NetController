@@ -229,6 +229,35 @@ button, [role="button"] {
   background: rgba(255, 255, 255, 0.32);
 }
 
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Aspect-Ratio & Short Landscape Viewport Adaptations (<= 520px height) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .landscape-compact-nav {
+    height: 46px !important;
+    padding: 0.25rem !important;
+  }
+  .landscape-compact-shell {
+    padding-bottom: 4.25rem !important;
+  }
+  .landscape-compact-modal {
+    max-height: 94dvh !important;
+  }
+}
+
+/* Ultrawide 21:9 & 4K Crisp Container Scaling */
+@media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
+  .ultrawide-canvas {
+    max-width: 1560px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -237,3 +266,4 @@ button, [role="button"] {
     scroll-behavior: auto !important;
   }
 }
+

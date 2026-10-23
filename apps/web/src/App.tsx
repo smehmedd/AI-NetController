@@ -137,6 +137,62 @@ export default function App() {
   const handleOpenUpdate = useCallback(() => openModal('update'), [openModal]);
   const handleOpenWolScheduler = useCallback(() => openModal('wol', { tab: 'schedules' }), [openModal]);
 
+  const [qolToast, setQolToast] = React.useState<string | null>(null);
+  const triggerToast = useCallback((msg: string) => {
+    setQolToast(msg);
+  }, []);
+
+  useEffect(() => {
+    if (!qolToast) return;
+    const id = setTimeout(() => setQolToast(null), 2200);
+    return () => clearTimeout(id);
+  }, [qolToast]);
+
+  // Global QoL Keyboard Shortcuts (1-4 Tabs, R Rescan, / Omnibar)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (isEditable || e.metaKey || e.ctrlKey) return;
+
+      if (e.key === '1') {
+        e.preventDefault();
+        triggerHapticFeedback('selection');
+        setActiveTab('fleet');
+      } else if (e.key === '2') {
+        e.preventDefault();
+        triggerHapticFeedback('selection');
+        setActiveTab('terminal');
+      } else if (e.key === '3') {
+        e.preventDefault();
+        triggerHapticFeedback('selection');
+        setActiveTab('chat');
+      } else if (e.key === '4') {
+        e.preventDefault();
+        triggerHapticFeedback('selection');
+        setActiveTab('settings');
+      } else if (e.key.toLowerCase() === 'r' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        triggerHapticFeedback('medium');
+        fleet.scanMdns();
+        triggerToast(language === 'bg' ? 'mDNS сканирането на флота стартира...' : 'mDNS fleet scan triggered...');
+      } else if (e.key === '/' && !isOmnibarOpen) {
+        e.preventDefault();
+        triggerHapticFeedback('light');
+        setOmnibarOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [setActiveTab, fleet, isOmnibarOpen, setOmnibarOpen, language, triggerToast]);
+
   return (
     <GlobalErrorBoundary>
       <div className="min-h-[100dvh] bg-[#040711] text-white flex flex-col font-sans selection:bg-cyan-500/30 relative overflow-x-hidden">
@@ -166,6 +222,21 @@ export default function App() {
             }}
           />
         </div>
+
+        {/* QoL Floating Toast Feedback */}
+        <AnimatePresence>
+          {qolToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 460, damping: 28 }}
+              className="fixed top-[calc(env(safe-area-inset-top,12px)+0.5rem)] left-1/2 -translate-x-1/2 z-[88] px-4 py-2 rounded-full bg-[#070c18]/92 backdrop-blur-3xl border border-cyan-400/40 text-cyan-200 text-xs font-semibold shadow-[0_12px_32px_rgba(0,0,0,0.7)] pointer-events-none whitespace-nowrap"
+            >
+              {qolToast}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {agent.unreachableAlert && (
@@ -218,7 +289,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <main className="relative z-10 w-full max-w-3xl mx-auto px-4 pt-3.5 pb-24 sm:pb-28 flex-1 flex flex-col overflow-x-hidden">
+        <main className="relative z-10 w-full max-w-6xl ultrawide-canvas mx-auto px-3 sm:px-5 lg:px-8 pt-3.5 pb-24 sm:pb-28 landscape-compact-shell flex-1 flex flex-col overflow-x-hidden">
           <AnimatePresence mode="wait" initial={false}>
             {activeTab === 'fleet' && (
               <motion.div
@@ -339,6 +410,7 @@ export default function App() {
           onChangeTab={setActiveTab}
           isConnected={agent.isConnected}
           latency={agent.latency}
+          onOpenNetworkConfig={handleOpenWs}
         />
 
         {/* Spotlight Command Palette */}

@@ -23,6 +23,7 @@ import {
 import { HostDevice } from '../types';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
+import { computeViewportMetrics } from '../utils/viewportScale';
 
 export interface TopologyNode extends d3.SimulationNodeDatum {
   id: string;
@@ -306,18 +307,21 @@ export const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({
       target: typeof d.target === 'object' && d.target !== null ? (d.target as any).id : d.target,
     }));
 
-    // Create D3 Force Simulation
+    // Create Aspect-Ratio Adaptive D3 Force Simulation
+    const vpMetrics = computeViewportMetrics(width, height);
+    const forceCfg = vpMetrics.topologyForceConfig;
+
     const simulation = d3.forceSimulation<TopologyNode, TopologyLink>(nodesCopy)
       .force(
         'link',
         d3.forceLink<TopologyNode, TopologyLink>(linksCopy)
           .id((d) => d.id)
-          .distance((d) => (d.linkType === 'uplink' ? 120 : 75))
+          .distance((d) => (d.linkType === 'uplink' ? forceCfg.uplinkDistance : forceCfg.meshDistance))
           .strength(0.65)
       )
-      .force('charge', d3.forceManyBody().strength((d: any) => (d.isController ? -500 : -280)))
+      .force('charge', d3.forceManyBody().strength((d: any) => (d.isController ? forceCfg.chargeStrength * 1.7 : forceCfg.chargeStrength)))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide<TopologyNode>().radius((d) => (d.isController ? 48 : 34)))
+      .force('collision', d3.forceCollide<TopologyNode>().radius((d) => (d.isController ? forceCfg.gatewayRadius : forceCfg.nodeRadius)))
       .alphaDecay(0.028);
 
     simulationRef.current = simulation;
@@ -552,7 +556,9 @@ export const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({
     <div
       ref={containerRef}
       className={`relative w-full rounded-2xl glass-liquid-elevated border border-white/15 overflow-hidden shadow-2xl flex flex-col transition-all duration-300 ${
-        isFullScreen ? 'fixed inset-3 z-50 h-[calc(100vh-24px)]' : 'h-[440px] sm:h-[480px]'
+        isFullScreen
+          ? 'fixed inset-2 sm:inset-3 z-50 h-[calc(100dvh-16px)] sm:h-[calc(100dvh-24px)]'
+          : 'h-[clamp(320px,62dvh,660px)]'
       } ${className}`}
     >
       {/* Top Header Bar / HUD Overlay */}

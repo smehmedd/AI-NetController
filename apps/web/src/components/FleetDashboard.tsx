@@ -216,6 +216,27 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
     return activeSelectedId ? { [activeSelectedId]: true } : {};
   });
 
+  const [pinnedHostIds, setPinnedHostIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cst_pinned_hosts_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const togglePinHost = useCallback((hostId: string) => {
+    setPinnedHostIds((prev) => {
+      const next = prev.includes(hostId) ? prev.filter((id) => id !== hostId) : [...prev, hostId];
+      try {
+        localStorage.setItem('cst_pinned_hosts_v1', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   const [viewMode, setViewMode] = useState<'grid' | 'topology'>(() => {
     try {
       const saved = localStorage.getItem('cst_fleet_view_mode');
@@ -424,9 +445,11 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
     const filtered = hosts.filter((h) => {
       const matchesQuery =
         !query ||
-        h.name.toLowerCase().includes(query) ||
-        h.ip.toLowerCase().includes(query) ||
-        h.id.toLowerCase().includes(query) ||
+        (h.name && h.name.toLowerCase().includes(query)) ||
+        (h.ip && h.ip.toLowerCase().includes(query)) ||
+        (h.id && h.id.toLowerCase().includes(query)) ||
+        (h.mac && h.mac.toLowerCase().includes(query)) ||
+        (h.os && h.os.toLowerCase().includes(query)) ||
         (h.tags && h.tags.some((t) => t.toLowerCase().includes(query)));
 
       if (!matchesQuery) return false;
@@ -439,6 +462,12 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
     });
 
     return [...filtered].sort((a, b) => {
+      const aPinned = pinnedHostIds.includes(a.id);
+      const bPinned = pinnedHostIds.includes(b.id);
+      if (aPinned !== bPinned) {
+        return aPinned ? -1 : 1;
+      }
+
       if (sortMode === 'alphabetical') {
         const cmp = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
         return sortDirection === 'asc' ? cmp : -cmp;
@@ -470,7 +499,25 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
 
       return 0;
     });
-  }, [activeFilter, hosts, deferredQuery, sortMode, sortDirection]);
+  }, [activeFilter, hosts, deferredQuery, sortMode, sortDirection, pinnedHostIds]);
+
+  const areAllFilteredExpanded = useMemo(() => {
+    if (filteredHosts.length === 0) return false;
+    return filteredHosts.every((h) => !!expandedHostIds[h.id]);
+  }, [filteredHosts, expandedHostIds]);
+
+  const handleToggleExpandAll = useCallback(() => {
+    triggerHapticFeedback('light');
+    if (areAllFilteredExpanded) {
+      setExpandedHostIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      filteredHosts.forEach((h) => {
+        next[h.id] = true;
+      });
+      setExpandedHostIds(next);
+    }
+  }, [areAllFilteredExpanded, filteredHosts]);
 
   const sortOptions = [
     {
@@ -569,7 +616,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display truncate">
               {t('fleet_title')}
             </h1>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-sm">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-sm tabular-nums">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
               <span className="text-emerald-300 font-semibold">
                 {onlineCount} {t('fleet_online')}
@@ -707,7 +754,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             }}
             disabled={isScanning}
             className="h-10 px-3 rounded-xl bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-40 cursor-pointer shrink-0 shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
-            title={t('fleet_rescan_tooltip')}
+            title={`${t('fleet_rescan_tooltip')} [R]`}
             aria-label={t('fleet_rescan_aria')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
@@ -732,7 +779,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </motion.button>
         </div>
 
-        {/* 3. HORIZONTAL FILTER PILLS + COMPACT SORT DROPDOWN PILL */}
+        {/* 3. HORIZONTAL FILTER PILLS + EXPAND/COLLAPSE ALL + COMPACT SORT DROPDOWN PILL */}
         <div className="flex items-center justify-between gap-2">
           {/* Filter Pills (All, Online, Sleeping, Servers) */}
           <div className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0">
@@ -764,7 +811,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                   )}
                   <span>{chip.label}</span>
                   {chip.count !== null && (
-                    <span className={`text-[10px] font-mono ${isActive ? 'text-cyan-300/90' : 'text-white/35'}`}>
+                    <span className={`text-[10px] font-mono tabular-nums ${isActive ? 'text-cyan-300/90' : 'text-white/35'}`}>
                       {chip.count}
                     </span>
                   )}
@@ -773,83 +820,113 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             })}
           </div>
 
-          {/* Single Compact Sort Dropdown Pill (Sort: Name ▾) */}
-          <div className="relative shrink-0">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                triggerHapticFeedback('light');
-                setIsSortMenuOpen((prev) => !prev);
-              }}
-              className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 h-9 px-3 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-cyan-200 hover:text-white cursor-pointer whitespace-nowrap shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
-              title={t('sort_title_template', {
-                mode: currentSortOption.label,
-                badge: currentSortOption.badge,
-              })}
-              aria-label={`${t('sort_label')} ${currentSortOption.label}`}
-            >
-              <CurrentSortIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="text-white/55">{language === 'bg' ? 'Сорт:' : 'Sort:'}</span>
-              <span className="font-semibold text-cyan-200">{currentSortOption.label}</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-white/50 transition-transform duration-200 ${
-                  isSortMenuOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </motion.button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* QoL: 1-Tap Expand All / Collapse All Bento Drawers */}
+            {viewMode === 'grid' && filteredHosts.length > 1 && (
+              <button
+                type="button"
+                onClick={handleToggleExpandAll}
+                className="hidden sm:inline-flex bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/35 h-9 px-3 rounded-full items-center gap-1 text-[11px] font-medium text-white/65 hover:text-cyan-200 transition cursor-pointer whitespace-nowrap"
+                title={
+                  areAllFilteredExpanded
+                    ? language === 'bg'
+                      ? 'Свий всички карти'
+                      : 'Collapse all cards'
+                    : language === 'bg'
+                    ? 'Разгъни всички карти'
+                    : 'Expand all cards'
+                }
+              >
+                <span>
+                  {areAllFilteredExpanded
+                    ? language === 'bg'
+                      ? 'Свий всички'
+                      : 'Collapse All'
+                    : language === 'bg'
+                    ? 'Разгъни всички'
+                    : 'Expand All'}
+                </span>
+              </button>
+            )}
 
-            <AnimatePresence>
-              {isSortMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsSortMenuOpen(false)}
-                  />
-                  {/* Tier 3 Dropdown Surface */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -6, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
-                    transition={{ type: 'spring', stiffness: 440, damping: 28 }}
-                    className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.85)] space-y-1"
-                  >
-                    {sortOptions.map((opt) => {
-                      const isActive = sortMode === opt.id;
-                      const OptIcon = opt.icon;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            handleSortToggle(opt.id);
-                            setIsSortMenuOpen(false);
-                          }}
-                          className={`w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
-                            isActive
-                              ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/30'
-                              : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <OptIcon className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>{opt.label}</span>
-                          </span>
-                          <span className="text-[10px] font-mono text-white/50">
-                            {opt.badge}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            {/* Single Compact Sort Dropdown Pill (Sort: Name ▾) */}
+            <div className="relative shrink-0">
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.94 }}
+                onClick={() => {
+                  triggerHapticFeedback('light');
+                  setIsSortMenuOpen((prev) => !prev);
+                }}
+                className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 h-9 px-3 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-cyan-200 hover:text-white cursor-pointer whitespace-nowrap shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+                title={t('sort_title_template', {
+                  mode: currentSortOption.label,
+                  badge: currentSortOption.badge,
+                })}
+                aria-label={`${t('sort_label')} ${currentSortOption.label}`}
+              >
+                <CurrentSortIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-white/55">{language === 'bg' ? 'Сорт:' : 'Sort:'}</span>
+                <span className="font-semibold text-cyan-200">{currentSortOption.label}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-white/50 transition-transform duration-200 ${
+                    isSortMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </motion.button>
+
+              <AnimatePresence>
+                {isSortMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsSortMenuOpen(false)}
+                    />
+                    {/* Tier 3 Dropdown Surface */}
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                      transition={{ type: 'spring', stiffness: 440, damping: 28 }}
+                      className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.85)] space-y-1"
+                    >
+                      {sortOptions.map((opt) => {
+                        const isActive = sortMode === opt.id;
+                        const OptIcon = opt.icon;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              handleSortToggle(opt.id);
+                              setIsSortMenuOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
+                              isActive
+                                ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/30'
+                                : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <OptIcon className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>{opt.label}</span>
+                            </span>
+                            <span className="text-[10px] font-mono text-white/50">
+                              {opt.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Interaction Area: D3 Force-Directed Network Topology or Cards Grid */}
+      {/* Interaction Area: D3 Force-Directed Network Topology or Responsive Multi-Column Cards Grid */}
       {viewMode === 'topology' ? (
         <motion.div
           key="topology-view"
@@ -892,14 +969,25 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           <p className="text-xs text-white/50 max-w-xs mt-1 mb-4">
             {t('empty_hosts_desc')}
           </p>
-          <button
-            type="button"
-            onClick={addHostHandler}
-            className="min-h-[40px] px-5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{t('empty_hosts_btn')}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 border border-white/15 font-semibold text-xs transition cursor-pointer"
+              >
+                {language === 'bg' ? 'Изчисти търсенето' : 'Clear Search'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={addHostHandler}
+              className="min-h-[40px] px-5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{t('empty_hosts_btn')}</span>
+            </button>
+          </div>
         </div>
       ) : (
         <motion.div
@@ -914,7 +1002,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               },
             },
           }}
-          className="space-y-3 px-0.5"
+          className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3.5 items-start px-0.5"
         >
           <AnimatePresence mode="popLayout">
             {filteredHosts.map((host) => (
@@ -924,12 +1012,14 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 language={language}
                 isSelected={host.id === activeSelectedId}
                 isExpanded={!!expandedHostIds[host.id]}
+                isPinned={pinnedHostIds.includes(host.id)}
                 isQuarantined={quarantinedHosts.includes(host.id)}
                 isCircuitTripped={circuitTrippedHosts.includes(host.id)}
                 sortMode={sortMode}
                 remainingWakeSeconds={wakingCountdown[host.id]}
                 onSelect={onSelectHostSafe}
                 onToggleExpand={toggleHostExpansion}
+                onTogglePin={togglePinHost}
                 onInspectWolPacket={onInspectWolPacket}
                 onViewScreen={onViewScreen}
                 onSelectForCommand={onSelectHostForCommand}
@@ -946,3 +1036,4 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
 };
 
 export const FleetDashboard = React.memo(FleetDashboardComponent);
+

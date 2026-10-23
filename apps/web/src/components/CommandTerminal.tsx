@@ -6,6 +6,10 @@ import {
   RefreshCw,
   CheckCircle2,
   Eye,
+  Copy,
+  Check,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HostDevice, AgentExecutionResponse } from '../types';
@@ -26,6 +30,11 @@ interface CommandTerminalProps {
   isCapturingScreen: boolean;
 }
 
+interface TerminalHistoryEntry extends AgentExecutionResponse {
+  id: string;
+  commandPrompt?: string;
+}
+
 const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   hosts,
   selectedTarget,
@@ -37,16 +46,40 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const [prompt, setPrompt] = useState('');
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<number>(-1);
+  const [executionLogs, setExecutionLogs] = useState<TerminalHistoryEntry[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const lastSubmittedPromptRef = useRef<string>('');
+  const lastProcessedTimestampRef = useRef<string>('');
   const logScrollRef = useRef<HTMLDivElement>(null);
 
   const selectedHost = hosts.find((h) => h.id === selectedTarget) || hosts[0];
 
   useEffect(() => {
+    if (
+      lastExecutionResult &&
+      lastExecutionResult.timestamp &&
+      lastExecutionResult.timestamp !== lastProcessedTimestampRef.current
+    ) {
+      lastProcessedTimestampRef.current = lastExecutionResult.timestamp;
+      setExecutionLogs((prev) => [
+        ...prev.slice(-24),
+        {
+          ...lastExecutionResult,
+          id: `${lastExecutionResult.timestamp}-${ prev.length}`,
+          commandPrompt: lastSubmittedPromptRef.current || undefined,
+        },
+      ]);
+    }
+  }, [lastExecutionResult]);
+
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       logScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    }, 80);
     return () => clearTimeout(timeoutId);
-  }, [lastExecutionResult, isExecuting]);
+  }, [executionLogs.length, isExecuting]);
 
   const localizedPresets = useMemo(
     () => [
@@ -86,32 +119,68 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
     [language]
   );
 
+  const dispatchPrompt = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || isExecuting) return;
+
+    triggerHapticFeedback('medium');
+    lastSubmittedPromptRef.current = trimmed;
+    setCommandHistory((prev) => {
+      const deduped = prev.filter((item) => item !== trimmed);
+      return [...deduped.slice(-29), trimmed];
+    });
+    setHistoryCursor(-1);
+
+    onSendCommand({
+      target_id: selectedTarget || selectedHost?.id || 'WORKSTATION-01',
+      command_type: 'natural_language',
+      prompt: trimmed,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || isExecuting) return;
-
-    triggerHapticFeedback('medium');
-    onSendCommand({
-      target_id: selectedTarget,
-      command_type: 'natural_language',
-      prompt: prompt.trim(),
-    });
-
+    dispatchPrompt(prompt);
     setPrompt('');
   };
 
-  const handleRunPreset = (presetPrompt: string) => {
-    if (isExecuting) return;
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp' && commandHistory.length > 0) {
+      e.preventDefault();
+      const nextIdx =
+        historyCursor === -1
+          ? commandHistory.length - 1
+          : Math.max(0, historyCursor - 1);
+      setHistoryCursor(nextIdx);
+      setPrompt(commandHistory[nextIdx]);
+    } else if (e.key === 'ArrowDown' && historyCursor !== -1) {
+      e.preventDefault();
+      if (historyCursor >= commandHistory.length - 1) {
+        setHistoryCursor(-1);
+        setPrompt('');
+      } else {
+        const nextIdx = historyCursor + 1;
+        setHistoryCursor(nextIdx);
+        setPrompt(commandHistory[nextIdx]);
+      }
+    }
+  };
+
+  const handleCopyOutput = (id: string, text: string) => {
     triggerHapticFeedback('light');
-    onSendCommand({
-      target_id: selectedTarget,
-      command_type: 'natural_language',
-      prompt: presetPrompt,
-    });
+    navigator.clipboard?.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1600);
+  };
+
+  const handleClearConsole = () => {
+    triggerHapticFeedback('light');
+    setExecutionLogs([]);
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between select-none relative pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)]">
+    <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between select-none relative pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)]">
       {/* 1. Header & Flush Target Selector Pills */}
       <div className="py-1.5 flex items-center justify-between gap-2 mb-3 max-w-full overflow-hidden">
         <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-1 py-1">
@@ -142,63 +211,121 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
           })}
         </div>
 
-        {selectedHost && (
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => {
-              triggerHapticFeedback('light');
-              onViewScreen(selectedHost);
-            }}
-            className="min-h-[38px] px-3.5 py-1.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('term_view_screen')}</span>
-          </motion.button>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {executionLogs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearConsole}
+              className="min-h-[38px] px-3 py-1.5 rounded-full bg-[#070c18]/88 border border-white/12 hover:border-rose-400/35 text-white/55 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              title={language === 'bg' ? 'Изчисти конзолата' : 'Clear console output'}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{language === 'bg' ? 'Изчисти' : 'Clear'}</span>
+            </button>
+          )}
+
+          {selectedHost && (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                onViewScreen(selectedHost);
+              }}
+              className="min-h-[38px] px-3.5 py-1.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t('term_view_screen')}</span>
+            </motion.button>
+          )}
+        </div>
       </div>
 
       {/* 2. Main Terminal Output Surface (Tier 1 Resting Card) */}
-      <GlassContainer className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-h-[300px] sm:min-h-[360px] mb-3 overflow-hidden">
+      <GlassContainer className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-h-[220px] sm:min-h-[360px] mb-3 overflow-hidden">
         {/* Terminal Header */}
         <div className="flex items-center justify-between gap-2 pb-3 text-xs text-white/50 border-b border-white/[0.08] overflow-hidden">
           <div className="flex items-center space-x-2 min-w-0 flex-1">
             <Terminal className="w-4 h-4 text-cyan-400 shrink-0" />
             <span className="font-semibold text-white truncate">{t('term_agent_context')}</span>
           </div>
-          <span className="font-mono text-[11px] text-cyan-300/80 shrink-0 pl-1 tabular-nums">
-            {selectedHost?.ip}:8765
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {commandHistory.length > 0 && (
+              <span className="hidden md:inline text-[10px] font-mono text-white/35">
+                {language === 'bg' ? '↑/↓ история' : '↑/↓ history'}
+              </span>
+            )}
+            <span className="font-mono text-[11px] text-cyan-300/80 pl-1 tabular-nums">
+              {selectedHost?.ip || '192.168.1.10'}:8765
+            </span>
+          </div>
         </div>
 
         {/* Scrollable Command Output */}
-        <div className="flex-1 min-h-[200px] max-h-[50vh] py-4 font-mono text-xs leading-relaxed space-y-3 overflow-y-auto scrollbar-thin">
+        <div className="flex-1 min-h-[160px] max-h-[52dvh] py-4 font-mono text-xs leading-relaxed space-y-3 overflow-y-auto scrollbar-thin">
           <div className="text-white/50">
-            {t('term_connected_to', { name: selectedHost?.name || 'host', os: selectedHost?.os || 'Windows 11' })}
+            {t('term_connected_to', {
+              name: selectedHost?.name || 'WORKSTATION',
+              os: selectedHost?.os || 'Windows 11',
+            })}
           </div>
 
           <AnimatePresence mode="popLayout">
-            {lastExecutionResult && (
+            {executionLogs.map((entry) => (
               <motion.div
+                key={entry.id}
                 initial={{ opacity: 0, y: 12, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-                className="p-3.5 rounded-2xl bg-[#070c18]/90 border border-cyan-400/25 space-y-1.5"
+                className="p-3.5 rounded-2xl bg-[#070c18]/90 border border-cyan-400/25 space-y-2"
               >
-                <div className="flex items-center justify-between text-[11px] text-white/50 tabular-nums">
-                  <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {t('term_exec_success', { time: lastExecutionResult.execution_time_ms })}
+                <div className="flex items-center justify-between gap-2 text-[11px] text-white/50 tabular-nums border-b border-white/[0.06] pb-1.5">
+                  <span className="text-emerald-400 flex items-center gap-1.5 font-semibold truncate">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('term_exec_success', { time: entry.execution_time_ms })}</span>
                   </span>
-                  <span className="text-white/45">{lastExecutionResult.timestamp}</span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {entry.commandPrompt && (
+                      <button
+                        type="button"
+                        onClick={() => dispatchPrompt(entry.commandPrompt!)}
+                        disabled={isExecuting}
+                        className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                        title={language === 'bg' ? 'Изпълни отново' : 'Re-run command'}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyOutput(entry.id, entry.output)}
+                      className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer"
+                      title={language === 'bg' ? 'Копирай изхода' : 'Copy output'}
+                    >
+                      {copiedId === entry.id ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                    <span className="text-white/45">{entry.timestamp}</span>
+                  </div>
                 </div>
-                <pre className="text-white/95 text-xs whitespace-pre-wrap font-mono">
-                  {lastExecutionResult.output}
+
+                {entry.commandPrompt && (
+                  <div className="text-[11px] text-cyan-300/85 font-semibold truncate">
+                    $ {entry.commandPrompt}
+                  </div>
+                )}
+
+                <pre className="text-white/95 text-xs whitespace-pre-wrap font-mono select-text">
+                  {entry.output}
                 </pre>
               </motion.div>
-            )}
+            ))}
           </AnimatePresence>
 
           {isExecuting && (
@@ -227,7 +354,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               whileHover={{ y: -1.5 }}
               whileTap={{ scale: 0.95 }}
               disabled={isExecuting}
-              onClick={() => handleRunPreset(preset.prompt)}
+              onClick={() => dispatchPrompt(preset.prompt)}
               className="h-9 px-3.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition cursor-pointer disabled:opacity-40"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -244,6 +371,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               placeholder={t('term_prompt_placeholder')}
               disabled={isExecuting}
               className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40 disabled:opacity-50"

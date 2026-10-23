@@ -20,6 +20,11 @@ import { HeartbeatRingBuffer } from '../utils/heartbeatRingBuffer';
 import { Opcode, packControlFrameFast, parseHeaderInto } from '../utils/binaryFramer';
 import { useUIStore } from '../store/uiStore';
 import { HostDevice } from '../types';
+import {
+  computeViewportMetrics,
+  computeContainedScreenRect,
+  clampPercentage,
+} from '../utils/viewportScale';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -339,6 +344,76 @@ async function runStressTestSuite() {
   assert(
     modalSuccess,
     `Fired 2,000 concurrent modal open/close transitions in ${zustandMs.toFixed(2)}ms; Zustand state 100% consistent`
+  );
+
+  // -------------------------------------------------------------
+  // Test 11: Multi-Resolution Viewport Scaling, Aspect Ratios & Edge-Case Resilience
+  // -------------------------------------------------------------
+  console.log('\n[Phase 11] Multi-Resolution Viewport Scaling, Aspect Ratios & Edge-Case Resilience');
+  const vpFoldable = computeViewportMetrics(280, 653); // Galaxy Fold outer screen
+  const vpMobileLandscape = computeViewportMetrics(844, 390); // iPhone 14 Pro landscape
+  const vpTablet = computeViewportMetrics(960, 768); // iPad / Tablet
+  const vpDesktop = computeViewportMetrics(1440, 900); // 16:10 MacBook Pro
+  const vpUltrawide = computeViewportMetrics(3440, 1440); // 21:9 Ultrawide
+  const vpSuperUltrawide = computeViewportMetrics(5120, 1440); // 32:9 Super Ultrawide
+  const vpInvalid = computeViewportMetrics(NaN, -500); // Corrupted DOM metrics
+
+  assert(
+    vpFoldable.category === 'compact-mobile' && vpFoldable.recommendedFleetColumns === 1,
+    `Foldable 280x653 viewport classified as 'compact-mobile' (1 column, topology nodeRadius=${vpFoldable.topologyForceConfig.nodeRadius}px)`
+  );
+  assert(
+    vpMobileLandscape.category === 'mobile-landscape' && vpMobileLandscape.isShortLandscape === true,
+    `Phone landscape 844x390 detected as 'mobile-landscape' with compact vertical chrome flag`
+  );
+  assert(
+    vpTablet.category === 'tablet' && vpDesktop.recommendedFleetColumns === 2,
+    `Tablet 960x768 & 16:10 Desktop 1440x900 scale cleanly to 2-column Bento grid`
+  );
+  assert(
+    vpUltrawide.category === 'ultrawide' &&
+      vpUltrawide.recommendedFleetColumns === 3 &&
+      vpSuperUltrawide.isUltrawide === true &&
+      vpSuperUltrawide.recommendedFleetColumns === 3,
+    `21:9 (3440x1440) and 32:9 (5120x1440) ultrawide displays scale to 3-column Bento grid and expanded D3 force graph`
+  );
+  assert(
+    vpInvalid.width >= 240 && vpInvalid.height >= 240 && Number.isFinite(vpInvalid.aspectRatio),
+    `Corrupted NaN/negative viewport dimensions safely clamped (${vpInvalid.width}x${vpInvalid.height}, AR=${vpInvalid.aspectRatio})`
+  );
+
+  // Aspect-ratio letterbox/pillarbox containment solver across presets
+  const rect16x9In21x9 = computeContainedScreenRect(2100, 900, '16:9', 1);
+  const rect21x9In16x9 = computeContainedScreenRect(1600, 900, '21:9', 1);
+  const rect4x3In16x9 = computeContainedScreenRect(1600, 900, '4:3', 1);
+  const rectZoomed = computeContainedScreenRect(1600, 900, '16:9', 99); // Extreme zoom clamped to 3.0x
+
+  assert(
+    rect16x9In21x9.height === 900 &&
+      rect16x9In21x9.width === 1600 &&
+      Math.abs(rect16x9In21x9.targetAspect - 16 / 9) < 0.01,
+    `16:9 stream inside 21:9 container pillarboxes accurately to ${rect16x9In21x9.width}x${rect16x9In21x9.height}`
+  );
+  assert(
+    rect21x9In16x9.width === 1600 &&
+      rect21x9In16x9.height < 900 &&
+      rect4x3In16x9.width === 1200 &&
+      rect4x3In16x9.height === 900,
+    `21:9 letterbox (${rect21x9In16x9.width}x${rect21x9In16x9.height}) and 4:3 pillarbox (${rect4x3In16x9.width}x${rect4x3In16x9.height}) preserve exact aspect ratios`
+  );
+  assert(
+    rectZoomed.width === 4800 && rectZoomed.height === 2700,
+    `Extreme zoom input (99x) safely clamped to 3.0x (${rectZoomed.width}x${rectZoomed.height})`
+  );
+
+  // Telemetry percentage edge-case clamping
+  assert(
+    clampPercentage(NaN, 0) === 0 &&
+      clampPercentage(-42) === 0 &&
+      clampPercentage(Infinity, 50) === 50 &&
+      clampPercentage(185.7) === 100 &&
+      clampPercentage(47.6) === 48,
+    `Telemetry clampPercentage safely guards against NaN, Infinity, negative, and >100% spikes`
   );
 
   // -------------------------------------------------------------
