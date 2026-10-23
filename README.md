@@ -134,37 +134,7 @@ flutter pub get
 flutter run
 ```
 
-## Upload to GitHub
 
-Create an empty repository on GitHub (without adding a README, license, or `.gitignore`), then run these commands from the project directory. Replace the remote URL with the URL of your repository:
-
-```bash
-git init -b main
-git add .
-git status
-```
-
-Review the staged files before committing. Make sure you have not added real API keys, credentials, or other private data. Then commit and push:
-
-```bash
-git commit -m "Initial project upload"
-git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
-git push -u origin main
-```
-
-The `.gitignore` excludes local IDE settings, dependencies, build outputs, and common signing credentials. Keep `.env.example` as a template, and store real secrets outside the repository.
-
----
-
-## Verification & Benchmarks
-
-Execute the automated test harness:
-
-```bash
-npm test
-```
-
-```text
 ================================================================
   CST NetController AI - Automated 14-Pillar Verification Harness
 ================================================================
