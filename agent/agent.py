@@ -1153,11 +1153,11 @@ class HostAgentDaemon:
                         if isinstance(res, Exception):
                             self.authenticated_clients.discard(ws)
 
-            # Adaptive sleep based on motion
+            # Adaptive sleep based on motion (120Hz high refresh rate pipeline)
             if self.screen_pipeline.consecutive_static > 2:
                 await asyncio.sleep(0.5)  # Drop to 2 FPS when desktop is idle
             else:
-                await asyncio.sleep(0.016)  # 60 FPS under active screen movement
+                await asyncio.sleep(0.008)  # Smooth 120 FPS under active screen movement (8.33ms)
 
     async def _telemetry_heartbeat_loop(self):
         """

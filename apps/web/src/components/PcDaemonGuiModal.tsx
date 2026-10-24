@@ -227,7 +227,7 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     fetchDaemonState();
-    const timer = setInterval(fetchDaemonState, 2000);
+    const timer = setInterval(fetchDaemonState, 1000);
     return () => clearInterval(timer);
   }, [isOpen, fetchDaemonState]);
 

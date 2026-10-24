@@ -1,35 +1,44 @@
 {
   "version": "v2.7.0",
-  "tag": "v2.7.0-LTS",
-  "releaseName": "CST NetController AI v2.7.0 — Multi-Resolution Liquid Glass, QoL & Native Binaries",
-  "publishedAt": "2026-10-24T20:57:00.000000+00:00",
+  "tag": "v2.7.0",
+  "releaseName": "CST NetController AI v2.7.0 — 120Hz Zero-Jitter Fluid Engine, Double-Buffered Video Pipeline & Native Binaries",
+  "publishedAt": "2026-10-25T01:50:00.000000+00:00",
   "protocol": "CST/3.0-SECURE",
   "artifacts": [
     {
       "filename": "CST_HostAgent_v2.7.0_win64.exe",
       "kind": "exe",
       "platform": "Windows 10/11 x64 (Standalone Host Agent .EXE)",
-      "sizeBytes": 35329680,
+      "sizeBytes": 35330392,
       "sizeFormatted": "33.7 MB",
-      "sha256": "a76a1390a623b3d6040441f7627debf48fd27084dff30468bef9f35cb9581e53",
+      "sha256": "484467fccf3c2605a1ce180420db437707a80c095526404473d591b415b55c89",
       "downloadUrl": "/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe"
     },
     {
       "filename": "CST_NetController_AI_v2.7.0_arm64-v8a.apk",
       "kind": "apk",
-      "platform": "Android 10–15 arm64-v8a (Mobile Controller .APK)",
-      "sizeBytes": 56447178,
-      "sizeFormatted": "53.8 MB",
-      "sha256": "2ce6b9da6317441ffd5beff999f3882fe497e659f836ea95b9c1efe5e28d52c5",
+      "platform": "Android 10–15 arm64-v8a (120Hz Mobile Controller .APK)",
+      "sizeBytes": 23585852,
+      "sizeFormatted": "22.5 MB",
+      "sha256": "b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6",
       "downloadUrl": "/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk"
+    },
+    {
+      "filename": "CST_NetController_AI_v2.7.0.apk",
+      "kind": "apk",
+      "platform": "Android 10–15 Universal (120Hz Mobile Controller .APK)",
+      "sizeBytes": 23585852,
+      "sizeFormatted": "22.5 MB",
+      "sha256": "b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6",
+      "downloadUrl": "/releases/v2.7.0/CST_NetController_AI_v2.7.0.apk"
     },
     {
       "filename": "CST_HostAgent_v2.7.0_win64_portable.zip",
       "kind": "zip",
-      "platform": "Windows Portable Agent Bundle + PyInstaller Spec (.ZIP)",
-      "sizeBytes": 129880,
-      "sizeFormatted": "126.8 KB",
-      "sha256": "89d8b6c03e867c3761eb10a2eb75b06ec0409a8a7d1885f8502ce06d0426d4c6",
+      "platform": "Windows Portable Agent Bundle + Internal Runtime (.ZIP)",
+      "sizeBytes": 36558150,
+      "sizeFormatted": "34.9 MB",
+      "sha256": "5c8669cc2d7ac6d6d9e91f1c75bd2829ce03b3267acc56e975321f10741ed1da",
       "downloadUrl": "/releases/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip"
     }
   ]

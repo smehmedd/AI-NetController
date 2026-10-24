@@ -378,6 +378,7 @@ class HostDaemonDesktopGUI:
         self._token_visible = False
         self._devices_win: Optional[tk.Toplevel] = None
         self._setup_win: Optional[tk.Toplevel] = None
+        self._rendered_log_len: int = 0
 
         if platform.system() == "Windows":
             try:
@@ -1171,18 +1172,29 @@ class HostDaemonDesktopGUI:
         fps_label = "Paused (0 FPS)" if snap["isPaused"] else f"{snap['captureFps']} FPS ({'Active Stream' if snap['captureFps'] > 2 else 'Idle Standby'})"
         self.fps_lbl.configure(text=f"Capture Pipeline: {fps_label}")
 
-        self.log_text.configure(state=tk.NORMAL)
-        self.log_text.delete("1.0", tk.END)
-        for entry in snap["logs"][-40:]:
-            self.log_text.insert(tk.END, f"[{entry['time']}] [{entry['level']}] {entry['message']}\n")
-        self.log_text.see(tk.END)
-        self.log_text.configure(state=tk.DISABLED)
+        # Differential smooth log updating to eliminate redraw flicker
+        all_logs = snap["logs"]
+        if len(all_logs) < self._rendered_log_len:
+            # Logs were cleared by operator
+            self.log_text.configure(state=tk.NORMAL)
+            self.log_text.delete("1.0", tk.END)
+            self._rendered_log_len = 0
+            self.log_text.configure(state=tk.DISABLED)
+
+        if len(all_logs) > self._rendered_log_len:
+            self.log_text.configure(state=tk.NORMAL)
+            # Append only new entries
+            for entry in all_logs[self._rendered_log_len:]:
+                self.log_text.insert(tk.END, f"[{entry['time']}] [{entry['level']}] {entry['message']}\n")
+            self._rendered_log_len = len(all_logs)
+            self.log_text.see(tk.END)
+            self.log_text.configure(state=tk.DISABLED)
 
     def _schedule_refresh(self) -> None:
         if not self.state.is_running:
             return
         self._refresh_ui()
-        self.root.after(1500, self._schedule_refresh)
+        self.root.after(250, self._schedule_refresh)  # 250ms smooth fluid telemetry refresh
 
     def _handle_close(self) -> None:
         self.state.is_running = False

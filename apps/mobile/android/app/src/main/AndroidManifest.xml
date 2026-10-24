@@ -26,6 +26,10 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
+            <!-- 120Hz Smooth High Refresh Rate & Low Latency Display Unlock -->
+            <meta-data android:name="android.max_aspect" android:value="2.5" />
+            <meta-data android:name="android.hardware.render_ahead" android:value="true" />
+
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
