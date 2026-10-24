@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dgram from 'dgram';
 import { exec } from 'child_process';
@@ -11,6 +12,8 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '../..');
+const RELEASES_PUBLIC_DIR = path.resolve(ROOT_DIR, 'public/releases');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -38,6 +41,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
   next();
 });
+
+// Serve packaged .exe, .apk, .zip, and SHA256SUMS.txt release binaries with attachment headers
+app.use(
+  '/releases',
+  express.static(RELEASES_PUBLIC_DIR, {
+    setHeaders: (res, filePath) => {
+      const base = path.basename(filePath);
+      if (base.endsWith('.exe') || base.endsWith('.apk') || base.endsWith('.zip')) {
+        res.setHeader('Content-Disposition', `attachment; filename="${base}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+      }
+    },
+  })
+);
 
 // High-Performance Sliding-Window API Rate Limiter (120 req/min per IP)
 const apiRateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -170,10 +187,53 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'online',
     protocol: 'CST/3.0-SECURE',
-    version: '2.6.0',
+    version: '2.7.0',
     timestamp: new Date().toISOString(),
     hasApiKey: Boolean(process.env.GEMINI_API_KEY),
     models: DYNAMIC_MODELS,
+  });
+});
+
+// Release Binaries (.EXE & .APK) & Patch Notes Endpoint
+app.get('/api/releases', (_req: Request, res: Response) => {
+  try {
+    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
+    const patchNotesPath = path.join(ROOT_DIR, 'PATCH_NOTES.md');
+    const manifest = fs.existsSync(manifestPath)
+      ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+      : null;
+    const patchNotes = fs.existsSync(patchNotesPath)
+      ? fs.readFileSync(patchNotesPath, 'utf-8')
+      : '';
+    return res.json({
+      success: true,
+      manifest,
+      patchNotes,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message || 'Failed to read release manifest' });
+  }
+});
+
+// Rebuild Release Binaries (.EXE & .APK) on Demand
+app.post('/api/releases/rebuild', (_req: Request, res: Response) => {
+  const scriptPath = path.join(ROOT_DIR, 'scripts', 'build_release_binaries.py');
+  exec(`python3 "${scriptPath}"`, { timeout: 25000 }, (err, stdout, stderr) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        error: stderr || err.message,
+      });
+    }
+    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
+    const manifest = fs.existsSync(manifestPath)
+      ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+      : null;
+    return res.json({
+      success: true,
+      output: stdout.trim(),
+      manifest,
+    });
   });
 });
 

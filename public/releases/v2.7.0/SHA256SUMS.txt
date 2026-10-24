@@ -1,0 +1,3 @@
+9271cf2779f5914bfe354840a5afd22a73814a2144191f82d0203b73adaa58fb  CST_HostAgent_v2.7.0_win64.exe
+05c4d89ebc9b95dbbccab74f31091f7d50a6c4107c09734b4e96e2e8dcfd4413  CST_NetController_AI_v2.7.0_arm64-v8a.apk
+68162e5985e1f7407bb47d35c2d5c29e2a71bd96bf7fa599f90805c9266ebe2f  CST_HostAgent_v2.7.0_win64_portable.zip

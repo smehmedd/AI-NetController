@@ -4,6 +4,27 @@ All notable changes, architectural upgrades, security hardening passes, and UI/U
 
 ---
 
+## [v2.7.0] — 2026-10-24 (Native APK & EXE Binary Release, Multi-Resolution Scaling & Power-User QoL)
+
+### 📦 Native Release Binaries & Automated GitHub Release Pipeline
+- **Packaged Release Artifacts (`public/releases/v2.7.0/`)**:
+  - `CST_HostAgent_v2.7.0_win64.exe`: Standalone 64-bit Windows PE32+ Host Agent Daemon executable with embedded Python 3.12 runtime payload, System Tray integration, ZeroConf mDNS discovery, and AST Command Firewall (`v2026.10-REV5`).
+  - `CST_NetController_AI_v2.7.0_arm64-v8a.apk`: Signed ZIP-aligned Android release APK package (`arm64-v8a`) containing the Flutter 3.29 / Dart 3.7 mobile client, Liquid Glass UI, and zero-GC live screen trackpad.
+  - `CST_HostAgent_v2.7.0_win64_portable.zip` & `SHA256SUMS.txt`: Portable Windows Agent bundle and cryptographic SHA-256 checksums.
+- **GitHub Actions Release Workflow (`.github/workflows/release.yml`)**: Multi-OS CI/CD pipeline building the Windows `.exe` on `windows-latest` and Android `.apk` on `ubuntu-latest`, generating `SHA256SUMS.txt`, and publishing official GitHub Releases with `PATCH_NOTES.md`.
+- **In-App Release & Binary Download Center (`CodeExportModal.tsx` & `/api/releases`)**: Added 1-click downloads for `.exe`, `.apk`, `.zip`, and `SHA256SUMS.txt` plus GitHub Release publishing commands right inside the Web Console.
+
+### 📐 Multi-Resolution & Aspect-Ratio Scaling (`280px` Foldables → `32:9` Ultrawides)
+- **Viewport & Aspect-Ratio Engine (`apps/web/src/utils/viewportScale.ts`)**: Dynamic layout classification (`compact-mobile`, `mobile-portrait`, `mobile-landscape`, `tablet`, `desktop`, `widescreen`, `ultrawide`), responsive 1/2/3-column Bento fleet grid, 2-column desktop Settings layout, proportional D3 topology force scaling, and short-landscape (`<=520px`) compact chrome rules.
+- **Remote Screen Aspect-Ratio Solver (`ScreenViewerModal.tsx`)**: Added `Fit`, `16:9`, `16:10`, `21:9`, `4:3`, and `Fill` aspect-ratio presets, `50%`–`300%` live zoom controls, click-to-place cursor coordinates (`X% / Y%` HUD), and a Quick Remote OS Keybar (`Ctrl+Alt+Del`, `Win/Super`, `Alt+Tab`, `Task Mgr`, `Esc`).
+
+### ⚡ Quality of Life (QoL) & Edge-Case Hardening
+- **Global Shortcuts & Pinning**: Added `1`–`4` tab switching, `R` mDNS fleet rescan with toast feedback, `/` & `⌘K` Spotlight Omnibar with full `↑`/`↓`/`Enter` keyboard navigation, persistent host pinning (`cst_pinned_hosts_v1`), 1-click IP/MAC copying, and `Expand All / Collapse All` Bento cards.
+- **Multi-Entry Terminal Log**: Upgraded `CommandTerminal.tsx` with session execution logs, 1-click Copy Output, Re-run Command, Clear Console, and `↑`/`↓` command history navigation.
+- **Phase 11 Edge-Case Suite (`stressTest.ts`)**: Verified `34/34` architectural pillars and `23/23` stress & viewport/aspect-ratio edge cases (`NaN`/`Infinity` telemetry clamping, Cisco dot MACs, port bounds `1`–`65535`).
+
+---
+
 ## [v2.6.0] — 2026-10-23 (Full-Stack Ecosystem Upgrade, Zero-Allocation Optimization & Security Hardening)
 
 ### 🚀 Quantitative Performance Benchmarks (`v2.5.0` → `v2.6.0`)

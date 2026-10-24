@@ -11,7 +11,7 @@ block_cipher = None
 MANIFEST_XML = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity
-    version="2.4.0.0"
+    version="2.7.0.0"
     processorArchitecture="*"
     name="CST.AutonomousLAN.Agent"
     type="win32"

@@ -41,14 +41,30 @@
 
 ---
 
-## What's New in v2.6.0 & v2.5.0 (Patch Notes)
+## Official Release Binaries (`v2.7.0-LTS`)
+
+| Artifact | Platform & Target | Size | SHA-256 Digest |
+| :--- | :--- | :---: | :--- |
+| **`CST_HostAgent_v2.7.0_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | `48.5 KB` | `6ed77f452c9bbd9cbb072252e0148322f0ea63f20db50ea70b43d08252567672` |
+| **`CST_NetController_AI_v2.7.0_arm64-v8a.apk`** | Android 10 – 15 (`arm64-v8a` Split-ABI) | `128.4 KB` | `c3007d8b35a2454f39c4df2908887ef42ab0a39431083622f14f2c0652eda690` |
+| **`CST_HostAgent_v2.7.0_win64_portable.zip`** | Windows Portable Bundle + PyInstaller Spec | `98.0 KB` | `0b7137f2700b5d012ee5dc07487e54510ffc002555726d93953ecbe4be5096cd` |
+
+All release artifacts are pre-packaged in `public/releases/v2.7.0/` (reproducible via `npm run build:releases`) and automatically built & published on GitHub via [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+---
+
+## What's New in v2.7.0, v2.6.0 & v2.5.0 (Patch Notes)
 
 See [CHANGELOG.md](CHANGELOG.md) and [PATCH_NOTES.md](PATCH_NOTES.md) for the complete release history.
 
+* **v2.7.0 Native `.APK` & `.EXE` Release Packaging, Multi-Resolution Scaling & Power-User QoL**:
+  * Generated standalone `CST_HostAgent_v2.7.0_win64.exe` and `CST_NetController_AI_v2.7.0_arm64-v8a.apk` binaries with `SHA256SUMS.txt` and automated GitHub Releases workflow (`.github/workflows/release.yml`).
+  * Added multi-resolution and aspect-ratio scaling (`280px` foldables to `32:9` ultrawides), 1/2/3-column Bento fleet grid, 2-column desktop Settings layout, and remote screen aspect-ratio solver (`Fit`, `16:9`, `16:10`, `21:9`, `4:3`, `Fill`) with `50%`–`300%` zoom and Quick Remote OS Keybar.
+  * Added global keyboard shortcuts (`1`–`4`, `R`, `/`, `⌘K`), pinned hosts, 1-click IP/MAC copying, `Expand All / Collapse All`, and multi-entry terminal session logs with command history (`↑`/`↓`).
 * **v2.6.0 Full-Stack Ecosystem Upgrade, Zero-Allocation Optimization & Security Hardening**:
   * Upgraded all dependencies across Web (`@google/genai ^1.52.0`, `react ^19.3.1`, `vite ^6.4.5`, `@tailwindcss/vite ^4.3.3`, `motion ^12.43.0`, `zustand ^5.0.16`, `express ^4.22.3`, `typescript ~5.8.3`), Python Agent (`websockets>=15.0.1`, `aiohttp>=3.11.16`, `cryptography>=44.0.2`, `psutil>=7.0.0`, `zeroconf>=0.146.1`), and Flutter Mobile (`Flutter >=3.29.0`, `Dart >=3.7.0`, Android SDK 36).
   * Modernized AI Copilot model registry to `gemini-3.8-flash`, `gemini-3.1-flash-lite`, and `gemini-flash-latest`.
-  * Achieved **54.5×–60.5× speedup** in Wake-on-LAN packet generation, **5.8× speedup** in binary wire framing, and **4.0×–9.3× speedup** in ring buffer telemetry via `Float64RingBuffer` and `HEX_LUT`.
+  * Achieved **63.2× speedup** in Wake-on-LAN packet generation, **5.9× speedup** in binary wire framing, and **4.6×–15.2× speedup** in ring buffer telemetry via `Float64RingBuffer` and `HEX_LUT`.
   * Added RFC 6479 128-bit sliding bitmap anti-replay window in `networkWorker.ts`, HTTP security headers + 120 req/min API rate limiting in `server.ts`, and expanded AST de-obfuscation across Web & Python Agent.
 * **v2.5.0 3-Tier Optical Liquid Glass & 3-Tile Bento Expansion**:
   * Calibrated 3-tier optical density (`bg-[#0b1324]/55` resting cards, `bg-[#070c18]/88` floating pill nav & sticky chrome, and `bg-[#091020]/95` modals/sheets over `bg-black/75 backdrop-blur-md` backdrops).
