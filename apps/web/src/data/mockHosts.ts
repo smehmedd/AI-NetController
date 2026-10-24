@@ -116,35 +116,52 @@ export const INITIAL_HOSTS: CyberHostDevice[] = [
 
 export const DEMO_PRESET_COMMANDS = [
   {
-    label: 'ПРОВЕРИ ОБНОВЛЕНИЯ',
+    label: 'Check System Updates',
+    labelEn: 'Check System Updates',
+    labelBg: 'Провери системни обновления',
     prompt: 'Check for system package updates (winget / apt) and report pending updates',
+    promptEn: 'Check for system package updates (winget / apt) and report pending updates',
+    promptBg: 'Провери за системни пакетни обновления и докладвай чакащите актуализации',
     sessionInstruction: 'Do not trigger reboot automatically',
     requestScreenshot: false,
     expectedRisk: 'LOW',
     quadrant: 'top-left'
   },
   {
-    label: 'РЕСТАРТИРАЙ',
+    label: 'Restart Workstation',
+    labelEn: 'Restart Workstation',
+    labelBg: 'Рестартирай работната станция',
     prompt: 'Initiate graceful operating system reboot countdown in 10 seconds',
+    promptEn: 'Initiate graceful operating system reboot countdown in 10 seconds',
+    promptBg: 'Стартирай безопасно рестартиране на операционната система след 10 секунди',
     sessionInstruction: 'Requires elevated root privileges',
     requestScreenshot: false,
     expectedRisk: 'HIGH',
     quadrant: 'top-right'
   },
   {
-    label: 'ОТВОРИ БРАУЗЪР (Google)',
+    label: 'Open Default Browser',
+    labelEn: 'Open Default Browser',
+    labelBg: 'Отвори браузър по подразбиране',
     prompt: 'Launch default web browser and navigate to https://www.google.com',
+    promptEn: 'Launch default web browser and navigate to https://www.google.com',
+    promptBg: 'Стартирай уеб браузъра по подразбиране и отвори началната страница',
     sessionInstruction: 'Use configured default browser path',
     requestScreenshot: true,
     expectedRisk: 'LOW',
     quadrant: 'bottom-left'
   },
   {
-    label: 'ПОКАЖИ CPU/RAM',
+    label: 'Inspect CPU & RAM Telemetry',
+    labelEn: 'Inspect CPU & RAM Telemetry',
+    labelBg: 'Покажи натоварване на процесор и памет',
     prompt: 'Collect real-time hardware telemetry for CPU cores, RAM consumption, and top 5 processes',
+    promptEn: 'Collect real-time hardware telemetry for CPU cores, RAM consumption, and top 5 processes',
+    promptBg: 'Събери хардуерна телеметрия в реално време за процесорни ядра, памет и топ 5 процеса',
     sessionInstruction: 'Return output in structured tabular format',
     requestScreenshot: false,
     expectedRisk: 'LOW',
     quadrant: 'bottom-right'
   }
 ];
+

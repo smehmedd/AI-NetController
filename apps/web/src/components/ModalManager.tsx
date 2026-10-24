@@ -120,8 +120,8 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
       <BottomSheet
         isOpen={activeModal === 'memory'}
         onClose={closeModal}
-        title={language === 'bg' ? 'Контекстна памет и инструкции' : 'Contextual Memory Rules'}
-        subtitle={language === 'bg' ? 'RAM и постоянни config.json настройки' : 'RAM & Persistent config.json settings'}
+        title={language === 'bg' ? 'Системни правила и контекстна памет' : 'System Rules & Contextual Memory'}
+        subtitle={language === 'bg' ? 'Постоянни правила и временна оперативна памет за всеки хост' : 'Persistent host rules & active session memory'}
       >
         <MemoryManager hosts={props.hosts} onUpdateInstructions={props.onUpdateHostInstructions} />
       </BottomSheet>

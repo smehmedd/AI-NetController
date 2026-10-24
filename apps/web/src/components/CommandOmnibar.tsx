@@ -48,7 +48,8 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
   const isOpen = useUIStore((s) => s.isOmnibarOpen);
   const setOmnibarOpen = useUIStore((s) => s.setOmnibarOpen);
   const openModal = useUIStore((s) => s.openModal);
-  const { t, toggleLanguage } = useTranslation();
+  const { t, language, toggleLanguage } = useTranslation();
+  const isBg = language === 'bg';
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -114,21 +115,25 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
     }
 
     if (isAiMode) {
-      DEMO_PRESET_COMMANDS.filter(
-        (p) => p.label.toLowerCase().includes(rawQuery) || p.prompt.toLowerCase().includes(rawQuery)
-      ).forEach((p, idx) => {
+      DEMO_PRESET_COMMANDS.filter((p) => {
+        const title = isBg ? p.labelBg : p.labelEn;
+        const sub = isBg ? p.promptBg : p.promptEn;
+        return title.toLowerCase().includes(rawQuery) || sub.toLowerCase().includes(rawQuery);
+      }).forEach((p, idx) => {
+        const title = isBg ? p.labelBg : p.labelEn;
+        const sub = isBg ? p.promptBg : p.promptEn;
         items.push({
           id: `preset-${idx}`,
           kind: 'preset',
-          title: p.label,
-          subtitle: p.prompt,
+          title,
+          subtitle: sub,
           icon: Sparkles,
           onTrigger: () =>
             executeAction(() =>
               onSendCommand({
                 target_id: selectedTarget,
                 command_type: 'natural_language',
-                prompt: p.prompt,
+                prompt: sub,
               })
             ),
         });
@@ -162,6 +167,7 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
     rawQuery,
     hosts,
     t,
+    isBg,
     executeAction,
     onSelectHost,
     onRescanMdns,
@@ -322,7 +328,7 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
                 </span>
               </div>
               <span className="hidden sm:inline font-mono text-[10px] text-white/35">
-                ↑↓ Navigate • ↵ Select
+                {isBg ? '↑↓ Навигация • ↵ Избор' : '↑↓ Navigate • ↵ Select'}
               </span>
             </div>
 

@@ -182,7 +182,7 @@ export const HitlApprovalModal: React.FC<HitlApprovalModalProps> = ({
                   onClick={handleReject}
                   className="w-full min-h-[44px] py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition flex items-center justify-center cursor-pointer bubble-tap"
                 >
-                  {language === 'bg' ? 'Блокирай (Reject)' : 'Reject Command'}
+                  {language === 'bg' ? 'Блокирай командата' : 'Reject Command'}
                 </motion.button>
 
                 <motion.button
@@ -193,7 +193,7 @@ export const HitlApprovalModal: React.FC<HitlApprovalModalProps> = ({
                   onClick={handleApprove}
                   className="w-full min-h-[44px] py-3.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-[0_4px_20px_rgba(225,29,72,0.4)] transition flex items-center justify-center cursor-pointer bubble-tap"
                 >
-                  {language === 'bg' ? 'Одобри (Elevate)' : 'Approve & Execute'}
+                  {language === 'bg' ? 'Одобри и изпълни' : 'Approve & Execute'}
                 </motion.button>
               </div>
             </div>

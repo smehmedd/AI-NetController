@@ -50,7 +50,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             transition={SPRING_BUBBLY}
             className="
               bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)]
-              relative z-10 w-full max-w-xl
+              relative z-10 w-full max-w-2xl
               rounded-t-[2.5rem] sm:rounded-[2.4rem]
               flex flex-col overflow-hidden
               max-h-[90vh] sm:max-h-[85vh]
@@ -66,19 +66,19 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </div>
 
             {/* Header - Negative space hierarchy without divider border */}
-            <div className="px-6 pt-4 pb-2 flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+            <div className="px-6 pt-4 pb-2 flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="text-xs text-white/50 mt-0.5">{subtitle}</p>
+                  <p className="text-xs text-white/50 mt-0.5 truncate">{subtitle}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center text-white/50 hover:text-white bg-white/5 hover:bg-white/10 active:scale-95 transition cursor-pointer"
+                className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center text-white/50 hover:text-white bg-white/5 hover:bg-white/10 active:scale-95 transition cursor-pointer shrink-0"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -86,7 +86,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </div>
 
             {/* Scrollable Content with Safe Insets */}
-            <div className="p-6 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
+            <div className="p-5 sm:p-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
               {children}
             </div>
           </motion.div>

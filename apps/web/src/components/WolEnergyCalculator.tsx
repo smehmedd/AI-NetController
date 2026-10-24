@@ -303,7 +303,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                         {language === 'bg' ? preset.nameBg : preset.name}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {preset.hostCount} PC • {preset.activeHours}h/day • {preset.daysPerWeek}d/wk
+                        {preset.hostCount} {language === 'bg' ? 'комп.' : 'PC'} • {preset.activeHours}{language === 'bg' ? 'ч/ден' : 'h/day'} • {preset.daysPerWeek}{language === 'bg' ? 'д/седм.' : 'd/wk'}
                       </div>
                     </button>
                   );
@@ -325,7 +325,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                       <Monitor className="w-3.5 h-3.5 text-slate-400" />
                       {t('calc_hosts_managed')}
                     </span>
-                    <span className="font-mono text-cyan-300 font-bold">{hostCount} PC</span>
+                    <span className="font-mono text-cyan-300 font-bold">{hostCount} {language === 'bg' ? 'комп.' : 'PC'}</span>
                   </div>
                   <input
                     type="range"
@@ -347,7 +347,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
                       {t('calc_active_hours_day')}
                     </span>
-                    <span className="font-mono text-emerald-300 font-bold">{activeHoursPerDay} h/day</span>
+                    <span className="font-mono text-emerald-300 font-bold">{activeHoursPerDay} {language === 'bg' ? 'ч/ден' : 'h/day'}</span>
                   </div>
                   <input
                     type="range"
@@ -369,7 +369,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
                       {t('calc_wake_days_week')}
                     </span>
-                    <span className="font-mono text-amber-300 font-bold">{daysPerWeek} days/wk</span>
+                    <span className="font-mono text-amber-300 font-bold">{daysPerWeek} {language === 'bg' ? 'дни/седм.' : 'days/wk'}</span>
                   </div>
                   <div className="grid grid-cols-7 gap-1">
                     {[1, 2, 3, 4, 5, 6, 7].map(d => (
@@ -387,7 +387,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                             : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
                         }`}
                       >
-                        {d}d
+                        {d}{language === 'bg' ? 'д' : 'd'}
                       </button>
                     ))}
                   </div>

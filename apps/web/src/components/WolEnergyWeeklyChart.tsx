@@ -16,6 +16,7 @@ import {
 import { WolSchedule, Weekday } from '../types';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
+import { localizeWolSchedule } from '../services/wolService';
 
 interface WolEnergyWeeklyChartProps {
   schedules?: WolSchedule[];
@@ -93,7 +94,10 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
 
       const isScheduled =
         enabledSchedules.length > 0 ? matchingSchedules.length > 0 : idx < effectiveDaysPerWeek;
-      const scheduledEvents = matchingSchedules.map(s => `${s.name} (${s.time})`);
+      const scheduledEvents = matchingSchedules.map(s => {
+        const loc = localizeWolSchedule(s, language);
+        return `${loc.name} (${s.time})`;
+      });
 
       const activeHours = isScheduled ? effectiveActiveHoursPerDay : 0;
       const standbyHours = Math.max(0, 24 - activeHours);
@@ -127,7 +131,7 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
         savedCost: Number(savedCost.toFixed(2))
       } as DayDataPoint;
     });
-  }, [schedules, weekdayDefs, hostCount, activeWatts, standbyWatts, kwhRate, effectiveActiveHoursPerDay, effectiveDaysPerWeek]);
+  }, [schedules, weekdayDefs, hostCount, activeWatts, standbyWatts, kwhRate, effectiveActiveHoursPerDay, effectiveDaysPerWeek, language]);
 
   const weeklyTotals = useMemo(() => {
     let totalBaselineKwh = 0;
@@ -172,11 +176,11 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
             <span className="font-bold text-white font-display text-sm">{data.dayFull}</span>
             {data.isScheduled ? (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {isBg ? 'WOL АКТИВЕН' : 'WOL ACTIVE'}
+                {isBg ? 'АКТИВЕН ГРАФИК' : 'WOL ACTIVE'}
               </span>
             ) : (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700">
-                {isBg ? '24ч В STANDBY' : '24h STANDBY'}
+                {isBg ? '24ч В ГОТОВНОСТ' : '24h STANDBY'}
               </span>
             )}
           </div>
@@ -185,7 +189,7 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
             <div className="flex justify-between items-center text-slate-300 gap-3">
               <span className="flex items-center gap-1.5 text-rose-400">
                 <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/80 inline-block" />
-                {isBg ? 'Базов 24/7 Idle:' : '24/7 Baseline Idle:'}
+                {isBg ? 'Базова консумация 24/7:' : '24/7 Baseline Idle:'}
               </span>
               <span className="font-bold">
                 {data.baselineKwh} kWh ({data.baselineCost} {currencySymbol})
@@ -195,7 +199,7 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
             <div className="flex justify-between items-center text-slate-300 gap-3">
               <span className="flex items-center gap-1.5 text-cyan-300">
                 <span className="w-2.5 h-2.5 rounded-sm bg-cyan-400 inline-block" />
-                {isBg ? `WoL График (${data.activeHours}ч):` : `WoL Schedule (${data.activeHours}h):`}
+                {isBg ? `По график (${data.activeHours}ч):` : `WoL Schedule (${data.activeHours}h):`}
               </span>
               <span className="font-bold text-cyan-300">
                 {data.scheduledKwh} kWh ({data.scheduledCost} {currencySymbol})
@@ -296,7 +300,7 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
 
         <div className="bg-[#0A1628]/80 border border-cyan-500/30 rounded-xl p-2.5">
           <div className="text-[10px] text-cyan-400 font-mono uppercase">
-            {isBg ? 'WoL График Енергия' : 'WoL Scheduled Energy'}
+            {isBg ? 'Енергия по график' : 'WoL Scheduled Energy'}
           </div>
           <div className="text-base font-bold text-cyan-300 font-mono mt-0.5">
             {activeMetricView === 'kwh'
@@ -305,7 +309,7 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
           </div>
           <div className="text-[10px] text-cyan-400/70 font-mono">
             {isBg
-              ? `${weeklyTotals.totalScheduledDays} дни активни + Standby`
+              ? `${weeklyTotals.totalScheduledDays} дни активни + готовност`
               : `${weeklyTotals.totalScheduledDays} active days + Standby`}
           </div>
         </div>
@@ -379,8 +383,8 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
               align="right"
               wrapperStyle={{ paddingBottom: 8, fontSize: 11, fontFamily: 'monospace' }}
               formatter={(value: string) => {
-                if (value === 'baselineVal') return isBg ? 'Базов 24/7 Idle' : '24/7 Baseline Idle';
-                if (value === 'scheduledVal') return isBg ? 'Scheduled WoL Мощност' : 'Scheduled WoL Power';
+                if (value === 'baselineVal') return isBg ? 'Базова 24/7 консумация' : '24/7 Baseline Idle';
+                if (value === 'scheduledVal') return isBg ? 'Мощност по график' : 'Scheduled WoL Power';
                 return value;
               }}
             />
@@ -424,6 +428,8 @@ export const WolEnergyWeeklyChart: React.FC<WolEnergyWeeklyChartProps> = ({
               ? isBg
                 ? `${d.activeHours}ч активен`
                 : `${d.activeHours}h active`
+              : isBg
+              ? 'Готовност'
               : 'Standby'}
           </span>
         ))}

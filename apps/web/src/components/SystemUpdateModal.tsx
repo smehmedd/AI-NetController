@@ -209,6 +209,55 @@ const INITIAL_COMPONENTS: UpdatableComponent[] = [
   },
 ];
 
+const COMPONENT_BG_MAP: Record<string, { description: string; driftDescription: string; compatibilityRequirement: string }> = {
+  'deepseek-r1': {
+    description: 'Локален модел за разсъждение (верига от мисли и синтез на системни команди)',
+    driftDescription: '1 минорна версия назад (v1.4 → v1.5.2)',
+    compatibilityRequirement: 'Изисква хост демон >= v2.4.2 за поточно предаване',
+  },
+  'qwen25-coder': {
+    description: 'Автономен генератор на код и скриптове с проверка на синтаксиса',
+    driftDescription: '1 минорна версия назад (v2.1.0 → v2.2.4)',
+    compatibilityRequirement: 'Поддържа мрежов протокол v2.4+ и изолиран процес',
+  },
+  'llama33-70b': {
+    description: 'Водещ оркестратор за многохостов флот и автономно планиране на задачи',
+    driftDescription: '1 минорна версия назад (v3.2.0 → v3.3.1)',
+    compatibilityRequirement: 'Съвместим с хост демон v2.4+ за няколко монитора',
+  },
+  'llama32-3b': {
+    description: 'Свръхлек 3B локален резервен модел за мобилни устройства (<1.8GB памет)',
+    driftDescription: 'Няма разминаване във версията (Актуална)',
+    compatibilityRequirement: 'Напълно съвместим с мобилния клиент и хост демона',
+  },
+  'cst-host-agent': {
+    description: 'Графичен контролен център за настолен компютър, двоичен сървър и сертифициран компилатор',
+    driftDescription: '1 минорна версия назад (v2.6.0 → v2.7.0-LTS)',
+    compatibilityRequirement: 'Основен супервайзър. Изисква се от DeepSeek-R1 v1.5.',
+  },
+  'ast-security-rules': {
+    description: 'Правила за карантина на високорискови команди (изтриване, форматиране, акаунти)',
+    driftDescription: '8 месечни ревизии назад спрямо базовата линия',
+    compatibilityRequirement: 'Изисква хост демон v2.4+ за нормализиране на ескейп символи',
+  },
+  'zeroconf-mdns': {
+    description: 'Откриване на мрежови интерфейси по RFC 6762 и активен кеш на адреси',
+    driftDescription: 'Няма разминаване във версията (Актуална)',
+    compatibilityRequirement: 'Съвместим с двоен стек IPv4/IPv6',
+  },
+  'turbojpeg-pipeline': {
+    description: 'Бързо хеширане на делта кадри под 5ms и споделена памет за видео поток',
+    driftDescription: '1 минорна версия назад (v1.7.5 → v1.8.0)',
+    compatibilityRequirement: 'Изисква хост демон >= v2.4.0',
+  },
+  'directed-wol-engine': {
+    description: 'Мрежов двигател за насочени пакети за събуждане през маршрутизатори',
+    driftDescription: 'Няма разминаване във версията (Актуална)',
+    compatibilityRequirement: 'Поддържа насочено разпръскване IPv4 и IPv6 ff02::1',
+  },
+};
+
+
 interface SystemUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -229,14 +278,19 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
   const [isCheckingHostDaemon, setIsCheckingHostDaemon] = useState(false);
   const [checkingComponentId, setCheckingComponentId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<'all' | 'ai_model' | 'core_system' | 'security_rule' | 'network_engine'>('all');
-  const [lastSystemAuditTime, setLastSystemAuditTime] = useState<string>('2026-09-11 13:45:10');
+  const [lastSystemAuditTime, setLastSystemAuditTime] = useState<string>('2026-10-24 14:20:00');
+  const [isRunningAiAdvisor, setIsRunningAiAdvisor] = useState(false);
+  const [aiAdvisory, setAiAdvisory] = useState<{
+    analysis: string;
+    securityScore: number;
+    modelUsed: string;
+  } | null>(null);
 
   const [updateLogs, setUpdateLogs] = useState<string[]>([
     '[INIT] System & AI Model Registry initialized.',
-    '[INFO] Ollama Local Runtime detected on 127.0.0.1:11434 (v0.5.8).',
-    '[INFO] CST Host Agent Daemon active on ws://127.0.0.1:8765 (v2.4.0).',
-    '[WARN] Version drift detected: DeepSeek-R1 requires Host Daemon v2.4.2-LTS for reasoning tokens.',
-    '[READY] Update Center primed for 1-click update checks or per-engine manual audits.'
+    '[INFO] Gemini 3.8 Flash Cloud Engine & Local LLM Runtime verified.',
+    '[INFO] CST Host Agent Daemon active on ws://127.0.0.1:8765 (v2.7.0-LTS).',
+    '[READY] Update Center primed for 1-click OTA updates or AI Drift Analysis.'
   ]);
 
   const appendLog = (msg: string) => {
@@ -244,10 +298,68 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     setUpdateLogs((prev) => [...prev, `[${timestamp}] ${msg}`]);
   };
 
+  // Sync live component state from /api/update/status when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetch('/api/update/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled || !data?.components || !Array.isArray(data.components)) return;
+        setComponents((prev) =>
+          prev.map((comp) => {
+            const srv = data.components.find((s: any) => s.id === comp.id);
+            if (!srv) return comp;
+            const isUpToDate = srv.status === 'up_to_date';
+            return {
+              ...comp,
+              currentVersion: srv.currentVersion || comp.currentVersion,
+              latestVersion: srv.latestVersion || comp.latestVersion,
+              status: isUpToDate ? 'up_to_date' : 'available',
+              progress: isUpToDate ? 100 : 0,
+              driftSeverity: isUpToDate ? 'none' : comp.driftSeverity,
+              driftDescription: isUpToDate ? 'No version drift (Up to date)' : comp.driftDescription,
+            };
+          })
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  // Run Gemini AI Drift & Upgrade Advisor
+  const handleRunAiAdvisor = async () => {
+    triggerHapticFeedback('medium');
+    setIsRunningAiAdvisor(true);
+    appendLog('✨ [AI ADVISOR] Requesting Gemini 3.8 Flash version drift & compatibility analysis...');
+    try {
+      const res = await fetch('/api/update/ai-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiAdvisory({
+          analysis: data.analysis,
+          securityScore: data.securityScore ?? 94,
+          modelUsed: data.modelUsed || 'gemini-3.8-flash',
+        });
+        appendLog(`✅ [AI ADVISOR] Drift report generated by ${data.modelUsed} (Security Score: ${data.securityScore}/100).`);
+      }
+    } catch (err: any) {
+      appendLog(`⚠️ [AI ADVISOR] ${err?.message || 'Failed to generate AI analysis'}`);
+    } finally {
+      setIsRunningAiAdvisor(false);
+    }
+  };
+
   // Dynamic Compatibility & Drift Assessment Engine
   const systemCompatibility = useMemo(() => {
     const daemonComp = components.find((c) => c.id === 'cst-host-agent');
-    const daemonVersion = daemonComp ? daemonComp.currentVersion : 'v2.4.0';
+    const daemonVersion = daemonComp ? daemonComp.currentVersion : 'v2.7.0-LTS';
     const isDaemonLatest = daemonComp?.status === 'up_to_date' || daemonComp?.status === 'completed';
 
     const aiModels = components.filter((c) => c.category === 'ai_model');
@@ -263,24 +375,24 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     const hasDrift = components.some((c) => c.status === 'available');
 
     let status: 'compatible' | 'drift_warning' | 'incompatible' = 'compatible';
-    let label = isBg ? 'СЪВМЕСТИМО (Няма Drift)' : 'COMPATIBLE (No Version Drift)';
+    let label = isBg ? 'СЪВМЕСТИМО (Няма разминаване)' : 'COMPATIBLE (No Version Drift)';
     let summary = isBg
-      ? 'Host Daemon и AI Model Engine са синхронизирани без протоколен drift.'
+      ? 'Хост демонът и AI двигателите са синхронизирани без протоколно разминаване.'
       : 'Host Daemon and AI Model Engine are synchronized with zero protocol drift.';
     let badgeColor = 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40';
 
     if (hasCriticalConflict) {
       status = 'incompatible';
-      label = isBg ? 'ПРЕДУПРЕЖДЕНИЕ ЗА DRIFT' : 'VERSION DRIFT & COMPATIBILITY WARNING';
+      label = isBg ? 'ПРЕДУПРЕЖДЕНИЕ ЗА СЪВМЕСТИМОСТ' : 'VERSION DRIFT & COMPATIBILITY WARNING';
       summary = isBg
-        ? `Host Daemon (${daemonVersion}) изостава спрямо изискванията на AI моделите. DeepSeek-R1 изисква Daemon >= v2.4.2.`
+        ? `Хост демонът (${daemonVersion}) изостава спрямо изискванията на AI моделите. DeepSeek-R1 изисква демон >= v2.4.2.`
         : `Host Daemon (${daemonVersion}) is lagging behind AI Model requirements. DeepSeek-R1 requires Daemon >= v2.4.2 for streaming reasoning tokens.`;
       badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-500/50';
     } else if (hasDrift) {
       status = 'drift_warning';
-      label = isBg ? 'ОТКРИТ МАЛЪК DRIFT' : 'MINOR VERSION DRIFT DETECTED';
+      label = isBg ? 'НАЛИЧНИ АКТУАЛИЗАЦИИ' : 'MINOR VERSION DRIFT DETECTED';
       summary = isBg
-        ? `Налични са ${availableAiUpdates} AI актуализации и ${availableDaemonUpdates} обновления за Host Daemon.`
+        ? `Налични са ${availableAiUpdates} AI актуализации и ${availableDaemonUpdates} обновления за хост демона.`
         : `${availableAiUpdates} AI Model updates and ${availableDaemonUpdates} Host Daemon component updates available. Upstream API is backward-compatible.`;
       badgeColor = 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50';
     }
@@ -335,21 +447,34 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
         appendLog(`🖥️ [SYSTEM INFO] Node ${data.systemInfo.nodeVersion} on ${data.systemInfo.platform} (${data.systemInfo.arch})`);
       }
 
-      appendLog('🧠 [AI ENGINE] Verified Gemini 3.8 Flash, 3.5 Flash, 3.1 Pro Preview & 3.1 Flash Lite API matrices.');
+      appendLog('🧠 [AI ENGINE] Verified Gemini 3.8 Flash, 3.1 Flash Lite & Local LLM matrices.');
       appendLog('🖥️ [HOST DAEMON] Queried CST Host Agent Daemon requirements and AST Firewall rule definitions.');
 
       setComponents((prev) =>
-        prev.map((c) => ({
-          ...c,
-          lastCheckedAt: nowStr,
-          status: c.status === 'completed' ? 'completed' : c.status,
-        }))
+        prev.map((c) => {
+          const srv = Array.isArray(data.checkedComponents)
+            ? data.checkedComponents.find((s: any) => s.id === c.id)
+            : undefined;
+          const isUpToDate = srv ? srv.status === 'up_to_date' : c.status === 'completed' || c.status === 'up_to_date';
+          return {
+            ...c,
+            currentVersion: srv?.currentVersion || c.currentVersion,
+            latestVersion: srv?.latestVersion || c.latestVersion,
+            lastCheckedAt: nowStr,
+            status: isUpToDate ? 'up_to_date' : 'available',
+          };
+        })
       );
 
       appendLog('🏁 [CHECK COMPLETE] Real system audit finished. Pending updates identified.');
 
       if (onNotify) {
-        onNotify('Системната проверка завърши успешно! Всички AI матрици са проверени.', 'success');
+        onNotify(
+          isBg
+            ? 'Системната проверка завърши успешно! Всички AI матрици са проверени.'
+            : 'System update check completed! All AI matrices verified.',
+          'success'
+        );
       }
     } catch (err: any) {
       appendLog(`⚠️ [CHECK ERROR] Remote check warning: ${err?.message || err}. Falling back to cached registry.`);
@@ -385,7 +510,9 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
     if (onNotify) {
       onNotify(
-        `AI Model Engine: ${aiPending} модела имат налични актуализации.`,
+        isBg
+          ? `AI двигател: ${aiPending} модела имат налични актуализации.`
+          : `AI Model Engine: ${aiPending} models have updates available.`,
         aiPending > 0 ? 'info' : 'success'
       );
     }
@@ -417,7 +544,9 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
     if (onNotify) {
       onNotify(
-        `Host Daemon: Налична е версия v2.4.2-LTS с подобрена поддръжка за WoL и SIMD TurboJPEG.`,
+        isBg
+          ? `Хост демон: Налична е версия v2.4.2-LTS с подобрена поддръжка.`
+          : `Host Daemon: Version v2.4.2-LTS is available with enhanced WoL and SIMD TurboJPEG support.`,
         daemonPending > 0 ? 'info' : 'success'
       );
     }
@@ -450,7 +579,13 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     setCheckingComponentId(null);
     appendLog(`✅ [AUDIT FINISHED] ${item.name}: Current ${item.currentVersion} | Upstream ${item.latestVersion}.`);
     if (onNotify) {
-      onNotify(`Проверка за ${item.name}: ${item.driftDescription}`, 'info');
+      const bgInfo = COMPONENT_BG_MAP[item.id];
+      onNotify(
+        isBg
+          ? `Проверка за ${item.name}: ${bgInfo?.driftDescription || item.driftDescription}`
+          : `Check for ${item.name}: ${item.driftDescription}`,
+        'info'
+      );
     }
   };
 
@@ -494,7 +629,12 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
       appendLog('🎉 [BATCH COMPLETE] Real system pipeline upgrade complete!');
       if (onNotify) {
-        onNotify('Всички AI модели, агенти и системни компоненти бяха успешно обновени през реалната система!', 'success');
+        onNotify(
+          isBg
+            ? 'Всички AI модели, агенти и системни компоненти бяха успешно обновени!'
+            : 'All AI models, agents, and system components were successfully updated!',
+          'success'
+        );
       }
     } catch (err: any) {
       appendLog(`⚠️ [UPDATE ERROR] Executing fallback client upgrade: ${err?.message || err}`);
@@ -520,7 +660,10 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
         );
       }
       if (onNotify) {
-        onNotify('Компонентите бяха обновени до най-новите версии!', 'success');
+        onNotify(
+          isBg ? 'Компонентите бяха обновени до най-новите версии!' : 'Components updated to the latest versions!',
+          'success'
+        );
       }
     } finally {
       setIsUpdatingAll(false);
@@ -569,7 +712,10 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
       appendLog(`✨ [SUCCESS] ${item.name} updated to ${item.latestVersion} and verified.`);
       if (onNotify) {
-        onNotify(`Компонентът ${item.name} беше успешно обновен!`, 'success');
+        onNotify(
+          isBg ? `Компонентът ${item.name} беше успешно обновен!` : `Component ${item.name} was updated successfully!`,
+          'success'
+        );
       }
     } catch (err: any) {
       appendLog(`⚠️ Error during component update: ${err?.message || err}`);
@@ -635,6 +781,26 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* GEMINI AI DRIFT & UPGRADE ADVISOR BUTTON */}
+            <button
+              id="ai-advisor-btn"
+              onClick={handleRunAiAdvisor}
+              disabled={isRunningAiAdvisor || isUpdatingAll}
+              className="min-h-[44px] flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold bg-purple-950/60 hover:bg-purple-900/60 text-purple-200 border border-purple-400/40 hover:border-purple-300 transition shadow-sm cursor-pointer disabled:opacity-50"
+              title={isBg ? 'Генерирай Gemini AI доклад за съвместимост и приоритет на ъпдейтите' : 'Generate Gemini AI compatibility & upgrade priority report'}
+            >
+              <Brain className={`w-3.5 h-3.5 text-purple-300 ${isRunningAiAdvisor ? 'animate-pulse' : ''}`} />
+              <span>
+                {isRunningAiAdvisor
+                  ? isBg
+                    ? 'AI Анализ...'
+                    : 'AI Analyzing...'
+                  : isBg
+                  ? '✨ AI Одит'
+                  : '✨ AI Drift Advisor'}
+              </span>
+            </button>
+
             {/* 1-CLICK CHECK ALL UPDATES BUTTON */}
             <button
               id="check-all-updates-btn"
@@ -690,6 +856,31 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
           </div>
         </div>
 
+        {/* AI Drift & Compatibility Report Banner (Shown when AI Advisor runs) */}
+        {aiAdvisory && (
+          <div className="px-4 py-3 bg-gradient-to-r from-purple-950/60 via-indigo-950/50 to-cyan-950/50 border-b border-purple-400/30 flex items-start justify-between gap-3">
+            <div className="space-y-1 text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+              <div className="flex items-center gap-2 font-mono text-[11px] text-purple-300 font-bold">
+                <Brain className="w-3.5 h-3.5 text-purple-300" />
+                <span>
+                  {isBg ? 'GEMINI AI ИНЖЕНЕРЕН ДОКЛАД' : 'GEMINI AI ENGINEERING DRIFT REPORT'} ({aiAdvisory.modelUsed})
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  {isBg ? `Сигурност: ${aiAdvisory.securityScore}/100` : `Security Score: ${aiAdvisory.securityScore}/100`}
+                </span>
+              </div>
+              <div>{aiAdvisory.analysis}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAiAdvisory(null)}
+              className="text-slate-400 hover:text-white p-1 cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Compatibility Status & Version Drift Dashboard Deck */}
         <div className="p-3.5 sm:p-4 bg-[#040813] border-b border-cyan-500/20 grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Card 1: System Compatibility & Drift Banner */}
@@ -698,14 +889,14 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-mono text-gray-400 flex items-center gap-1.5">
                   <GitCompare className="w-3.5 h-3.5 text-cyan-400" />
-                  {isBg ? 'Съвместимост & Drift' : 'Compatibility & Drift'}
+                  {isBg ? 'Съвместимост и версии' : 'Compatibility & Drift'}
                 </span>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${systemCompatibility.badgeColor}`}>
                   {systemCompatibility.status === 'compatible'
                     ? isBg ? 'СЪВМЕСТИМО' : 'COMPATIBLE'
                     : systemCompatibility.status === 'incompatible'
-                    ? isBg ? 'DRIFT РИСК' : 'DRIFT WARNING'
-                    : isBg ? 'МАЛЪК DRIFT' : 'MINOR DRIFT'}
+                    ? isBg ? 'РИСК ОТ РАЗМИНАВАНЕ' : 'DRIFT WARNING'
+                    : isBg ? 'НАЛИЧНИ ОБНОВЛЕНИЯ' : 'MINOR DRIFT'}
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-snug">
@@ -724,7 +915,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-mono text-purple-300 flex items-center gap-1.5">
                   <Brain className="w-3.5 h-3.5 text-purple-400" />
-                  AI Model Engine
+                  {isBg ? 'AI Моделен Двигател' : 'AI Model Engine'}
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/70 text-purple-300 border border-purple-500/40">
                   Ollama v0.5.8
@@ -733,7 +924,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               <p className="text-[11px] text-gray-300">
                 {systemCompatibility.availableAiUpdates > 0
                   ? isBg
-                    ? `${systemCompatibility.availableAiUpdates} модела с наличен drift (DeepSeek-R1, Qwen2.5)`
+                    ? `${systemCompatibility.availableAiUpdates} модела с нови версии (DeepSeek-R1, Qwen2.5)`
                     : `${systemCompatibility.availableAiUpdates} models with version drift (DeepSeek-R1, Qwen2.5)`
                   : isBg
                   ? 'Всички 4 локални AI модела са синхронизирани.'
@@ -751,7 +942,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-500/40 hover:border-purple-400 transition cursor-pointer"
               >
                 <Search className={`w-3 h-3 ${isCheckingAiEngine ? 'animate-spin' : ''}`} />
-                <span>{isCheckingAiEngine ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери AI Engine' : 'Check AI Engine'}</span>
+                <span>{isCheckingAiEngine ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери AI модели' : 'Check AI Engine'}</span>
               </button>
             </div>
           </div>
@@ -762,7 +953,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-mono text-cyan-300 flex items-center gap-1.5">
                   <Server className="w-3.5 h-3.5 text-cyan-400" />
-                  Host Daemon & Core
+                  {isBg ? 'Хост Демон и Ядро' : 'Host Daemon & Core'}
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/70 text-cyan-300 border border-cyan-500/40">
                   {systemCompatibility.daemonVersion}
@@ -771,15 +962,17 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               <p className="text-[11px] text-gray-300">
                 {systemCompatibility.availableDaemonUpdates > 0
                   ? isBg
-                    ? 'Налична е версия v2.4.2-LTS с подобрена поддръжка за WoL и SIMD.'
+                    ? 'Налична е версия v2.4.2-LTS с подобрена производителност.'
                     : 'Version v2.4.2-LTS available with enhanced WoL and SIMD support.'
                   : isBg
-                  ? 'Host Daemon е актуален с Wire Protocol v2.4.2.'
+                  ? 'Хост демонът е актуален с протокол v2.4.2.'
                   : 'Host Daemon is up to date with Wire Protocol v2.4.2.'}
               </p>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-gray-400">Job Objects & AEAD</span>
+              <span className="text-[10px] font-mono text-gray-400">
+                {isBg ? 'Изолирани процеси' : 'Job Objects & AEAD'}
+              </span>
               <button
                 id="check-host-daemon-btn"
                 onClick={handleCheckHostDaemon}
@@ -787,7 +980,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition cursor-pointer"
               >
                 <Search className={`w-3 h-3 ${isCheckingHostDaemon ? 'animate-spin' : ''}`} />
-                <span>{isCheckingHostDaemon ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери Host Daemon' : 'Check Host Daemon'}</span>
+                <span>{isCheckingHostDaemon ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери хост демон' : 'Check Host Daemon'}</span>
               </button>
             </div>
           </div>
@@ -869,12 +1062,12 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                       </div>
 
                       <p className="text-xs text-gray-400 mt-1 font-sans">
-                        {comp.description}
+                        {isBg ? (COMPONENT_BG_MAP[comp.id]?.description || comp.description) : comp.description}
                       </p>
 
                       {/* Subtle Subtitle: Compatibility Requirement & Drift Notes */}
                       <p className="mt-1.5 text-[11px] font-mono text-gray-500">
-                        {isBg ? 'Текуща:' : 'Current:'} <span className="text-gray-300">{comp.currentVersion}</span> • {isBg ? 'Нова:' : 'Latest:'} <span className="text-cyan-400">{comp.latestVersion}</span> • Drift: <span className="text-gray-300">{comp.driftDescription}</span> • <span className="text-cyan-300/80">{comp.compatibilityRequirement}</span>
+                        {isBg ? 'Текуща:' : 'Current:'} <span className="text-gray-300">{comp.currentVersion}</span> • {isBg ? 'Нова:' : 'Latest:'} <span className="text-cyan-400">{comp.latestVersion}</span> • {isBg ? 'Статус:' : 'Drift:'} <span className="text-gray-300">{isUpToDate ? (isBg ? 'Актуална версия' : 'No version drift (Up to date)') : (isBg ? (COMPONENT_BG_MAP[comp.id]?.driftDescription || comp.driftDescription) : comp.driftDescription)}</span> • <span className="text-cyan-300/80">{isBg ? (COMPONENT_BG_MAP[comp.id]?.compatibilityRequirement || comp.compatibilityRequirement) : comp.compatibilityRequirement}</span>
                       </p>
                     </div>
                   </div>

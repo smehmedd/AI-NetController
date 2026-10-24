@@ -14,9 +14,16 @@ import {
   RefreshCw,
   FlaskConical,
   Bot,
-  User,
   Clock,
   ChevronRight,
+  MousePointerClick,
+  Keyboard,
+  Monitor,
+  DownloadCloud,
+  CheckCircle2,
+  AlertTriangle,
+  Play,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { HostDevice, WolSchedule } from '../types';
@@ -30,6 +37,37 @@ export type GeminiModelId =
   | 'gemini-flash-latest'
   | string;
 
+export interface AiActionItem {
+  id: string;
+  type:
+    | 'mouse_click'
+    | 'mouse_move'
+    | 'mouse_double_click'
+    | 'mouse_scroll'
+    | 'keyboard_type'
+    | 'keyboard_hotkey'
+    | 'media_control'
+    | 'shell_exec'
+    | 'wol'
+    | 'system_update'
+    | 'daemon_control'
+    | 'screen_capture'
+    | 'rescan'
+    | 'lab_mode';
+  label: string;
+  subtitle?: string;
+  target?: string;
+  payload?: any;
+  executionResult?: {
+    success: boolean;
+    summary: string;
+    output?: string;
+    opcode?: string;
+    durationMs?: number;
+    blockedByViewOnly?: boolean;
+  };
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
@@ -37,11 +75,7 @@ export interface ChatMessage {
   timestamp: number;
   modelUsed?: string;
   durationMs?: number;
-  actions?: Array<{
-    type: 'wol' | 'rescan' | 'lab_mode' | 'details' | 'copy';
-    label: string;
-    payload?: any;
-  }>;
+  actions?: AiActionItem[];
 }
 
 interface GeminiChatbotProps {
@@ -51,35 +85,48 @@ interface GeminiChatbotProps {
   onSelectHost?: (hostId: string) => void;
   onTriggerRescan?: () => void;
   onToggleLabMode?: () => void;
+  onSendCommand?: (cmd: string, targetOverride?: string) => void;
+  onViewScreen?: (host: HostDevice) => void;
+  onOpenUpdateCenter?: () => void;
+  onOpenDaemonGui?: () => void;
   isRealWsConnected?: boolean;
   latency?: number | null;
   wolSchedules?: WolSchedule[];
 }
 
-const STORAGE_KEY = 'cst_gemini_chat_history_v3';
-const ROLE_STORAGE_KEY = 'cst_gemini_active_role_v3';
+const STORAGE_KEY = 'cst_gemini_chat_history_v4';
+const ROLE_STORAGE_KEY = 'cst_gemini_active_role_v4';
+const AUTO_EXEC_STORAGE_KEY = 'cst_gemini_auto_exec_v1';
 
 const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   hosts,
   selectedTarget,
   onSendWol,
-  onSelectHost,
   onTriggerRescan,
   onToggleLabMode,
+  onSendCommand,
+  onViewScreen,
+  onOpenUpdateCenter,
+  onOpenDaemonGui,
   isRealWsConnected = false,
   latency = null,
   wolSchedules = [],
 }) => {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const selectedModel = useUIStore((s) => s.selectedModel);
   const pendingChatPrompt = useUIStore((s) => s.pendingChatPrompt);
   const setPendingChatPrompt = useUIStore((s) => s.setPendingChatPrompt);
 
+  const primaryHost = useMemo(() => {
+    const found = hosts.find((h) => h.id === selectedTarget);
+    return found || hosts[0] || { id: 'WORKSTATION-01', name: 'WORKSTATION-01', ip: '192.168.1.10', mac: '00:2B:67:89:AB:CD', os: 'windows', isOnline: true, ping: 2 };
+  }, [hosts, selectedTarget]);
+
   const welcomeText = useMemo(
     () =>
       language === 'bg'
-        ? 'Здравейте. Аз съм Вашият CST мрежов асистент с Gemini AI. Мога да управлявам флот от работни станции, да изпращам Wake-on-LAN пакети и да анализирам телеметрия на протокол CST/3.0-SECURE.'
-        : 'Hello. I am your CST fleet copilot powered by Gemini AI. I can orchestrate workstations, dispatch Wake-on-LAN packets, and inspect CST/3.0-SECURE telemetry.',
+        ? 'Здравейте! Аз съм Вашият **CST Fleet Commander AI** с директен 120Hz контрол над компютъра и автоматични ъпдейти.\n\nМога да управлявам **мишката и клавиатурата** на PC-то (`Opcode 0x08`), да изпълнявам **Shell команди**, да изпращам **Wake-on-LAN** пакети, да управлявам **PC Демона** и да инсталирам **системни и AI обновления**.'
+        : 'Hello! I am your **CST Fleet Commander AI** with live 120Hz PC control and autonomous update capabilities.\n\nI can directly control your PC **mouse & keyboard** (`Opcode 0x08`), execute **Shell commands**, broadcast **Wake-on-LAN** packets, configure the **PC Host Daemon**, and run **System & AI Model Updates**.',
     [language]
   );
 
@@ -87,24 +134,27 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     () => [
       {
         id: 'commander' as BotRole,
-        label: language === 'bg' ? 'Флот' : 'Fleet',
+        label: language === 'bg' ? 'PC & Флот' : 'PC & Fleet',
         model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Sparkles,
-        placeholder: language === 'bg' ? 'Попитайте Флот Командира...' : 'Ask Fleet Copilot...',
+        placeholder:
+          language === 'bg'
+            ? 'напр. „Кликни на (960, 540)“, „Напиши ipconfig“, „Обнови AI моделите“...'
+            : 'e.g. "Click at (960, 540)", "Type hello on PC", "Update all AI models"...',
       },
       {
         id: 'diagnostics' as BotRole,
         label: language === 'bg' ? 'Сигурност' : 'Security',
         model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Shield,
-        placeholder: language === 'bg' ? 'Анализ на CST/3.0 протокол...' : 'Analyze CST/3.0 security...',
+        placeholder: language === 'bg' ? 'Одит на PC демона и CST/3.0 протокола...' : 'Audit PC daemon & CST/3.0 security...',
       },
       {
         id: 'fast_triage' as BotRole,
-        label: language === 'bg' ? 'Shell' : 'Shell',
+        label: language === 'bg' ? 'Бърз Контрол' : 'Quick Action',
         model: (selectedModel || 'gemini-3.8-flash') as GeminiModelId,
         icon: Terminal,
-        placeholder: language === 'bg' ? 'Бърза shell команда...' : 'Fast bash / PowerShell command...',
+        placeholder: language === 'bg' ? 'Бърза команда или клавишна комбинация...' : 'Fast shell command or keyboard shortcut...',
       },
     ],
     [language, selectedModel]
@@ -117,6 +167,17 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     } catch {}
     return 'commander';
   });
+
+  const [autoExecutePcActions, setAutoExecutePcActions] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(AUTO_EXEC_STORAGE_KEY);
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true;
+  });
+
+  const [showControlDeck, setShowControlDeck] = useState<boolean>(true);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
 
   const activeRoleConfig = useMemo(
     () => ROLES.find((r) => r.id === activeRole) || ROLES[0],
@@ -185,6 +246,17 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     };
   }, []);
 
+  const toggleAutoExecute = () => {
+    triggerHapticFeedback('selection');
+    setAutoExecutePcActions((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AUTO_EXEC_STORAGE_KEY, String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const handleRoleSelect = (roleId: BotRole) => {
     triggerHapticFeedback('selection');
     setActiveRole(roleId);
@@ -203,7 +275,10 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     const fresh: ChatMessage = {
       id: `init-${Date.now()}`,
       role: 'model',
-      content: language === 'bg' ? 'Разговорът е изчистен. С какво мога да съдействам?' : 'Conversation cleared. How can I help with the fleet?',
+      content:
+        language === 'bg'
+          ? 'Разговорът е изчистен. Готов съм за PC контрол, диагностика или системни обновления.'
+          : 'Conversation cleared. Ready for PC control, diagnostics, or system updates.',
       timestamp: Date.now(),
       modelUsed: activeRoleConfig.model,
     };
@@ -222,37 +297,294 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     setIsLoading(false);
   };
 
-  const parseActionChips = (text: string) => {
-    const actions: ChatMessage['actions'] = [];
+  // Build rich localized AiActionItem list from server actions or raw text
+  const buildActionItems = useCallback(
+    (
+      text: string,
+      serverActions?: any[],
+      serverExecResults?: Record<string, any>
+    ): AiActionItem[] => {
+      const items: AiActionItem[] = [];
+      const bg = language === 'bg';
 
-    const wolMatch = text.match(/\[ACTION:WOL\s+target=([^\]]+)\]/i);
-    if (wolMatch) {
-      const target = wolMatch[1].trim();
-      const host = hosts.find(
-        (h) => h.id.toLowerCase() === target.toLowerCase() || h.mac.toLowerCase() === target.toLowerCase()
+      const formatItemFromServerAction = (act: any): AiActionItem => {
+        const execRes = serverExecResults?.[act.id];
+        const targetName = act.target || primaryHost.id;
+
+        switch (act.type) {
+          case 'mouse_click':
+            return {
+              id: act.id,
+              type: 'mouse_click',
+              target: targetName,
+              label: bg
+                ? `Клик (${act.button || 'ляв'}) на (${act.x}, ${act.y})`
+                : `Click (${act.button || 'left'}) at (${act.x}, ${act.y})`,
+              subtitle: `Opcode 0x08 • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'mouse_double_click':
+            return {
+              id: act.id,
+              type: 'mouse_double_click',
+              target: targetName,
+              label: bg
+                ? `Двоен клик на (${act.x}, ${act.y})`
+                : `Double-Click at (${act.x}, ${act.y})`,
+              subtitle: `Opcode 0x08 • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'mouse_move':
+            return {
+              id: act.id,
+              type: 'mouse_move',
+              target: targetName,
+              label: bg
+                ? `Премести курсора до (${act.x}, ${act.y})`
+                : `Move Cursor to (${act.x}, ${act.y})`,
+              subtitle: `Opcode 0x08 • 120Hz • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'mouse_scroll':
+            return {
+              id: act.id,
+              type: 'mouse_scroll',
+              target: targetName,
+              label: bg
+                ? `Скрол на мишката (dy=${act.dy})`
+                : `Scroll Mouse Wheel (dy=${act.dy})`,
+              subtitle: `Opcode 0x08 • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'keyboard_type':
+            return {
+              id: act.id,
+              type: 'keyboard_type',
+              target: targetName,
+              label: bg
+                ? `Напиши: "${act.text}"${act.pressEnter ? ' + Enter' : ''}`
+                : `Type: "${act.text}"${act.pressEnter ? ' + Enter' : ''}`,
+              subtitle: `Opcode 0x08 Keystroke • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'keyboard_hotkey': {
+            const combo = Array.isArray(act.keys) ? act.keys.join('+').toUpperCase() : 'CTRL+C';
+            return {
+              id: act.id,
+              type: 'keyboard_hotkey',
+              target: targetName,
+              label: bg ? `Клавиши [${combo}]` : `Shortcut [${combo}]`,
+              subtitle: `Opcode 0x08 Hotkey • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          }
+          case 'media_control':
+            return {
+              id: act.id,
+              type: 'media_control',
+              target: targetName,
+              label: bg
+                ? `Медия/ОС Контрол: ${String(act.command || '').toUpperCase()}`
+                : `Media/OS Control: ${String(act.command || '').toUpperCase()}`,
+              subtitle: `Opcode 0x09 • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'shell_exec':
+            return {
+              id: act.id,
+              type: 'shell_exec',
+              target: targetName,
+              label: bg ? `Изпълни: ${act.command}` : `Run Shell: ${act.command}`,
+              subtitle: `AST Firewall Verified • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'wol': {
+            const hostObj =
+              hosts.find(
+                (h) =>
+                  h.id.toLowerCase() === targetName.toLowerCase() ||
+                  h.mac.toLowerCase() === targetName.toLowerCase()
+              ) || primaryHost;
+            return {
+              id: act.id,
+              type: 'wol',
+              target: hostObj.id,
+              label: bg ? `Събуди ${hostObj.name} (WoL)` : `Wake ${hostObj.name} (WoL)`,
+              subtitle: `UDP Port 9 • ${hostObj.mac}`,
+              payload: { ...act, host: hostObj, mac: hostObj.mac },
+              executionResult: execRes,
+            };
+          }
+          case 'system_update':
+            return {
+              id: act.id,
+              type: 'system_update',
+              target: act.componentId || 'ALL',
+              label: bg
+                ? `Инсталирай Обновления (${act.componentId || 'ALL'})`
+                : `Install System & AI Updates (${act.componentId || 'ALL'})`,
+              subtitle: bg ? 'OTA Синхронизация на модели и демон' : 'OTA Model & Daemon Sync',
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'daemon_control':
+            return {
+              id: act.id,
+              type: 'daemon_control',
+              target: 'PC-DAEMON',
+              label: bg
+                ? `PC Демон: ${String(act.command || 'diagnostics').toUpperCase()}`
+                : `PC Daemon: ${String(act.command || 'diagnostics').toUpperCase()}`,
+              subtitle: bg ? 'Локална защита и диагностика' : 'Host Daemon IPC Control',
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'screen_capture':
+            return {
+              id: act.id,
+              type: 'screen_capture',
+              target: targetName,
+              label: bg ? `Отвори Live Екран (${targetName})` : `Open Live Screen (${targetName})`,
+              subtitle: `Opcode 0x04 TurboJPEG • ${targetName}`,
+              payload: act,
+              executionResult: execRes,
+            };
+          case 'rescan':
+            return {
+              id: act.id,
+              type: 'rescan',
+              label: bg ? 'Сканирай LAN Мрежата' : 'Rescan LAN Subnet',
+              subtitle: 'mDNS + ARP Sweep',
+              payload: act,
+            };
+          default:
+            return {
+              id: act.id,
+              type: 'lab_mode',
+              label: bg ? 'Мрежова Конфигурация' : 'Network Config',
+              payload: act,
+            };
+        }
+      };
+
+      if (Array.isArray(serverActions) && serverActions.length > 0) {
+        return serverActions.map(formatItemFromServerAction);
+      }
+
+      // Client fallback regex parser if serverActions wasn't populated
+      const tagRegex = /\[ACTION:([A-Z_]+)([^\]]*)\]/gi;
+      let match: RegExpExecArray | null;
+      let idx = 0;
+      const parseAttr = (attrStr: string, key: string): string | undefined => {
+        const quoted = new RegExp(`${key}="([^"]*)"`, 'i').exec(attrStr);
+        if (quoted) return quoted[1];
+        const unquoted = new RegExp(`${key}=([^\\s\\]]+)`, 'i').exec(attrStr);
+        return unquoted ? unquoted[1] : undefined;
+      };
+
+      while ((match = tagRegex.exec(text)) !== null) {
+        idx += 1;
+        const kind = match[1].toUpperCase();
+        const attrs = match[2] || '';
+        const target = parseAttr(attrs, 'target') || primaryHost.id;
+        items.push(
+          formatItemFromServerAction({
+            id: `client-act-${Date.now()}-${idx}`,
+            type: kind.toLowerCase(),
+            target,
+            x: Number(parseAttr(attrs, 'x') ?? 960),
+            y: Number(parseAttr(attrs, 'y') ?? 540),
+            dy: Number(parseAttr(attrs, 'dy') ?? -300),
+            button: parseAttr(attrs, 'button') || 'left',
+            text: parseAttr(attrs, 'text') || '',
+            pressEnter: parseAttr(attrs, 'press_enter') !== 'false',
+            keys: (parseAttr(attrs, 'keys') || 'ctrl,c').split(','),
+            command: parseAttr(attrs, 'command') || 'whoami',
+            componentId: parseAttr(attrs, 'target') || 'ALL',
+          })
+        );
+      }
+
+      return items;
+    },
+    [hosts, language, primaryHost]
+  );
+
+  // Execute or Re-Run a single AI Action Item on the PC / Server
+  const handleExecuteActionItem = async (messageId: string, action: AiActionItem) => {
+    triggerHapticFeedback('medium');
+    setExecutingActionId(action.id);
+
+    try {
+      if (action.type === 'rescan') {
+        onTriggerRescan?.();
+        setExecutingActionId(null);
+        return;
+      }
+      if (action.type === 'lab_mode') {
+        onToggleLabMode?.();
+        setExecutingActionId(null);
+        return;
+      }
+
+      // Also invoke local UI callbacks when relevant
+      if (action.type === 'shell_exec' && action.payload?.command && onSendCommand) {
+        onSendCommand(action.payload.command, action.target || selectedTarget);
+      } else if (action.type === 'screen_capture' && onViewScreen) {
+        const hostObj = hosts.find((h) => h.id === action.target) || primaryHost;
+        onViewScreen(hostObj as HostDevice);
+      }
+
+      const res = await fetch('/api/pc-control/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...action.payload,
+          type: action.type,
+          target: action.target || primaryHost.id,
+          mac: action.payload?.mac || primaryHost.mac,
+        }),
+      });
+      const data = await res.json();
+
+      // Update action execution result inside the message state
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || !m.actions) return m;
+          return {
+            ...m,
+            actions: m.actions.map((a) =>
+              a.id === action.id
+                ? {
+                    ...a,
+                    executionResult: {
+                      success: Boolean(data.success),
+                      summary: data.summary || (data.success ? 'Executed on PC' : data.error || 'Execution blocked'),
+                      output: data.output,
+                      opcode: data.opcode,
+                      durationMs: data.durationMs,
+                      blockedByViewOnly: data.blockedByViewOnly,
+                    },
+                  }
+                : a
+            ),
+          };
+        })
       );
-      actions.push({
-        type: 'wol',
-        label: `${language === 'bg' ? 'Събуди' : 'Wake'} ${host ? host.name : target}`,
-        payload: host || { id: target, mac: target },
-      });
+      triggerHapticFeedback(data.success ? 'heavy' : 'warning');
+    } catch (err: any) {
+      console.error('Action execution error:', err);
+    } finally {
+      setExecutingActionId(null);
     }
-
-    if (/\[ACTION:RESCAN\]/i.test(text)) {
-      actions.push({
-        type: 'rescan',
-        label: language === 'bg' ? 'Сканирай флот' : 'Rescan Fleet',
-      });
-    }
-
-    if (/\[ACTION:LAB_MODE\]/i.test(text)) {
-      actions.push({
-        type: 'lab_mode',
-        label: language === 'bg' ? 'Лабораторен режим' : 'Lab Mode',
-      });
-    }
-
-    return actions;
   };
 
   const handleSendMessage = async (textOverride?: string) => {
@@ -286,7 +618,8 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     try {
       const fleetContext = {
         protocolVersion: 'CST/3.0-SECURE',
-        networkMode: isRealWsConnected ? 'Live Real WebSocket' : 'Simulation Lab',
+        networkMode: isRealWsConnected ? 'Live Real WebSocket' : 'Active LAN',
+        selectedTarget: primaryHost.id,
         hostsTotal: hosts.length,
         hostsOnline: hosts.filter((h) => h.isOnline).length,
         hostsSleeping: hosts.filter((h) => !h.isOnline).length,
@@ -311,6 +644,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         model: activeRoleConfig.model,
         role: activeRole,
         fleetContext,
+        autoExecute: autoExecutePcActions,
       };
 
       const response = await fetch('/api/chat', {
@@ -326,7 +660,18 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       }
 
       const replyContent = data.reply || '';
-      const actions = parseActionChips(replyContent);
+      const actions = buildActionItems(replyContent, data.actions, data.executionResults);
+
+      // If autoExecute is on and a shell command was executed by the AI, also sync with the app terminal state
+      if (autoExecutePcActions && Array.isArray(data.actions)) {
+        for (const act of data.actions) {
+          if (act.type === 'shell_exec' && act.command && onSendCommand) {
+            onSendCommand(act.command, act.target || primaryHost.id);
+          } else if (act.type === 'rescan' && onTriggerRescan) {
+            onTriggerRescan();
+          }
+        }
+      }
 
       const botMessage: ChatMessage = {
         id: `bot-${Date.now()}`,
@@ -348,8 +693,8 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         role: 'model',
         content:
           language === 'bg'
-            ? `Възникна проблем при връзка с Gemini API (${err.message || 'Error'}).`
-            : `Error contacting Gemini API (${err.message || 'Error'}).`,
+            ? `Възникна проблем при връзка с AI ядрото (${err.message || 'Error'}).`
+            : `Error contacting AI engine (${err.message || 'Error'}).`,
         timestamp: Date.now(),
         modelUsed: activeRoleConfig.model,
       };
@@ -378,25 +723,58 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     setTimeout(() => setCopiedId(null), 1800);
   };
 
-  const starterPrompts = useMemo(() => {
-    const sleepingCount = hosts.filter((h) => !h.isOnline).length;
-    if (language === 'bg') {
-      return [
-        sleepingCount > 0
-          ? `Събуди заспалите машини (${sleepingCount} бр.)`
-          : 'Анализирай стабилността и jitter на мрежата',
-        'Обясни Anti-Replay защитата на CST/3.0',
-        'PowerShell команда за проверка на Wake-on-LAN',
-      ];
-    }
+  // Quick 1-Tap AI PC Control & Update Deck items
+  const quickControlDeck = useMemo(() => {
+    const bg = language === 'bg';
+    const hostName = primaryHost.name || primaryHost.id;
     return [
-      sleepingCount > 0
-        ? `Wake sleeping hosts (${sleepingCount} offline)`
-        : 'Analyze fleet network stability & jitter',
-      'Explain CST/3.0 anti-replay framing',
-      'PowerShell command to verify Wake-on-LAN NIC',
+      {
+        id: 'deck-click',
+        icon: MousePointerClick,
+        label: bg ? 'Клик на PC (960, 540)' : 'Click PC (960, 540)',
+        color: 'text-cyan-300 border-cyan-400/30 bg-cyan-500/10 hover:bg-cyan-500/20',
+        prompt: bg
+          ? `Кликни с левия бутон на мишката на координати 960, 540 на ${hostName}`
+          : `Click the left mouse button at coordinates 960, 540 on ${hostName}`,
+      },
+      {
+        id: 'deck-type',
+        icon: Keyboard,
+        label: bg ? 'Напиши Статус Команда' : 'Type Status Command',
+        color: 'text-sky-300 border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20',
+        prompt: bg
+          ? `Напиши "ipconfig /all" чрез клавиатурата на ${hostName} и натисни Enter`
+          : `Type "ipconfig /all" on ${hostName} keyboard and press Enter`,
+      },
+      {
+        id: 'deck-hotkey',
+        icon: Zap,
+        label: bg ? 'Task Manager (Ctrl+Shift+Esc)' : 'Task Manager (Ctrl+Shift+Esc)',
+        color: 'text-indigo-300 border-indigo-400/30 bg-indigo-500/10 hover:bg-indigo-500/20',
+        prompt: bg
+          ? `Изпрати клавишна комбинация ctrl,shift,esc за отваряне на Task Manager на ${hostName}`
+          : `Send keyboard shortcut ctrl,shift,esc to open Task Manager on ${hostName}`,
+      },
+      {
+        id: 'deck-update',
+        icon: DownloadCloud,
+        label: bg ? 'AI & Системен Ъпдейт' : 'Run AI & System Update',
+        color: 'text-emerald-300 border-emerald-400/35 bg-emerald-500/12 hover:bg-emerald-500/25',
+        prompt: bg
+          ? 'Провери за налични обновления и обнови всички AI модели, хост демона и правилата на защитната стена'
+          : 'Check for available updates and upgrade all AI models, the PC host daemon, and AST firewall rules now',
+      },
+      {
+        id: 'deck-screen',
+        icon: Monitor,
+        label: bg ? 'Снимка на Екрана' : 'Capture PC Screen',
+        color: 'text-amber-300 border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20',
+        prompt: bg
+          ? `Заснеми текущия екран на ${hostName} и провери състоянието на PC демона`
+          : `Capture the live screen frame from ${hostName} and run PC daemon diagnostics`,
+      },
     ];
-  }, [hosts, language]);
+  }, [language, primaryHost]);
 
   const renderFormattedContent = (content: string) => {
     const cleanText = content.replace(/\[ACTION:[^\]]+\]/gi, '').trim();
@@ -449,30 +827,101 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     });
   };
 
+  const getActionIcon = (type: AiActionItem['type']) => {
+    switch (type) {
+      case 'mouse_click':
+      case 'mouse_double_click':
+      case 'mouse_move':
+      case 'mouse_scroll':
+        return <MousePointerClick className="w-4 h-4 text-cyan-300 shrink-0" />;
+      case 'keyboard_type':
+      case 'keyboard_hotkey':
+      case 'media_control':
+        return <Keyboard className="w-4 h-4 text-sky-300 shrink-0" />;
+      case 'shell_exec':
+        return <Terminal className="w-4 h-4 text-indigo-300 shrink-0" />;
+      case 'system_update':
+        return <DownloadCloud className="w-4 h-4 text-emerald-300 shrink-0" />;
+      case 'daemon_control':
+        return <Shield className="w-4 h-4 text-amber-300 shrink-0" />;
+      case 'screen_capture':
+        return <Monitor className="w-4 h-4 text-purple-300 shrink-0" />;
+      case 'wol':
+        return <Power className="w-4 h-4 text-emerald-300 shrink-0" />;
+      case 'rescan':
+        return <RefreshCw className="w-4 h-4 text-cyan-300 shrink-0" />;
+      default:
+        return <FlaskConical className="w-4 h-4 text-cyan-300 shrink-0" />;
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col justify-between w-full max-w-5xl mx-auto px-1 sm:px-3 pb-1 select-none">
-      {/* 1. Tier 2 Optical Glass Header Bar with Role Pills */}
-      <header className="flex-none py-2 px-3 mb-2 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu flex items-center justify-between relative gap-2">
+      {/* 1. Tier 2 Optical Glass Header Bar with Role Pills & Auto-Execute Toggle */}
+      <header className="flex-none py-2 px-3 mb-2 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu flex items-center justify-between relative gap-2 flex-wrap sm:flex-nowrap">
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
-        {/* Gemini Identity */}
+        {/* Gemini Identity & Active Target */}
         <div className="flex items-center space-x-2.5 pl-1 min-w-0">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)] shrink-0">
             <Sparkles className="w-4 h-4 text-cyan-300 icon-sparkle-live" />
           </div>
           <div className="flex flex-col min-w-0">
             <h2 className="font-display text-xs sm:text-[13px] font-bold text-white tracking-tight flex items-center space-x-1.5">
-              <span className="truncate">Gemini Copilot</span>
+              <span className="truncate">Gemini PC Copilot</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
             </h2>
             <span className="text-[10px] font-mono text-cyan-300/80 truncate">
-              {selectedModel || activeRoleConfig.model}
+              {selectedModel || activeRoleConfig.model} • {primaryHost.name}
             </span>
           </div>
         </div>
 
-        {/* Segmented Role Selector with Sliding Lens */}
-        <div className="flex items-center space-x-1.5 shrink-0">
+        {/* Right Controls: Auto-Exec Toggle + Role Selector + Clear */}
+        <div className="flex items-center space-x-1.5 shrink-0 ml-auto">
+          {/* Auto-Execute PC Actions Toggle */}
+          <button
+            type="button"
+            onClick={toggleAutoExecute}
+            className={`px-2.5 py-1.5 min-h-[36px] rounded-full text-[10px] sm:text-[11px] font-semibold border transition flex items-center space-x-1.5 cursor-pointer bubble-tap ${
+              autoExecutePcActions
+                ? 'bg-emerald-500/18 text-emerald-300 border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                : 'bg-white/[0.04] text-slate-400 border-white/10 hover:text-white'
+            }`}
+            title={
+              language === 'bg'
+                ? 'Автоматично изпълнявай AI команди за мишка, клавиатура и обновления'
+                : 'Automatically execute AI mouse, keyboard, shell, and update actions'
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                autoExecutePcActions ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-500'
+              }`}
+            />
+            <span className="hidden md:inline">
+              {language === 'bg' ? 'Авто-PC Контрол' : 'Auto-PC Control'}
+            </span>
+          </button>
+
+          {/* Toggle Quick Control Deck */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHapticFeedback('light');
+              setShowControlDeck((prev) => !prev);
+            }}
+            className={`w-9 h-9 rounded-full border flex items-center justify-center transition cursor-pointer bubble-tap ${
+              showControlDeck
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                : 'bg-white/[0.04] text-slate-400 border-white/10 hover:text-white'
+            }`}
+            title={language === 'bg' ? 'AI Панел за Бърз Контрол' : 'AI Quick Control Deck'}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Segmented Role Selector with Sliding Lens */}
           <div className="flex items-center glass-liquid-subtle p-1 rounded-full">
             {ROLES.map((r) => {
               const isSelected = activeRole === r.id;
@@ -483,9 +932,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   type="button"
                   onClick={() => handleRoleSelect(r.id)}
                   className={`group relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1.5 z-10 whitespace-nowrap min-h-[36px] ${
-                    isSelected
-                      ? 'text-cyan-200'
-                      : 'text-white/50 hover:text-white/85'
+                    isSelected ? 'text-cyan-200' : 'text-white/50 hover:text-white/85'
                   }`}
                 >
                   {isSelected && (
@@ -495,17 +942,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                       transition={{ type: 'spring', stiffness: 480, damping: 24, mass: 0.6 }}
                     />
                   )}
-                  <motion.div
-                    animate={
-                      isSelected
-                        ? { scale: 1.18, rotate: r.id === 'commander' ? 10 : r.id === 'diagnostics' ? -8 : 6 }
-                        : { scale: 1, rotate: 0 }
-                    }
-                    transition={{ type: 'spring', stiffness: 560, damping: 22 }}
-                    className="flex items-center justify-center transform-gpu"
-                  >
-                    <Icon className="w-3.5 h-3.5 shrink-0 icon-bubbly" />
-                  </motion.div>
+                  <Icon className="w-3.5 h-3.5 shrink-0 icon-bubbly" />
                   <span className="font-display">{r.label}</span>
                 </button>
               );
@@ -518,7 +955,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               whileHover={{ scale: 1.08, rotate: -8 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleClearHistory}
-              className="group w-11 h-11 min-w-[44px] min-h-[44px] rounded-full glass-liquid-subtle hover:bg-white/10 text-white/55 hover:text-white flex items-center justify-center transition cursor-pointer transform-gpu"
+              className="group w-9 h-9 rounded-full glass-liquid-subtle hover:bg-white/10 text-white/55 hover:text-white flex items-center justify-center transition cursor-pointer transform-gpu"
               title={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
               aria-label={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
             >
@@ -527,6 +964,54 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           )}
         </div>
       </header>
+
+      {/* 1.5 Direct AI PC Control & Update Deck */}
+      <AnimatePresence initial={false}>
+        {showControlDeck && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: 'spring', stiffness: 460, damping: 28 }}
+            className="flex-none overflow-hidden mb-2"
+          >
+            <div className="px-3 py-2 rounded-2xl bg-[#070d1b]/80 border border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1 pr-1 border-r border-white/10">
+                <Zap className="w-3 h-3 text-cyan-400" />
+                <span>{language === 'bg' ? 'AI PC Контрол:' : 'AI PC Deck:'}</span>
+              </span>
+              {quickControlDeck.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleSendMessage(item.prompt)}
+                    className={`px-2.5 py-1.5 rounded-full border text-[11px] font-semibold flex items-center space-x-1.5 shrink-0 transition cursor-pointer bubble-tap ${item.color}`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+              {onOpenUpdateCenter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('light');
+                    onOpenUpdateCenter();
+                  }}
+                  className="px-2.5 py-1.5 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/10 text-slate-300 text-[11px] font-semibold flex items-center space-x-1 shrink-0 transition cursor-pointer ml-auto"
+                >
+                  <RefreshCw className="w-3 h-3 text-emerald-400" />
+                  <span>{language === 'bg' ? 'Update Център' : 'Update Center'}</span>
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 2. Scrollable Conversation Thread with Bouncy Overscroll */}
       <div
@@ -548,7 +1033,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                 className={`text-xs sm:text-[13px] leading-relaxed relative ${
                   isUser
                     ? 'glass-liquid-elevated bg-cyan-500/20 text-white border border-cyan-400/35 rounded-[1.5rem] rounded-tr-xs px-4 py-2.5 max-w-[85%] lg:max-w-[75%] shadow-[0_8px_20px_rgba(0,212,255,0.15)]'
-                    : 'glass-liquid text-slate-100 rounded-[1.75rem] rounded-tl-xs p-4 max-w-[94%] sm:max-w-[88%] lg:max-w-[82%] border border-white/10 shadow-lg'
+                    : 'glass-liquid text-slate-100 rounded-[1.75rem] rounded-tl-xs p-4 max-w-[95%] sm:max-w-[88%] lg:max-w-[84%] border border-white/10 shadow-lg'
                 }`}
               >
                 {!isUser && (
@@ -582,32 +1067,136 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 
                 {renderFormattedContent(msg.content)}
 
-                {/* Interactive Action Pills */}
+                {/* Interactive PC Control & System Update Action Cards */}
                 {msg.actions && msg.actions.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-white/8 flex flex-wrap gap-2">
-                    {msg.actions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          triggerHapticFeedback('medium');
-                          if (action.type === 'wol' && action.payload && onSendWol) {
-                            onSendWol(action.payload);
-                          } else if (action.type === 'rescan' && onTriggerRescan) {
-                            onTriggerRescan();
-                          } else if (action.type === 'lab_mode' && onToggleLabMode) {
-                            onToggleLabMode();
-                          }
-                        }}
-                        className="samsung-pill px-3.5 py-2 min-h-[40px] bg-cyan-500/18 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer bubble-tap shadow-[0_4px_12px_rgba(0,212,255,0.2)]"
-                      >
-                        {action.type === 'wol' && <Power className="w-3.5 h-3.5 text-cyan-300" />}
-                        {action.type === 'rescan' && <RefreshCw className="w-3.5 h-3.5 text-cyan-300" />}
-                        {action.type === 'lab_mode' && <FlaskConical className="w-3.5 h-3.5 text-cyan-300" />}
-                        <span>{action.label}</span>
-                        <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-                      </button>
-                    ))}
+                  <div className="mt-3.5 pt-3 border-t border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-cyan-300/80">
+                      <span>
+                        {language === 'bg'
+                          ? `Изпълними AI Действия (${msg.actions.length})`
+                          : `Executable AI Directives (${msg.actions.length})`}
+                      </span>
+                      <span>CST/3.0-SECURE</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      {msg.actions.map((action) => {
+                        const exec = action.executionResult;
+                        const isRunning = executingActionId === action.id;
+
+                        return (
+                          <div
+                            key={action.id}
+                            className={`rounded-2xl p-3 border transition-all ${
+                              exec?.success
+                                ? 'bg-emerald-950/25 border-emerald-500/35'
+                                : exec && !exec.success
+                                ? 'bg-amber-950/25 border-amber-500/35'
+                                : 'bg-white/[0.03] border-white/12'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center space-x-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0">
+                                  {getActionIcon(action.type)}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold text-white truncate">
+                                    {action.label}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-slate-400 flex items-center gap-2 flex-wrap">
+                                    <span>{exec?.opcode || action.subtitle || action.type.toUpperCase()}</span>
+                                    {exec?.durationMs !== undefined && (
+                                      <span className="text-emerald-400">• {exec.durationMs}ms</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                                {exec && (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold flex items-center space-x-1 ${
+                                      exec.success
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+                                        : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                                    }`}
+                                  >
+                                    {exec.success ? (
+                                      <>
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        <span>{language === 'bg' ? 'Изпълнено' : 'Executed'}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <AlertTriangle className="w-3 h-3" />
+                                        <span>{language === 'bg' ? 'Задържано' : 'Blocked'}</span>
+                                      </>
+                                    )}
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  disabled={isRunning}
+                                  onClick={() => handleExecuteActionItem(msg.id, action)}
+                                  className="px-3 py-1.5 min-h-[34px] rounded-full bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/40 text-[11px] font-semibold flex items-center space-x-1 cursor-pointer transition bubble-tap"
+                                >
+                                  <Play className="w-3 h-3 fill-current" />
+                                  <span>
+                                    {isRunning
+                                      ? language === 'bg'
+                                        ? 'Изпълнява...'
+                                        : 'Running...'
+                                      : exec
+                                      ? language === 'bg'
+                                        ? 'Изпълни пак'
+                                        : 'Re-Run'
+                                      : language === 'bg'
+                                      ? 'Изпълни сега'
+                                      : 'Execute Now'}
+                                  </span>
+                                </button>
+
+                                {action.type === 'system_update' && onOpenUpdateCenter && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenUpdateCenter()}
+                                    className="px-2.5 py-1.5 min-h-[34px] rounded-full bg-white/[0.06] hover:bg-white/12 text-slate-200 border border-white/15 text-[11px] font-medium flex items-center space-x-1 cursor-pointer"
+                                  >
+                                    <span>{language === 'bg' ? 'Детайли' : 'Details'}</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                  </button>
+                                )}
+
+                                {action.type === 'daemon_control' && onOpenDaemonGui && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenDaemonGui()}
+                                    className="px-2.5 py-1.5 min-h-[34px] rounded-full bg-white/[0.06] hover:bg-white/12 text-slate-200 border border-white/15 text-[11px] font-medium flex items-center space-x-1 cursor-pointer"
+                                  >
+                                    <span>{language === 'bg' ? 'Демон GUI' : 'Daemon GUI'}</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {exec?.summary && (
+                              <div className="mt-2 text-[11px] text-slate-300 font-medium">
+                                {exec.summary}
+                              </div>
+                            )}
+
+                            {exec?.output && (
+                              <pre className="mt-1.5 p-2 rounded-xl bg-black/50 border border-white/8 text-[10px] font-mono text-emerald-300/90 overflow-x-auto max-h-28">
+                                {exec.output}
+                              </pre>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -623,26 +1212,14 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
             className="flex items-center space-x-2.5 px-4 py-2.5 rounded-full glass-liquid-subtle border border-cyan-400/30 text-cyan-300 text-xs font-mono w-max shadow-md"
           >
             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>{language === 'bg' ? 'Gemini анализира...' : 'Gemini reasoning...'}</span>
+            <span>
+              {language === 'bg'
+                ? 'Gemini анализира и подготвя PC действия...'
+                : 'Gemini reasoning & preparing PC actions...'}
+            </span>
           </motion.div>
         )}
       </div>
-
-      {/* Starter Prompts (Shown on fresh chat) */}
-      {messages.length <= 1 && (
-        <div className="flex flex-wrap gap-2 mb-2 px-1">
-          {starterPrompts.map((prompt, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleSendMessage(prompt)}
-              className="px-3.5 py-2 min-h-[40px] rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 text-xs font-medium cursor-pointer transition bubble-tap"
-            >
-              ⚡ {prompt}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* 3. Tier 2 Liquid Glass Input Capsule Bar */}
       <footer className="flex-none pt-1">

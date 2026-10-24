@@ -412,6 +412,16 @@ export default function App() {
                     onSelectHost={handleSelectHostTerminal}
                     onTriggerRescan={fleet.scanMdns}
                     onToggleLabMode={() => openModal('wsConfig')}
+                    onSendCommand={(cmd, targetOverride) =>
+                      agent.sendCommand({
+                        target_id: targetOverride || fleet.selectedTarget,
+                        command_type: 'system_command',
+                        prompt: cmd,
+                      })
+                    }
+                    onViewScreen={handleViewScreen}
+                    onOpenUpdateCenter={handleOpenUpdate}
+                    onOpenDaemonGui={() => openModal('pcDaemonGui')}
                     isRealWsConnected={agent.isConnected}
                     latency={agent.latency}
                     wolSchedules={fleet.wolSchedules}

@@ -77,11 +77,39 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
   const [isCommandConfirmations, setIsCommandConfirmations] = useState(true);
   const [isSystemStateAlerts, setIsSystemStateAlerts] = useState(true);
 
-  const [modelsList, setModelsList] = useState<Array<{ id: string; name: string; description: string; provider: string }>>([
-    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash (Recommended)', description: 'Ultra-fast multimodal reasoning model for real-time fleet triage & mouse control', provider: 'gemini' },
-    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Lightweight high-efficiency low-latency model for quick sysadmin tasks', provider: 'gemini' },
-    { id: 'gemini-flash-latest', name: 'Gemini Flash Latest', description: 'High-speed agentic model with structured tool-use capabilities', provider: 'gemini' },
-    { id: 'deepseek-r1:latest', name: 'DeepSeek-R1 (Local / Ollama)', description: 'Reasoning model for offline air-gapped network management', provider: 'deepseek' },
+  const [modelsList, setModelsList] = useState<Array<{ id: string; name: string; nameBg?: string; description: string; descriptionBg?: string; provider: string }>>([
+    {
+      id: 'gemini-3.8-flash',
+      name: 'Gemini 3.8 Flash (Recommended)',
+      nameBg: 'Gemini 3.8 Flash (Препоръчителен)',
+      description: 'Ultra-fast multimodal reasoning model for real-time fleet triage & mouse control',
+      descriptionBg: 'Свръхбърз мултимодален модел за диагностика на флота и управление в реално време',
+      provider: 'gemini',
+    },
+    {
+      id: 'gemini-3.1-flash-lite',
+      name: 'Gemini 3.1 Flash Lite',
+      nameBg: 'Gemini 3.1 Flash Lite',
+      description: 'Lightweight high-efficiency low-latency model for quick sysadmin tasks',
+      descriptionBg: 'Лек и високоефективен модел с ниско закъснение за бързи системни задачи',
+      provider: 'gemini',
+    },
+    {
+      id: 'gemini-flash-latest',
+      name: 'Gemini Flash Latest',
+      nameBg: 'Gemini Flash Latest',
+      description: 'High-speed agentic model with structured tool-use capabilities',
+      descriptionBg: 'Високоскоростен агентен модел със структурирано извикване на инструменти',
+      provider: 'gemini',
+    },
+    {
+      id: 'deepseek-r1:latest',
+      name: 'DeepSeek-R1 (Local / Ollama)',
+      nameBg: 'DeepSeek-R1 (Локален / Ollama)',
+      description: 'Reasoning model for offline air-gapped network management',
+      descriptionBg: 'Локален модел за разсъждение и автономно управление в изолирани мрежи',
+      provider: 'deepseek',
+    },
   ]);
 
   const handleTestModel = async (modelId: string) => {
@@ -289,10 +317,12 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold truncate">{m.name}</span>
+                            <span className="font-bold truncate">{language === 'bg' ? (m.nameBg || m.name) : m.name}</span>
                             {selectedModel === m.id && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1" />}
                           </div>
-                          <span className="text-[10px] text-slate-400 truncate mt-0.5">{m.description}</span>
+                          <span className="text-[10px] text-slate-400 truncate mt-0.5">
+                            {language === 'bg' ? (m.descriptionBg || m.description) : m.description}
+                          </span>
                         </button>
                       ))}
                     </motion.div>
@@ -355,17 +385,17 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
                         <div>
                           <label className="block text-[11px] text-slate-400 mb-1">
-                            {language === 'bg' ? 'Доставчик (Provider)' : 'Provider Type'}
+                            {language === 'bg' ? 'Доставчик на модел' : 'Provider Type'}
                           </label>
                           <select
                             value={newModelProvider}
                             onChange={(e) => setNewModelProvider(e.target.value as any)}
                             className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
                           >
-                            <option value="gemini">Google Gemini API</option>
-                            <option value="deepseek">DeepSeek AI</option>
-                            <option value="ollama">Local Ollama / Open Source</option>
-                            <option value="custom">Custom Endpoint</option>
+                            <option value="gemini">{language === 'bg' ? 'Google Gemini API' : 'Google Gemini API'}</option>
+                            <option value="deepseek">{language === 'bg' ? 'DeepSeek AI' : 'DeepSeek AI'}</option>
+                            <option value="ollama">{language === 'bg' ? 'Локален Ollama сървър' : 'Local Ollama / Open Source'}</option>
+                            <option value="custom">{language === 'bg' ? 'Персонализиран адрес' : 'Custom Endpoint'}</option>
                           </select>
                         </div>
 
@@ -667,7 +697,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
               <div className="flex items-center space-x-2 shrink-0">
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 bg-emerald-500/12 border border-emerald-400/25 px-2 py-0.5 rounded-full">
                   <ShieldCheck className="w-3 h-3 icon-bubbly" />
-                  <span>AV Clean</span>
+                  <span>{language === 'bg' ? 'Проверен' : 'AV Clean'}</span>
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </div>

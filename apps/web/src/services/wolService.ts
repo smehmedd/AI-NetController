@@ -46,15 +46,99 @@ export const DEFAULT_WOL_SCHEDULES: WolSchedule[] = [
   }
 ];
 
-export const WEEKDAYS_MAP: { id: Weekday; label: string; short: string; dayIndex: number }[] = [
-  { id: 'mon', label: 'Понеделник', short: 'Mon', dayIndex: 1 },
-  { id: 'tue', label: 'Вторник', short: 'Tue', dayIndex: 2 },
-  { id: 'wed', label: 'Сряда', short: 'Wed', dayIndex: 3 },
-  { id: 'thu', label: 'Четвъртък', short: 'Thu', dayIndex: 4 },
-  { id: 'fri', label: 'Петък', short: 'Fri', dayIndex: 5 },
-  { id: 'sat', label: 'Събота', short: 'Sat', dayIndex: 6 },
-  { id: 'sun', label: 'Неделя', short: 'Sun', dayIndex: 0 }
+export const WEEKDAYS_MAP: {
+  id: Weekday;
+  label: string;
+  labelEn: string;
+  short: string;
+  shortBg: string;
+  letterEn: string;
+  letterBg: string;
+  dayIndex: number;
+}[] = [
+  { id: 'mon', label: 'Понеделник', labelEn: 'Monday', short: 'Mon', shortBg: 'Пон', letterEn: 'M', letterBg: 'П', dayIndex: 1 },
+  { id: 'tue', label: 'Вторник', labelEn: 'Tuesday', short: 'Tue', shortBg: 'Вто', letterEn: 'T', letterBg: 'В', dayIndex: 2 },
+  { id: 'wed', label: 'Сряда', labelEn: 'Wednesday', short: 'Wed', shortBg: 'Сря', letterEn: 'W', letterBg: 'С', dayIndex: 3 },
+  { id: 'thu', label: 'Четвъртък', labelEn: 'Thursday', short: 'Thu', shortBg: 'Чет', letterEn: 'T', letterBg: 'Ч', dayIndex: 4 },
+  { id: 'fri', label: 'Петък', labelEn: 'Friday', short: 'Fri', shortBg: 'Пет', letterEn: 'F', letterBg: 'П', dayIndex: 5 },
+  { id: 'sat', label: 'Събота', labelEn: 'Saturday', short: 'Sat', shortBg: 'Съб', letterEn: 'S', letterBg: 'С', dayIndex: 6 },
+  { id: 'sun', label: 'Неделя', labelEn: 'Sunday', short: 'Sun', shortBg: 'Нед', letterEn: 'S', letterBg: 'Н', dayIndex: 0 }
 ];
+
+const SCHEDULE_TRANSLATIONS: Record<
+  string,
+  { nameEn: string; nameBg: string; notesEn: string; notesBg: string }
+> = {
+  'sched-lab-morning-01': {
+    nameEn: 'Wake Lab PCs (Morning Schedule)',
+    nameBg: 'Събуждане на залата (Сутрешен график)',
+    notesEn: 'Automated recurring wake-up for lab workstations prior to morning sessions',
+    notesBg: 'Автоматично сутрешно събуждане на работните станции преди учебните занятия',
+  },
+  'sched-home-sync-02': {
+    nameEn: 'Home Workstation Daily Warm-Up',
+    nameBg: 'Ежедневно събуждане на домашната станция',
+    notesEn: 'Wake host for remote backup sync and agent heartbeats',
+    notesBg: 'Събуждане на хоста за архивиране и синхронизация на демона',
+  },
+  'sched-fleet-night-03': {
+    nameEn: 'Weekend Fleet Security Audit Wake',
+    nameBg: 'Събуждане за седмичен одит на сигурността',
+    notesEn: 'Wakes all sleeping nodes for weekly unattended security updates',
+    notesBg: 'Събужда всички спящи компютри за седмични обновления за сигурност',
+  },
+};
+
+export function localizeWolSchedule(
+  schedule: WolSchedule,
+  lang: 'bg' | 'en' = 'en'
+): { name: string; notes: string; targetLabel: string } {
+  const isBg = lang === 'bg';
+  const preset = SCHEDULE_TRANSLATIONS[schedule.id];
+
+  let name = schedule.name;
+  let notes = schedule.notes || '';
+
+  if (preset) {
+    name = isBg ? preset.nameBg : preset.nameEn;
+    notes = isBg ? preset.notesBg : preset.notesEn;
+  } else {
+    // Also translate common default names if user created one with default form value
+    if (name === 'Wake Lab PCs (08:00 AM)' && isBg) {
+      name = 'Събуждане на залата (08:00)';
+    } else if (name === 'Събуждане на залата (08:00)' && !isBg) {
+      name = 'Wake Lab PCs (08:00)';
+    }
+    if (notes === 'Automated recurring wake-up for university lab sessions' && isBg) {
+      notes = 'Автоматично събуждане за лабораторни занятия';
+    } else if (notes === 'Автоматично събуждане за лабораторни занятия' && !isBg) {
+      notes = 'Automated recurring wake-up for university lab sessions';
+    }
+  }
+
+  let targetLabel = '';
+  if (schedule.targetType === 'all_lab') {
+    targetLabel = isBg ? 'Лабораторни компютри' : 'Lab Workstations';
+  } else if (schedule.targetType === 'all_offline') {
+    targetLabel = isBg ? 'Всички спящи хостове' : 'All Sleeping Hosts';
+  } else if (schedule.targetType === 'all_hosts') {
+    targetLabel = isBg ? 'Всички компютри във флота' : 'All Fleet Hosts';
+  } else if (schedule.targetType === 'specific_device') {
+    targetLabel = schedule.targetDeviceId || (isBg ? 'Избран хост' : 'Specific Host');
+  } else {
+    targetLabel = schedule.targetMac || 'MAC';
+  }
+
+  return {
+    name,
+    notes:
+      notes ||
+      (isBg
+        ? 'Автоматично изпращане на пакет за събуждане по мрежата.'
+        : 'Automated network wake packet broadcast.'),
+    targetLabel,
+  };
+}
 
 /**
  * Loads recurring WoL schedules from persistent localStorage.
@@ -111,7 +195,6 @@ export function resolveScheduleTargets(
       if (labHosts.length > 0) {
         return labHosts.map(h => ({ id: h.id, name: h.name, mac: h.mac, ip: h.ip }));
       }
-      // Fallback: If no host has lab tag, return first host or empty array
       return safeHosts.slice(0, 1).map(h => ({ id: h.id, name: h.name, mac: h.mac, ip: h.ip }));
     }
 
@@ -157,29 +240,28 @@ export function resolveScheduleTargets(
 }
 
 /**
- * Calculates human-readable summary of recurring days.
+ * Calculates human-readable summary of recurring days in BG or EN.
  */
-export function formatDaysSummary(days: Weekday[]): string {
-  if (!days || days.length === 0) return 'No days selected';
-  if (days.length === 7) return 'Daily (Mon - Sun)';
+export function formatDaysSummary(days: Weekday[], lang: 'bg' | 'en' = 'en'): string {
+  const isBg = lang === 'bg';
+  if (!days || days.length === 0) return isBg ? 'Няма избрани дни' : 'No days selected';
+  if (days.length === 7) return isBg ? 'Всеки ден (Пон – Нед)' : 'Every day (Mon – Sun)';
   const weekdays: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri'];
   const weekends: Weekday[] = ['sat', 'sun'];
 
   const isWeekdays = weekdays.every(d => days.includes(d)) && days.length === 5;
-  if (isWeekdays) return 'Weekdays (Mon - Fri)';
+  if (isWeekdays) return isBg ? 'Делнични дни (Пон – Пет)' : 'Weekdays (Mon – Fri)';
 
   const isWeekends = weekends.every(d => days.includes(d)) && days.length === 2;
-  if (isWeekends) return 'Weekends (Sat, Sun)';
+  if (isWeekends) return isBg ? 'Уикенд (Съб – Нед)' : 'Weekends (Sat – Sun)';
 
-  const order: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-  return order
-    .filter(d => days.includes(d))
-    .map(d => d.toUpperCase())
+  return WEEKDAYS_MAP.filter(d => days.includes(d.id))
+    .map(d => (isBg ? d.shortBg : d.short))
     .join(', ');
 }
 
 /**
- * Formats "08:00" to "08:00 AM" or localized string.
+ * Formats "08:00" to clean 24h time string.
  */
 export function formatTimeDisplay(timeStr: string): string {
   if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return timeStr || '--:--';
@@ -187,22 +269,22 @@ export function formatTimeDisplay(timeStr: string): string {
   const h = parseInt(hStr, 10);
   if (isNaN(h) || h < 0 || h > 23) return timeStr;
   const m = (mStr || '00').padStart(2, '0').slice(0, 2);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const displayH = h % 12 === 0 ? 12 : h % 12;
-  return `${h.toString().padStart(2, '0')}:${m} (${displayH}:${m} ${ampm})`;
+  return `${h.toString().padStart(2, '0')}:${m}`;
 }
 
 /**
- * Calculates next upcoming run time for a recurring schedule.
+ * Calculates next upcoming run time for a recurring schedule in BG or EN.
  */
 export function calculateNextRun(
   schedule: WolSchedule,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
+  lang: 'bg' | 'en' = 'en'
 ): { nextDate: Date; relativeText: string; timeUntilFormatted: string } | null {
   if (!schedule || !schedule.days || schedule.days.length === 0 || !schedule.time || !schedule.time.includes(':')) {
     return null;
   }
 
+  const isBg = lang === 'bg';
   const [targetH, targetM] = schedule.time.split(':').map(Number);
   if (isNaN(targetH) || isNaN(targetM) || targetH < 0 || targetH > 23 || targetM < 0 || targetM > 59) {
     return null;
@@ -220,7 +302,6 @@ export function calculateNextRun(
 
   const allowedDayIndices = new Set(schedule.days.map(d => dayIndexMap[d]));
 
-  // Check today and the next 7 days
   for (let offset = 0; offset <= 7; offset++) {
     const candidate = new Date(referenceDate);
     candidate.setDate(referenceDate.getDate() + offset);
@@ -229,7 +310,6 @@ export function calculateNextRun(
     const dayIndex = candidate.getDay();
     if (allowedDayIndices.has(dayIndex)) {
       if (candidate.getTime() > referenceDate.getTime()) {
-        // Calculate relative difference
         const diffMs = candidate.getTime() - referenceDate.getTime();
         const diffMins = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMins / 60);
@@ -237,24 +317,25 @@ export function calculateNextRun(
 
         let timeUntil = '';
         if (diffHours > 0) {
-          timeUntil = `${diffHours}h ${remMins}m`;
+          timeUntil = isBg ? `${diffHours}ч ${remMins}м` : `${diffHours}h ${remMins}m`;
         } else {
-          timeUntil = `${diffMins}m`;
+          timeUntil = isBg ? `${diffMins}м` : `${diffMins}m`;
         }
 
         let dayLabel = '';
         if (offset === 0) {
-          dayLabel = 'Today';
+          dayLabel = isBg ? 'Днес' : 'Today';
         } else if (offset === 1) {
-          dayLabel = 'Tomorrow';
+          dayLabel = isBg ? 'Утре' : 'Tomorrow';
         } else {
-          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-          dayLabel = `${dayNames[dayIndex]}`;
+          const dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayNamesBg = ['Неделя', 'Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота'];
+          dayLabel = isBg ? dayNamesBg[dayIndex] : dayNamesEn[dayIndex];
         }
 
         return {
           nextDate: candidate,
-          relativeText: `${dayLabel} at ${schedule.time}`,
+          relativeText: isBg ? `${dayLabel} в ${schedule.time}` : `${dayLabel} at ${schedule.time}`,
           timeUntilFormatted: timeUntil
         };
       }
