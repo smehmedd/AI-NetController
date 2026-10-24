@@ -52,7 +52,7 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
 
   return (
     <div className="fixed bottom-[calc(env(safe-area-inset-bottom,12px)+0.5rem)] left-1/2 -translate-x-1/2 z-40 max-w-lg w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] select-none pointer-events-auto">
-      <nav className="landscape-compact-nav bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] w-full h-[58px] sm:h-[60px] rounded-full flex items-center justify-between p-1.5 transform-gpu relative">
+      <nav className="landscape-compact-nav bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] w-full h-[58px] sm:h-[60px] rounded-full flex items-center justify-between p-1.5 transform-gpu relative">
         {/* Top & Bottom Specular Refraction Highlights */}
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
         <div className="absolute inset-x-12 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent pointer-events-none" />
@@ -75,7 +75,7 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
                   triggerHapticFeedback('selection');
                   onChangeTab(tab.id);
                 }}
-                className={`relative flex items-center justify-center h-full min-h-[42px] px-2.5 sm:px-3.5 rounded-full transition-colors cursor-pointer group min-w-0 ${
+                className={`relative flex items-center justify-center h-full min-h-[44px] px-2.5 sm:px-3.5 rounded-full transition-colors cursor-pointer group min-w-0 ${
                   isActive ? 'flex-[1.4]' : 'flex-1'
                 }`}
                 aria-label={`${tab.label} (${tab.shortcut})`}

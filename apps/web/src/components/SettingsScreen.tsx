@@ -49,7 +49,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
   wolSchedules,
   hostsCount
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const selectedModel = useUIStore((s) => s.selectedModel);
   const setSelectedModel = useUIStore((s) => s.setSelectedModel);
@@ -88,10 +88,10 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
       if (data.success) {
         setTestResult(`⚡ Online (${data.latencyMs}ms)`);
       } else {
-        setTestResult(`⚠️ ${data.error || 'Test failed'}`);
+        setTestResult(`⚠️ ${data.error || (language === 'bg' ? 'Неуспешен тест' : 'Test failed')}`);
       }
     } catch {
-      setTestResult('⚠️ Test connection error');
+      setTestResult(language === 'bg' ? '⚠️ Грешка при връзка' : '⚠️ Test connection error');
     } finally {
       setIsTestingModel(false);
     }
@@ -134,7 +134,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
         triggerHapticFeedback('light');
         onChange(!checked);
       }}
-      className="p-1 cursor-pointer"
+      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
       aria-label="Toggle setting"
     >
       <div
@@ -161,7 +161,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-      className="w-full max-w-6xl mx-auto pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] select-none grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+      className="w-full max-w-6xl mx-auto pb-4 select-none grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
     >
       {/* LEFT COLUMN (Desktop): GENERAL & AI + GREEN WOL ENERGY CALCULATOR */}
       <div className="lg:col-span-7 flex flex-col space-y-6">
@@ -171,7 +171,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             {t('settings_general_title')}
           </span>
 
-          <div className="glass-liquid-elevated w-full rounded-[2rem] p-1 border border-white/12 shadow-xl divide-y divide-white/[0.05] relative overflow-visible">
+          <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-visible">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
             {/* Row 0: Language */}
             <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
@@ -215,10 +215,14 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                     whileTap={{ scale: 0.94 }}
                     onClick={() => handleTestModel(selectedModel)}
                     disabled={isTestingModel}
-                    className="px-2.5 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/10 text-cyan-300 text-xs font-mono transition cursor-pointer border border-white/10"
-                    title="Test Model Connection"
+                    className="px-3 min-h-[40px] rounded-full bg-white/[0.04] hover:bg-white/10 text-cyan-300 text-xs font-mono transition cursor-pointer border border-white/10 flex items-center justify-center"
+                    title={language === 'bg' ? 'Тествай връзка с модела' : 'Test Model Connection'}
                   >
-                    {isTestingModel ? <RefreshCw className="w-3 h-3 animate-spin" /> : testResult || 'Test'}
+                    {isTestingModel ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      testResult || (language === 'bg' ? 'Тест' : 'Test')
+                    )}
                   </motion.button>
 
                   <motion.button
@@ -226,7 +230,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.94 }}
                     onClick={() => setIsModelDropdownOpen((prev) => !prev)}
-                    className="px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-cyan-300 text-xs font-mono font-medium flex items-center space-x-2 transition cursor-pointer border border-white/10"
+                    className="px-3 min-h-[40px] rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-cyan-300 text-xs font-mono font-medium flex items-center space-x-2 transition cursor-pointer border border-white/10"
                   >
                     <span className="max-w-[140px] sm:max-w-none truncate">{selectedModel}</span>
                     <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 shrink-0 ${isModelDropdownOpen ? 'rotate-90' : ''}`} />
@@ -238,7 +242,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                 {isModelDropdownOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px]"
+                      className="fixed inset-0 z-[75] bg-black/75 backdrop-blur-md"
                       onClick={() => setIsModelDropdownOpen(false)}
                     />
                     <motion.div
@@ -246,10 +250,10 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.96 }}
                       transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                      className="absolute right-4 top-14 w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0a1224]/98 backdrop-blur-3xl border border-white/20 p-2.5 z-[70] shadow-2xl space-y-1.5 max-h-80 overflow-y-auto"
+                      className="absolute right-4 top-14 w-80 max-w-[calc(100vw-2rem)] rounded-2xl z-[80] bg-[#0a1224]/98 backdrop-blur-3xl border border-white/20 shadow-2xl p-2.5 space-y-1.5 max-h-80 overflow-y-auto"
                     >
                       <div className="flex items-center justify-between px-2 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-white/10">
-                        <span>Available AI Models</span>
+                        <span>{language === 'bg' ? 'Налични AI Модели' : 'Available AI Models'}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -258,7 +262,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                           }}
                           className="text-cyan-400 hover:underline cursor-pointer font-bold"
                         >
-                          + Add Custom Model
+                          {language === 'bg' ? '+ Добави модел' : '+ Add Custom Model'}
                         </button>
                       </div>
 
@@ -291,20 +295,23 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
               <AnimatePresence>
                 {isAddModelOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+                  <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: 10 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                      className="w-full max-w-md rounded-3xl glass-liquid-elevated bg-[#0c1220]/95 border border-cyan-400/40 p-6 space-y-4 text-white shadow-2xl"
+                      className="w-full max-w-md rounded-3xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6 space-y-4 text-white"
                     >
                       <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                        <h3 className="text-base font-bold text-cyan-300">Add / Update AI Model</h3>
+                        <h3 className="text-base font-bold text-cyan-300">
+                          {language === 'bg' ? 'Добави / Обнови AI Модел' : 'Add / Update AI Model'}
+                        </h3>
                         <button
                           type="button"
                           onClick={() => setIsAddModelOpen(false)}
-                          className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer"
+                          aria-label={language === 'bg' ? 'Затвори' : 'Close'}
                         >
                           ✕
                         </button>
@@ -312,35 +319,41 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
                       <form onSubmit={handleAddCustomModel} className="space-y-3 font-mono text-xs">
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Model Identifier (ID)</label>
+                          <label className="block text-[11px] text-slate-400 mb-1">
+                            {language === 'bg' ? 'Идентификатор на модел (ID)' : 'Model Identifier (ID)'}
+                          </label>
                           <input
                             type="text"
                             required
                             value={newModelId}
                             onChange={(e) => setNewModelId(e.target.value)}
                             placeholder="e.g. gemini-2.5-flash or ollama/llama3.3"
-                            className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
+                            className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Display Name</label>
+                          <label className="block text-[11px] text-slate-400 mb-1">
+                            {language === 'bg' ? 'Показвано име' : 'Display Name'}
+                          </label>
                           <input
                             type="text"
                             required
                             value={newModelName}
                             onChange={(e) => setNewModelName(e.target.value)}
                             placeholder="e.g. Custom Gemini 2.5 Flash"
-                            className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
+                            className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Provider Type</label>
+                          <label className="block text-[11px] text-slate-400 mb-1">
+                            {language === 'bg' ? 'Доставчик (Provider)' : 'Provider Type'}
+                          </label>
                           <select
                             value={newModelProvider}
                             onChange={(e) => setNewModelProvider(e.target.value as any)}
-                            className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
+                            className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
                           >
                             <option value="gemini">Google Gemini API</option>
                             <option value="deepseek">DeepSeek AI</option>
@@ -350,13 +363,15 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Description</label>
+                          <label className="block text-[11px] text-slate-400 mb-1">
+                            {language === 'bg' ? 'Описание' : 'Description'}
+                          </label>
                           <input
                             type="text"
                             value={newModelDesc}
                             onChange={(e) => setNewModelDesc(e.target.value)}
-                            placeholder="Short description of capabilities"
-                            className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
+                            placeholder={language === 'bg' ? 'Кратко описание на възможностите' : 'Short description of capabilities'}
+                            className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white outline-none focus:border-cyan-400"
                           />
                         </div>
 
@@ -364,15 +379,15 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                           <button
                             type="button"
                             onClick={() => setIsAddModelOpen(false)}
-                            className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 cursor-pointer"
+                            className="px-4 py-2.5 min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 text-slate-200 cursor-pointer"
                           >
-                            Cancel
+                            {language === 'bg' ? 'Отказ' : 'Cancel'}
                           </button>
                           <button
                             type="submit"
-                            className="px-5 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold cursor-pointer"
+                            className="px-5 py-2.5 min-h-[44px] rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold cursor-pointer"
                           >
-                            Save Model
+                            {language === 'bg' ? 'Запази модел' : 'Save Model'}
                           </button>
                         </div>
                       </form>
@@ -406,13 +421,19 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                   triggerHapticFeedback('light');
                   setIsAutoDiscovery(!isAutoDiscovery);
                 }}
-                className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 min-h-[36px] rounded-full text-[10px] font-mono font-bold uppercase transition shrink-0 cursor-pointer ${
                   isAutoDiscovery
                     ? 'bg-emerald-500/18 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(0,230,118,0.2)]'
                     : 'bg-white/5 text-slate-400 border border-white/10'
                 }`}
               >
-                {isAutoDiscovery ? 'AUTO-DISCOVERY' : 'MANUAL IP'}
+                {isAutoDiscovery
+                  ? language === 'bg'
+                    ? 'АВТО-ОТКРИВАНЕ'
+                    : 'AUTO-DISCOVERY'
+                  : language === 'bg'
+                  ? 'РЪЧЕН IP'
+                  : 'MANUAL IP'}
               </motion.button>
             </div>
 
@@ -468,7 +489,11 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
               <div className="flex items-center space-x-2 shrink-0">
                 <span className="hidden sm:inline-block text-[11px] font-mono text-amber-300/90">
-                  {activeWolSchedulesCount !== undefined ? `${activeWolSchedulesCount} ${t('settings_active_schedules')}` : 'Config'}
+                  {activeWolSchedulesCount !== undefined
+                    ? `${activeWolSchedulesCount} ${t('settings_active_schedules')}`
+                    : language === 'bg'
+                    ? 'Настройки'
+                    : 'Config'}
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </div>
@@ -488,7 +513,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             {t('settings_hitl').split('(')[0] || 'SECURITY'}
           </span>
 
-          <div className="glass-liquid-elevated w-full rounded-[2rem] p-1 border border-white/12 shadow-xl divide-y divide-white/[0.05] relative overflow-hidden">
+          <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
             <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
@@ -532,7 +557,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             {t('settings_alerts')}
           </span>
 
-          <div className="glass-liquid-elevated w-full rounded-[2rem] p-1 border border-white/12 shadow-xl divide-y divide-white/[0.05] relative overflow-hidden">
+          <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
             <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
@@ -576,7 +601,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             {t('settings_audit_title')}
           </span>
 
-          <div className="glass-liquid-elevated w-full rounded-[2rem] p-1 border border-white/12 shadow-xl divide-y divide-white/[0.05] relative overflow-hidden">
+          <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
             <motion.div
               whileTap={{ scale: 0.985 }}
@@ -626,7 +651,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
               <div className="flex items-center space-x-2 shrink-0">
                 <span className="hidden sm:inline-block text-[11px] font-mono text-amber-300/90">
-                  5 available
+                  {language === 'bg' ? '5 налични' : '5 available'}
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </div>

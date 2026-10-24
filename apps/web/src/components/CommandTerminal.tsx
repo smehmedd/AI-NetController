@@ -10,6 +10,9 @@ import {
   Check,
   Trash2,
   RotateCcw,
+  Star,
+  Clock,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HostDevice, AgentExecutionResponse } from '../types';
@@ -33,7 +36,10 @@ interface CommandTerminalProps {
 interface TerminalHistoryEntry extends AgentExecutionResponse {
   id: string;
   commandPrompt?: string;
+  exitCode?: number;
 }
+
+const PINNED_COMMANDS_KEY = 'cst_pinned_terminal_commands_v1';
 
 const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   hosts,
@@ -50,6 +56,34 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   const [historyCursor, setHistoryCursor] = useState<number>(-1);
   const [executionLogs, setExecutionLogs] = useState<TerminalHistoryEntry[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+
+  const [pinnedCommands, setPinnedCommands] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(PINNED_COMMANDS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const togglePinCommand = (cmd: string) => {
+    const trimmed = cmd.trim();
+    if (!trimmed) return;
+    triggerHapticFeedback('selection');
+    setPinnedCommands((prev) => {
+      const next = prev.includes(trimmed)
+        ? prev.filter((item) => item !== trimmed)
+        : [...prev, trimmed];
+      try {
+        localStorage.setItem(PINNED_COMMANDS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const lastSubmittedPromptRef = useRef<string>('');
   const lastProcessedTimestampRef = useRef<string>('');
   const logScrollRef = useRef<HTMLDivElement>(null);
@@ -67,8 +101,9 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
         ...prev.slice(-24),
         {
           ...lastExecutionResult,
-          id: `${lastExecutionResult.timestamp}-${ prev.length}`,
+          id: `${lastExecutionResult.timestamp}-${prev.length}`,
           commandPrompt: lastSubmittedPromptRef.current || undefined,
+          exitCode: 0,
         },
       ]);
     }
@@ -180,10 +215,10 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between select-none relative pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)]">
-      {/* 1. Header & Flush Target Selector Pills */}
+    <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between select-none relative pb-1">
+      {/* 1. Header & Flush Target Selector Pills with Horizontal Scroll Fade Mask */}
       <div className="py-1.5 flex items-center justify-between gap-2 mb-3 max-w-full overflow-hidden">
-        <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-1 py-1">
+        <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-4 py-1 [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">
           {hosts.map((h) => {
             const isSelected = h.id === selectedTarget;
             return (
@@ -194,10 +229,10 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
                   triggerHapticFeedback('selection');
                   onSelectTarget(h.id);
                 }}
-                className={`relative min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-mono transition-all flex items-center space-x-2 shrink-0 overflow-hidden cursor-pointer border ${
+                className={`relative min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-mono transition-all flex items-center space-x-2 shrink-0 overflow-hidden cursor-pointer border ${
                   isSelected
                     ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200 font-bold shadow-[0_0_16px_rgba(56,189,248,0.25)]'
-                    : 'bg-[#070c18]/88 border-white/12 text-white/65 hover:text-white hover:border-white/25'
+                    : 'bg-[#070c18]/90 border-white/12 text-white/65 hover:text-white hover:border-white/25'
                 }`}
               >
                 <span
@@ -212,11 +247,32 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Command History Drawer Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHapticFeedback('light');
+              setIsHistoryDrawerOpen((prev) => !prev);
+            }}
+            className={`min-h-[44px] px-3 py-1.5 rounded-full border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+              isHistoryDrawerOpen
+                ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200'
+                : 'bg-[#070c18]/90 border-white/15 text-white/70 hover:text-white'
+            }`}
+            title={language === 'bg' ? 'История на командите' : 'Command History'}
+          >
+            <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">{language === 'bg' ? 'История' : 'History'}</span>
+            {executionLogs.length > 0 && (
+              <span className="text-[10px] font-mono text-cyan-300/90">({executionLogs.length})</span>
+            )}
+          </button>
+
           {executionLogs.length > 0 && (
             <button
               type="button"
               onClick={handleClearConsole}
-              className="min-h-[38px] px-3 py-1.5 rounded-full bg-[#070c18]/88 border border-white/12 hover:border-rose-400/35 text-white/55 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              className="min-h-[44px] px-3 py-1.5 rounded-full bg-[#070c18]/90 border border-white/12 hover:border-rose-400/35 text-white/55 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
               title={language === 'bg' ? 'Изчисти конзолата' : 'Clear console output'}
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -233,7 +289,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
                 triggerHapticFeedback('light');
                 onViewScreen(selectedHost);
               }}
-              className="min-h-[38px] px-3.5 py-1.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+              className="min-h-[44px] px-3.5 py-1.5 rounded-full bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center space-x-1.5 shrink-0 transition cursor-pointer shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
             >
               <Eye className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('term_view_screen')}</span>
@@ -241,6 +297,93 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Collapsible Command History & Pinned Commands Drawer */}
+      <AnimatePresence>
+        {isHistoryDrawerOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <div className="p-3.5 rounded-2xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] space-y-2.5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>
+                    {language === 'bg'
+                      ? 'Последни изпълнения и Закачени команди'
+                      : 'Recent Executions & Pinned Commands'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryDrawerOpen(false)}
+                  className="text-white/50 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {executionLogs.length === 0 ? (
+                <div className="text-xs text-white/45 py-2 font-mono">
+                  {language === 'bg'
+                    ? 'Все още няма изпълнени команди в тази сесия.'
+                    : 'No commands executed in this session yet.'}
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {executionLogs
+                    .slice()
+                    .reverse()
+                    .map((item) => {
+                      const cmdText = item.commandPrompt || item.output.split('\n')[0];
+                      const isPinned = pinnedCommands.includes(cmdText);
+                      return (
+                        <div
+                          key={`hist-${item.id}`}
+                          className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-2 text-xs font-mono"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => dispatchPrompt(cmdText)}
+                            className="text-left text-cyan-200 hover:text-white truncate flex-1 cursor-pointer"
+                          >
+                            $ {cmdText}
+                          </button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-300">
+                              {item.execution_time_ms}ms • Exit {item.exitCode ?? 0}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePinCommand(cmdText)}
+                              className={`p-1 rounded hover:bg-white/10 transition cursor-pointer ${
+                                isPinned ? 'text-amber-300' : 'text-white/40 hover:text-white'
+                              }`}
+                              title={
+                                isPinned
+                                  ? language === 'bg'
+                                    ? 'Откачи командата'
+                                    : 'Unpin command'
+                                  : language === 'bg'
+                                  ? 'Закачи към бързите бутони'
+                                  : 'Pin to quick bar'
+                              }
+                            >
+                              <Star className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400 text-amber-400' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 2. Main Terminal Output Surface (Tier 1 Resting Card) */}
       <GlassContainer className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-h-[220px] sm:min-h-[360px] mb-3 overflow-hidden">
@@ -272,60 +415,77 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
           </div>
 
           <AnimatePresence mode="popLayout">
-            {executionLogs.map((entry) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-                className="p-3.5 rounded-2xl bg-[#070c18]/90 border border-cyan-400/25 space-y-2"
-              >
-                <div className="flex items-center justify-between gap-2 text-[11px] text-white/50 tabular-nums border-b border-white/[0.06] pb-1.5">
-                  <span className="text-emerald-400 flex items-center gap-1.5 font-semibold truncate">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>{t('term_exec_success', { time: entry.execution_time_ms })}</span>
-                  </span>
+            {executionLogs.map((entry) => {
+              const isPinned = entry.commandPrompt ? pinnedCommands.includes(entry.commandPrompt) : false;
+              return (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+                  className="p-3.5 rounded-2xl bg-[#070c18]/90 border border-cyan-400/25 space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-white/50 tabular-nums border-b border-white/[0.06] pb-1.5">
+                    <span className="text-emerald-400 flex items-center gap-1.5 font-semibold truncate">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {t('term_exec_success', { time: entry.execution_time_ms })} • Exit {entry.exitCode ?? 0}
+                      </span>
+                    </span>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {entry.commandPrompt && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {entry.commandPrompt && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => togglePinCommand(entry.commandPrompt!)}
+                            className={`transition flex items-center gap-1 cursor-pointer ${
+                              isPinned ? 'text-amber-300' : 'text-white/50 hover:text-amber-300'
+                            }`}
+                            title={language === 'bg' ? 'Закачи команда' : 'Pin command'}
+                          >
+                            <Star className={`w-3 h-3 ${isPinned ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => dispatchPrompt(entry.commandPrompt!)}
+                            disabled={isExecuting}
+                            className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                            title={language === 'bg' ? 'Изпълни отново' : 'Re-run command'}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
-                        onClick={() => dispatchPrompt(entry.commandPrompt!)}
-                        disabled={isExecuting}
-                        className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
-                        title={language === 'bg' ? 'Изпълни отново' : 'Re-run command'}
+                        onClick={() => handleCopyOutput(entry.id, entry.output)}
+                        className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer"
+                        title={language === 'bg' ? 'Копирай изхода' : 'Copy output'}
                       >
-                        <RotateCcw className="w-3 h-3" />
+                        {copiedId === entry.id ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyOutput(entry.id, entry.output)}
-                      className="text-white/50 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer"
-                      title={language === 'bg' ? 'Копирай изхода' : 'Copy output'}
-                    >
-                      {copiedId === entry.id ? (
-                        <Check className="w-3 h-3 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                    </button>
-                    <span className="text-white/45">{entry.timestamp}</span>
+                      <span className="text-white/45">{entry.timestamp}</span>
+                    </div>
                   </div>
-                </div>
 
-                {entry.commandPrompt && (
-                  <div className="text-[11px] text-cyan-300/85 font-semibold truncate">
-                    $ {entry.commandPrompt}
-                  </div>
-                )}
+                  {entry.commandPrompt && (
+                    <div className="text-[11px] text-cyan-300/85 font-semibold truncate">
+                      $ {entry.commandPrompt}
+                    </div>
+                  )}
 
-                <pre className="text-white/95 text-xs whitespace-pre-wrap font-mono select-text">
-                  {entry.output}
-                </pre>
-              </motion.div>
-            ))}
+                  <pre className="text-white/95 text-xs whitespace-pre-wrap font-mono select-text">
+                    {entry.output}
+                  </pre>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
 
           {isExecuting && (
@@ -345,8 +505,35 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 
       {/* 3. Bottom-Anchored Compact Horizontal Preset Chip Strip + Tier 2 Input Bar */}
       <div className="w-full space-y-2 pt-1">
-        {/* Compact Horizontally Scrollable Preset Chip Strip (Zero Truncation) */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5">
+        {/* Compact Horizontally Scrollable Preset & Pinned Chip Strip (Zero Truncation) */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 [mask-image:linear-gradient(to_right,black_92%,transparent_100%)]">
+          {pinnedCommands.map((pinned, idx) => (
+            <motion.div
+              key={`pin-${idx}`}
+              whileHover={{ y: -1.5 }}
+              whileTap={{ scale: 0.95 }}
+              className="min-h-[40px] pl-3 pr-2 rounded-full bg-amber-500/15 border border-amber-400/40 text-xs font-semibold text-amber-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)]"
+            >
+              <button
+                type="button"
+                disabled={isExecuting}
+                onClick={() => dispatchPrompt(pinned)}
+                className="flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              >
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                <span className="max-w-[180px] truncate">{pinned}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePinCommand(pinned)}
+                className="p-0.5 rounded-full hover:bg-white/10 text-amber-300/70 hover:text-white cursor-pointer"
+                title={language === 'bg' ? 'Премахни' : 'Unpin'}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </motion.div>
+          ))}
+
           {localizedPresets.map((preset) => (
             <motion.button
               key={preset.id}
@@ -355,7 +542,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               whileTap={{ scale: 0.95 }}
               disabled={isExecuting}
               onClick={() => dispatchPrompt(preset.prompt)}
-              className="h-9 px-3.5 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition cursor-pointer disabled:opacity-40"
+              className="min-h-[40px] px-3.5 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transition cursor-pointer disabled:opacity-40 transform-gpu"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
               <span>{preset.label}</span>
@@ -365,7 +552,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 
         {/* Tier 2 Liquid Glass Prompt Input Capsule */}
         <form onSubmit={handleSubmit} className="w-full relative">
-          <div className="min-h-[54px] h-14 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] px-4 flex items-center space-x-3 focus-within:border-cyan-400/60 transition">
+          <div className="min-h-[54px] h-14 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-4 flex items-center space-x-2.5 focus-within:border-cyan-400/60 transition transform-gpu">
             <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
             <input
               type="text"
@@ -374,14 +561,32 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               onKeyDown={handleInputKeyDown}
               placeholder={t('term_prompt_placeholder')}
               disabled={isExecuting}
-              className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40 disabled:opacity-50"
+              className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40 disabled:opacity-50 min-w-0"
             />
+            {prompt.trim() && (
+              <button
+                type="button"
+                onClick={() => togglePinCommand(prompt)}
+                className={`p-2 rounded-full transition cursor-pointer shrink-0 ${
+                  pinnedCommands.includes(prompt.trim())
+                    ? 'text-amber-300'
+                    : 'text-white/40 hover:text-amber-300'
+                }`}
+                title={language === 'bg' ? 'Закачи командата' : 'Pin command to bar'}
+              >
+                <Star
+                  className={`w-4 h-4 ${
+                    pinnedCommands.includes(prompt.trim()) ? 'fill-amber-400 text-amber-400' : ''
+                  }`}
+                />
+              </button>
+            )}
             <motion.button
               type="submit"
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.9 }}
               disabled={!prompt.trim() || isExecuting}
-              className="min-w-[42px] min-h-[42px] w-10 h-10 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 hover:brightness-110 disabled:opacity-35 text-slate-950 flex items-center justify-center transition shadow-[0_0_16px_rgba(56,189,248,0.45)] shrink-0 cursor-pointer"
+              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 hover:brightness-110 disabled:opacity-35 text-slate-950 flex items-center justify-center transition shadow-[0_0_16px_rgba(56,189,248,0.45)] shrink-0 cursor-pointer"
               aria-label={t('term_send_btn')}
             >
               {isExecuting ? (

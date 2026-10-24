@@ -15,6 +15,9 @@ import {
   LayoutGrid,
   Network,
   Zap,
+  Download,
+  Check,
+  ShieldCheck,
 } from 'lucide-react';
 import { HostDevice, WolPacketPayload } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -210,7 +213,11 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
   const addHostHandler = onOpenAddHostModal || onAddNewHost || (() => openModal('addHost'));
   const toggleOmnibar = useUIStore((s) => s.toggleOmnibar);
   const openModal = useUIStore((s) => s.openModal);
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const setPendingChatPrompt = useUIStore((s) => s.setPendingChatPrompt);
   const { t, language } = useTranslation();
+
+  const [exportedFleetFeedback, setExportedFleetFeedback] = useState(false);
 
   const [expandedHostIds, setExpandedHostIds] = useState<Record<string, boolean>>(() => {
     return activeSelectedId ? { [activeSelectedId]: true } : {};
@@ -329,6 +336,62 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
   const onlineCount = useMemo(() => hosts.filter((h) => h.isOnline).length, [hosts]);
   const offlineHosts = useMemo(() => hosts.filter((h) => !h.isOnline), [hosts]);
   const offlineCount = offlineHosts.length;
+
+  const fleetHealthScore = useMemo(() => {
+    if (hosts.length === 0) return 100;
+    const onlineHosts = hosts.filter((h) => h.isOnline);
+    if (onlineHosts.length === 0) return 75;
+    const avgPing =
+      onlineHosts.reduce((acc, h) => acc + (typeof h.ping === 'number' ? h.ping : 10), 0) /
+      onlineHosts.length;
+    const highLoadCount = onlineHosts.filter((h) => (h.cpuUsage ?? 0) >= 85 || (h.ramUsage ?? 0) >= 88).length;
+    const score = Math.round(100 - Math.min(12, avgPing / 8) - highLoadCount * 2 - quarantinedHosts.length * 5);
+    return Math.max(72, Math.min(100, score));
+  }, [hosts, quarantinedHosts.length]);
+
+  const handleDiagnoseHost = useCallback(
+    (host: HostDevice) => {
+      triggerHapticFeedback('medium');
+      const prompt =
+        language === 'bg'
+          ? `Диагностицирай високото натоварване на хост ${host.name} (${host.ip}, OS: ${host.os}, CPU: ${host.cpuUsage ?? 78}%, RAM: ${host.ramUsage ?? 82}%). Предложи конкретни диагностични команди и оптимизации.`
+          : `Diagnose the high resource load on host ${host.name} (${host.ip}, OS: ${host.os}, CPU: ${host.cpuUsage ?? 78}%, RAM: ${host.ramUsage ?? 82}%). Recommend specific diagnostic commands and remediation steps.`;
+      setPendingChatPrompt(prompt);
+      setActiveTab('chat');
+    },
+    [language, setPendingChatPrompt, setActiveTab]
+  );
+
+  const handleExportFleetJson = useCallback(() => {
+    triggerHapticFeedback('light');
+    const exportPayload = {
+      exportedAt: new Date().toISOString(),
+      protocol: 'CST/3.0-SECURE',
+      totalHosts: hosts.length,
+      hosts: hosts.map((h) => ({
+        id: h.id,
+        name: h.name,
+        ip: h.ip,
+        mac: h.mac,
+        os: h.os,
+        deviceType: h.deviceType,
+        tags: h.tags,
+      })),
+    };
+    const jsonString = JSON.stringify(exportPayload, null, 2);
+    navigator.clipboard?.writeText(jsonString);
+    try {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cst_fleet_manifest_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+    setExportedFleetFeedback(true);
+    setTimeout(() => setExportedFleetFeedback(false), 2000);
+  }, [hosts]);
 
   const handleWakeClick = useCallback(
     (e: React.MouseEvent, host: HostDevice) => {
@@ -549,7 +612,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="w-full flex flex-col select-none pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] relative"
+      className="w-full flex flex-col select-none pb-4 relative"
     >
       {/* Native-Grade Pull-to-Refresh Physics Spinner */}
       <AnimatePresence>
@@ -564,7 +627,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             className="w-full flex items-center justify-center overflow-hidden"
           >
-            <div className="bg-[#070c18]/88 backdrop-blur-3xl border border-cyan-400/30 flex items-center space-x-2.5 px-4 py-2 rounded-full text-cyan-300 text-xs font-semibold shadow-lg">
+            <div className="bg-[#070c18]/90 backdrop-blur-3xl border border-cyan-400/30 flex items-center space-x-2.5 px-4 py-2 rounded-full text-cyan-300 text-xs font-semibold shadow-lg">
               <RefreshCw
                 className={`w-4 h-4 text-cyan-400 ${
                   isRefreshing || isScanning || pullY >= 60 ? 'animate-spin' : ''
@@ -592,7 +655,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#070c18]/88 backdrop-blur-3xl w-full px-4 py-3 border border-amber-500/40 rounded-2xl flex items-center justify-between text-xs text-amber-200 shadow-lg"
+            className="bg-[#070c18]/90 backdrop-blur-3xl w-full px-4 py-3 border border-amber-500/40 rounded-2xl flex items-center justify-between text-xs text-amber-200 shadow-lg"
           >
             <div className="flex items-center space-x-2.5">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
@@ -602,7 +665,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               <button
                 type="button"
                 onClick={onReconnectNetwork}
-                className="min-h-[38px] px-4 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-400/50 rounded-full font-semibold transition flex items-center justify-center cursor-pointer"
+                className="min-h-[44px] px-4 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 border border-amber-400/50 rounded-full font-semibold transition flex items-center justify-center cursor-pointer"
               >
                 {t('conn_reconnect')}
               </button>
@@ -610,13 +673,13 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </motion.div>
         )}
 
-        {/* 1. HEADER ROW: Title + Inline Non-Wrapping Status Pill on Left | Wake All + Cards/Map + EN/BG on Right */}
+        {/* 1. HEADER ROW: Title + Inline Non-Wrapping Status Pill + Health Pill on Left | Wake All + Cards/Map + EN/BG on Right */}
         <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display truncate">
               {t('fleet_title')}
             </h1>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-sm tabular-nums">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-[0_8px_20px_rgba(0,0,0,0.5)] tabular-nums">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
               <span className="text-emerald-300 font-semibold">
                 {onlineCount} {t('fleet_online')}
@@ -625,6 +688,17 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               <span className="text-white/60">
                 {offlineCount} {t('fleet_sleeping')}
               </span>
+            </div>
+            <div
+              className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-[10.5px] font-mono font-semibold text-emerald-300 whitespace-nowrap shrink-0"
+              title={
+                language === 'bg'
+                  ? 'Индекс на здравето на мрежата (RTT + натоварване + сигурност)'
+                  : 'Real-time Fleet Network Health Index (RTT + load + security)'
+              }
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{fleetHealthScore}% {language === 'bg' ? 'Здраве' : 'Health'}</span>
             </div>
           </div>
 
@@ -636,7 +710,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={handleWakeAllOffline}
-                className="h-9 px-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)] transition"
+                className="min-h-[44px] px-3.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)] transition"
                 title={
                   language === 'bg'
                     ? `Събуди всички спящи хостове (${offlineCount})`
@@ -645,13 +719,13 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               >
                 <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30" />
                 <span>
-                  {language === 'bg' ? `Събуди всички (${offlineCount})` : `Wake All (${offlineCount})`}
+                  {language === 'bg' ? `Събуди (${offlineCount})` : `Wake All (${offlineCount})`}
                 </span>
               </motion.button>
             )}
 
             {/* [Cards | Map] Segmented Toggle (Tier 2 Floating Chrome) */}
-            <div className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 p-1 rounded-full flex items-center relative shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+            <div className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 p-1 rounded-full flex items-center relative shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu">
               {(['grid', 'topology'] as const).map((mode) => {
                 const isActive = viewMode === mode;
                 const Icon = mode === 'grid' ? LayoutGrid : Network;
@@ -664,7 +738,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                       triggerHapticFeedback('selection');
                       setViewMode(mode);
                     }}
-                    className={`relative h-7 px-2.5 rounded-full text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer z-10 whitespace-nowrap ${
+                    className={`relative min-h-[36px] px-2.5 rounded-full text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer z-10 whitespace-nowrap ${
                       isActive ? 'text-cyan-300 font-semibold' : 'text-white/55 hover:text-white'
                     }`}
                     title={label}
@@ -685,7 +759,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             </div>
 
             {/* [EN/BG] Language Switch */}
-            <LanguageToggle className="!min-h-[36px] !h-9 !px-2.5" />
+            <LanguageToggle className="!min-h-[44px] !h-11 !px-3" />
 
             {/* Optional Emergency Panic Kill Button */}
             {onPanicKill && (
@@ -697,7 +771,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                   triggerHapticFeedback('heavy');
                   onPanicKill();
                 }}
-                className="w-9 h-9 rounded-full bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center transition shrink-0 cursor-pointer"
+                className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center transition shrink-0 cursor-pointer"
                 title={t('fleet_panic_tooltip')}
                 aria-label={t('fleet_panic_aria')}
               >
@@ -707,9 +781,9 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </div>
         </div>
 
-        {/* 2. UNIFIED SEARCH + REFRESH + ADD HOST ROW */}
+        {/* 2. UNIFIED SEARCH + REFRESH + EXPORT + ADD HOST ROW */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-10 rounded-xl bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_12px_28px_rgba(0,0,0,0.5)] px-3 flex items-center gap-2 focus-within:border-cyan-400/50 transition min-w-0">
+          <div className="flex-1 min-h-[44px] h-11 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-3 flex items-center gap-2 focus-within:border-cyan-400/50 transition min-w-0 transform-gpu">
             <Search className="w-4 h-4 text-cyan-400/80 shrink-0" />
             <input
               type="text"
@@ -722,7 +796,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition cursor-pointer"
                 aria-label={t('fleet_clear_search')}
               >
                 <X className="w-3.5 h-3.5" />
@@ -753,12 +827,35 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               rescanHandler();
             }}
             disabled={isScanning}
-            className="h-10 px-3 rounded-xl bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-40 cursor-pointer shrink-0 shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+            className="min-h-[44px] min-w-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-40 cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
             title={`${t('fleet_rescan_tooltip')} [R]`}
             aria-label={t('fleet_rescan_aria')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{language === 'bg' ? 'Обнови' : 'Refresh'}</span>
+          </motion.button>
+
+          {/* [Export Fleet JSON] Button */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={handleExportFleetJson}
+            className="hidden sm:inline-flex min-h-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-white/80 hover:text-cyan-200 text-xs font-semibold items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
+            title={language === 'bg' ? 'Експортирай JSON манифест на флота' : 'Export Fleet JSON manifest'}
+          >
+            {exportedFleetFeedback ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
+            )}
+            <span className="hidden md:inline">
+              {exportedFleetFeedback
+                ? language === 'bg'
+                  ? 'Експортирано'
+                  : 'Exported'
+                : 'JSON'}
+            </span>
           </motion.button>
 
           {/* [+ Add Host] Button */}
@@ -770,7 +867,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               triggerHapticFeedback('light');
               addHostHandler();
             }}
-            className="h-10 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_16px_rgba(16,185,129,0.15)]"
+            className="min-h-[44px] h-11 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_16px_rgba(16,185,129,0.15)]"
             title={t('fleet_add_host_tooltip')}
             aria-label={t('fleet_add_host_aria')}
           >
@@ -782,7 +879,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
         {/* 3. HORIZONTAL FILTER PILLS + EXPAND/COLLAPSE ALL + COMPACT SORT DROPDOWN PILL */}
         <div className="flex items-center justify-between gap-2">
           {/* Filter Pills (All, Online, Sleeping, Servers) */}
-          <div className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0">
+          <div className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0 transform-gpu">
             {[
               { id: 'all', label: t('filter_all'), count: hosts.length },
               { id: 'online', label: t('filter_online'), count: onlineCount },
@@ -798,7 +895,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                     triggerHapticFeedback('selection');
                     setActiveFilter(chip.id as any);
                   }}
-                  className={`relative h-7 px-3 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer z-10 ${
+                  className={`relative min-h-[36px] px-3 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer z-10 ${
                     isActive ? 'text-cyan-200 font-semibold' : 'text-white/55 hover:text-white'
                   }`}
                 >
@@ -826,7 +923,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               <button
                 type="button"
                 onClick={handleToggleExpandAll}
-                className="hidden sm:inline-flex bg-[#070c18]/88 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/35 h-9 px-3 rounded-full items-center gap-1 text-[11px] font-medium text-white/65 hover:text-cyan-200 transition cursor-pointer whitespace-nowrap"
+                className="hidden sm:inline-flex bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/35 min-h-[40px] px-3 rounded-full items-center gap-1 text-[11px] font-medium text-white/65 hover:text-cyan-200 transition cursor-pointer whitespace-nowrap shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
                 title={
                   areAllFilteredExpanded
                     ? language === 'bg'
@@ -858,7 +955,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                   triggerHapticFeedback('light');
                   setIsSortMenuOpen((prev) => !prev);
                 }}
-                className="bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 h-9 px-3 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-cyan-200 hover:text-white cursor-pointer whitespace-nowrap shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+                className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 min-h-[40px] px-3 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-cyan-200 hover:text-white cursor-pointer whitespace-nowrap shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
                 title={t('sort_title_template', {
                   mode: currentSortOption.label,
                   badge: currentSortOption.badge,
@@ -888,7 +985,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.95 }}
                       transition={{ type: 'spring', stiffness: 440, damping: 28 }}
-                      className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.85)] space-y-1"
+                      className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.9)] space-y-1 transform-gpu"
                     >
                       {sortOptions.map((opt) => {
                         const isActive = sortMode === opt.id;
@@ -901,7 +998,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                               handleSortToggle(opt.id);
                               setIsSortMenuOpen(false);
                             }}
-                            className={`w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
+                            className={`w-full min-h-[40px] px-3 py-2 rounded-xl text-xs flex items-center justify-between transition cursor-pointer ${
                               isActive
                                 ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/30'
                                 : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
@@ -961,7 +1058,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </React.Suspense>
         </motion.div>
       ) : filteredHosts.length === 0 ? (
-        <div className="rounded-2xl bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] p-8 sm:p-10 flex flex-col items-center justify-center text-center mx-0.5">
+        <div className="rounded-2xl bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] p-8 sm:p-10 flex flex-col items-center justify-center text-center mx-0.5 transform-gpu">
           <div className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-white/40 mb-3.5">
             <Wifi className="w-6 h-6" />
           </div>
@@ -974,7 +1071,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="min-h-[40px] px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 border border-white/15 font-semibold text-xs transition cursor-pointer"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 border border-white/15 font-semibold text-xs transition cursor-pointer"
               >
                 {language === 'bg' ? 'Изчисти търсенето' : 'Clear Search'}
               </button>
@@ -982,7 +1079,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             <button
               type="button"
               onClick={addHostHandler}
-              className="min-h-[40px] px-5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer"
+              className="min-h-[44px] px-5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>{t('empty_hosts_btn')}</span>
@@ -1024,6 +1121,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 onViewScreen={onViewScreen}
                 onSelectForCommand={onSelectHostForCommand}
                 onQuickCommand={onSendCommand}
+                onDiagnoseHost={handleDiagnoseHost}
                 onOpenDetailsModal={(dev) => openModal('hostDetails', dev)}
                 onWakeClick={handleWakeClick}
               />

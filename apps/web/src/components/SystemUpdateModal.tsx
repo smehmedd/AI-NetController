@@ -18,6 +18,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { useTranslation } from '../i18n/useTranslation';
 
 export type ComponentCategory = 'ai_model' | 'core_system' | 'security_rule' | 'network_engine';
 export type EngineType = 'ai_engine' | 'host_daemon';
@@ -219,6 +220,8 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
   onClose,
   onNotify,
 }) => {
+  const { language } = useTranslation();
+  const isBg = language === 'bg';
   const [components, setComponents] = useState<UpdatableComponent[]>(INITIAL_COMPONENTS);
   const [isUpdatingAll, setIsUpdatingAll] = useState(false);
   const [isCheckingAll, setIsCheckingAll] = useState(false);
@@ -251,10 +254,8 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     const availableAiUpdates = aiModels.filter((c) => c.status === 'available').length;
     const availableDaemonUpdates = components.filter((c) => c.engineType === 'host_daemon' && c.status === 'available').length;
 
-    // Check if any model requires a newer daemon than currently running
     const conflictingModels = aiModels.filter((m) => {
       if (!m.minRequiredDaemonVersion) return false;
-      // If daemon is v2.4.0 and model needs v2.4.2
       return m.minRequiredDaemonVersion > daemonVersion && !isDaemonLatest;
     });
 
@@ -262,19 +263,25 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     const hasDrift = components.some((c) => c.status === 'available');
 
     let status: 'compatible' | 'drift_warning' | 'incompatible' = 'compatible';
-    let label = 'COMPATIBLE (No Version Drift)';
-    let summary = 'Host Daemon and AI Model Engine are synchronized with zero protocol drift.';
+    let label = isBg ? 'СЪВМЕСТИМО (Няма Drift)' : 'COMPATIBLE (No Version Drift)';
+    let summary = isBg
+      ? 'Host Daemon и AI Model Engine са синхронизирани без протоколен drift.'
+      : 'Host Daemon and AI Model Engine are synchronized with zero protocol drift.';
     let badgeColor = 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40';
 
     if (hasCriticalConflict) {
       status = 'incompatible';
-      label = 'VERSION DRIFT & COMPATIBILITY WARNING';
-      summary = `Host Daemon (${daemonVersion}) is lagging behind AI Model requirements. DeepSeek-R1 requires Daemon >= v2.4.2 for streaming reasoning tokens.`;
+      label = isBg ? 'ПРЕДУПРЕЖДЕНИЕ ЗА DRIFT' : 'VERSION DRIFT & COMPATIBILITY WARNING';
+      summary = isBg
+        ? `Host Daemon (${daemonVersion}) изостава спрямо изискванията на AI моделите. DeepSeek-R1 изисква Daemon >= v2.4.2.`
+        : `Host Daemon (${daemonVersion}) is lagging behind AI Model requirements. DeepSeek-R1 requires Daemon >= v2.4.2 for streaming reasoning tokens.`;
       badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-500/50';
     } else if (hasDrift) {
       status = 'drift_warning';
-      label = 'MINOR VERSION DRIFT DETECTED';
-      summary = `${availableAiUpdates} AI Model updates and ${availableDaemonUpdates} Host Daemon component updates available. Upstream API is backward-compatible.`;
+      label = isBg ? 'ОТКРИТ МАЛЪК DRIFT' : 'MINOR VERSION DRIFT DETECTED';
+      summary = isBg
+        ? `Налични са ${availableAiUpdates} AI актуализации и ${availableDaemonUpdates} обновления за Host Daemon.`
+        : `${availableAiUpdates} AI Model updates and ${availableDaemonUpdates} Host Daemon component updates available. Upstream API is backward-compatible.`;
       badgeColor = 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50';
     }
 
@@ -290,7 +297,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
       conflictingModels,
       totalAvailable: availableAiUpdates + availableDaemonUpdates
     };
-  }, [components]);
+  }, [components, isBg]);
 
   // Escape key handler for smooth accessibility
   useEffect(() => {
@@ -602,7 +609,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
     >
       <div
         id="system-update-modal"
-        className="w-full max-w-5xl bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.85)] flex flex-col max-h-[92vh] overflow-hidden"
+        className="w-full max-w-5xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.9)] flex flex-col max-h-[92vh] overflow-hidden"
       >
         {/* Header with Title and Global Action Buttons */}
         <div className="p-4 sm:p-5 bg-white/[0.02] flex flex-wrap items-center justify-between gap-3">
@@ -613,14 +620,16 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold font-mono tracking-wide text-white uppercase">
-                  System & AI Model Update Center
+                  {isBg ? 'Център за Системни и AI Обновления' : 'System & AI Model Update Center'}
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
                   v2.5 OTA
                 </span>
               </div>
               <p className="text-xs text-gray-400">
-                Automated & manual update checks for AI Model Engine and Host Daemon with version drift analysis
+                {isBg
+                  ? 'Автоматични и ръчни проверки за AI Model Engine и Host Daemon с анализ на съвместимостта'
+                  : 'Automated & manual update checks for AI Model Engine and Host Daemon with version drift analysis'}
               </p>
             </div>
           </div>
@@ -631,11 +640,11 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               id="check-all-updates-btn"
               onClick={handleCheckAllUpdates}
               disabled={isCheckingAll || isUpdatingAll}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Провери за обновления на всички AI модели и системни демони"
+              className="min-h-[44px] flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-mono text-xs font-semibold bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isBg ? 'Провери за обновления на всички AI модели и системни демони' : 'Check for updates across all AI models and system daemons'}
             >
               <Search className={`w-3.5 h-3.5 text-cyan-400 ${isCheckingAll ? 'animate-spin' : ''}`} />
-              <span>{isCheckingAll ? 'Проверка...' : 'Провери всички'}</span>
+              <span>{isCheckingAll ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери всички' : 'Check All'}</span>
             </button>
 
             {/* 1-CLICK UPDATE ALL BUTTON */}
@@ -643,7 +652,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               id="update-all-btn"
               onClick={handleUpdateAll}
               disabled={isUpdatingAll || isCheckingAll || availableCount === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all shadow-md ${
+              className={`min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all shadow-md ${
                 availableCount > 0
                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black hover:brightness-110 shadow-[0_0_15px_rgba(0,240,255,0.4)] cursor-pointer'
                   : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed'
@@ -652,15 +661,19 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               {isUpdatingAll ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-black" />
-                  <span>Обновяване...</span>
+                  <span>{isBg ? 'Обновяване...' : 'Updating...'}</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-4 h-4 fill-black text-black" />
                   <span>
                     {availableCount > 0
-                      ? `Обнови всички (${availableCount})`
-                      : 'Всички са обновени ✓'}
+                      ? isBg
+                        ? `Обнови всички (${availableCount})`
+                        : `Update All (${availableCount})`
+                      : isBg
+                      ? 'Всички са обновени ✓'
+                      : 'All Up to Date ✓'}
                   </span>
                 </>
               )}
@@ -669,7 +682,8 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
             <button
               id="close-update-modal-btn"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+              aria-label={isBg ? 'Затвори' : 'Close'}
             >
               <X className="w-5 h-5" />
             </button>
@@ -678,21 +692,20 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
         {/* Compatibility Status & Version Drift Dashboard Deck */}
         <div className="p-3.5 sm:p-4 bg-[#040813] border-b border-cyan-500/20 grid grid-cols-1 md:grid-cols-3 gap-3">
-          
           {/* Card 1: System Compatibility & Drift Banner */}
           <div className="p-3 rounded-xl bg-[#081224]/80 border border-cyan-500/30 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-mono text-gray-400 flex items-center gap-1.5">
                   <GitCompare className="w-3.5 h-3.5 text-cyan-400" />
-                  Съвместимост & Drift
+                  {isBg ? 'Съвместимост & Drift' : 'Compatibility & Drift'}
                 </span>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${systemCompatibility.badgeColor}`}>
                   {systemCompatibility.status === 'compatible'
-                    ? 'COMPATIBLE'
+                    ? isBg ? 'СЪВМЕСТИМО' : 'COMPATIBLE'
                     : systemCompatibility.status === 'incompatible'
-                    ? 'DRIFT WARNING'
-                    : 'MINOR DRIFT'}
+                    ? isBg ? 'DRIFT РИСК' : 'DRIFT WARNING'
+                    : isBg ? 'МАЛЪК DRIFT' : 'MINOR DRIFT'}
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-snug">
@@ -700,8 +713,8 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               </p>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
-              <span>Последна проверка:</span>
-              <span className="text-cyan-400">{lastSystemAuditTime.split(' ')[1] || '13:45'}</span>
+              <span>{isBg ? 'Последна проверка:' : 'Last checked:'}</span>
+              <span className="text-cyan-400 tabular-nums">{lastSystemAuditTime.split(' ')[1] || '13:45'}</span>
             </div>
           </div>
 
@@ -719,20 +732,26 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               </div>
               <p className="text-[11px] text-gray-300">
                 {systemCompatibility.availableAiUpdates > 0
-                  ? `${systemCompatibility.availableAiUpdates} модела с наличен drift (DeepSeek-R1, Qwen2.5)`
-                  : 'Всички 4 локални AI модела са синхронизирани.'}
+                  ? isBg
+                    ? `${systemCompatibility.availableAiUpdates} модела с наличен drift (DeepSeek-R1, Qwen2.5)`
+                    : `${systemCompatibility.availableAiUpdates} models with version drift (DeepSeek-R1, Qwen2.5)`
+                  : isBg
+                  ? 'Всички 4 локални AI модела са синхронизирани.'
+                  : 'All 4 local AI models are synchronized.'}
               </p>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-gray-400">4 заредени модела</span>
+              <span className="text-[10px] font-mono text-gray-400">
+                {isBg ? '4 заредени модела' : '4 loaded models'}
+              </span>
               <button
                 id="check-ai-engine-btn"
                 onClick={handleCheckAiEngine}
                 disabled={isCheckingAiEngine || isUpdatingAll}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-500/40 hover:border-purple-400 transition"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-500/40 hover:border-purple-400 transition cursor-pointer"
               >
                 <Search className={`w-3 h-3 ${isCheckingAiEngine ? 'animate-spin' : ''}`} />
-                <span>{isCheckingAiEngine ? 'Проверка...' : 'Провери AI Engine'}</span>
+                <span>{isCheckingAiEngine ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери AI Engine' : 'Check AI Engine'}</span>
               </button>
             </div>
           </div>
@@ -751,8 +770,12 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
               </div>
               <p className="text-[11px] text-gray-300">
                 {systemCompatibility.availableDaemonUpdates > 0
-                  ? `Налична е версия v2.4.2-LTS с подобрена поддръжка за WoL и SIMD.`
-                  : 'Host Daemon е актуален с Wire Protocol v2.4.2.'}
+                  ? isBg
+                    ? 'Налична е версия v2.4.2-LTS с подобрена поддръжка за WoL и SIMD.'
+                    : 'Version v2.4.2-LTS available with enhanced WoL and SIMD support.'
+                  : isBg
+                  ? 'Host Daemon е актуален с Wire Protocol v2.4.2.'
+                  : 'Host Daemon is up to date with Wire Protocol v2.4.2.'}
               </p>
             </div>
             <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between">
@@ -761,30 +784,29 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                 id="check-host-daemon-btn"
                 onClick={handleCheckHostDaemon}
                 disabled={isCheckingHostDaemon || isUpdatingAll}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 transition cursor-pointer"
               >
                 <Search className={`w-3 h-3 ${isCheckingHostDaemon ? 'animate-spin' : ''}`} />
-                <span>{isCheckingHostDaemon ? 'Проверка...' : 'Провери Host Daemon'}</span>
+                <span>{isCheckingHostDaemon ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери Host Daemon' : 'Check Host Daemon'}</span>
               </button>
             </div>
           </div>
-
         </div>
 
         {/* Category Filters */}
         <div className="px-4 py-2 bg-[#030710] border-b border-cyan-500/15 flex items-center gap-2 overflow-x-auto text-xs font-mono">
-          <span className="text-gray-400 mr-1 text-[11px]">Филтър:</span>
+          <span className="text-gray-400 mr-1 text-[11px]">{isBg ? 'Филтър:' : 'Filter:'}</span>
           {[
-            { id: 'all', label: `Всички (${components.length})` },
-            { id: 'ai_model', label: 'AI Модели (Ollama)' },
-            { id: 'core_system', label: 'Системни Демони' },
-            { id: 'security_rule', label: 'AST & HITL Правила' },
-            { id: 'network_engine', label: 'Мрежови Модули' },
+            { id: 'all', label: isBg ? `Всички (${components.length})` : `All (${components.length})` },
+            { id: 'ai_model', label: isBg ? 'AI Модели (Ollama)' : 'AI Models (Ollama)' },
+            { id: 'core_system', label: isBg ? 'Системни Демони' : 'System Daemons' },
+            { id: 'security_rule', label: isBg ? 'AST & HITL Правила' : 'AST & HITL Rules' },
+            { id: 'network_engine', label: isBg ? 'Мрежови Модули' : 'Network Modules' },
           ].map((cat) => (
             <button
               key={cat.id}
               onClick={() => setFilterCategory(cat.id as any)}
-              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap text-xs ${
+              className={`px-3 py-1 rounded-lg transition-colors whitespace-nowrap text-xs cursor-pointer ${
                 filterCategory === cat.id
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'
@@ -836,12 +858,12 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                         {isUpToDate ? (
                           <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/40">
                             <CheckCircle2 className="w-3 h-3" />
-                            Актуална ({comp.currentVersion})
+                            {isBg ? `Актуална (${comp.currentVersion})` : `Up to date (${comp.currentVersion})`}
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/40">
                             <ArrowDownCircle className="w-3 h-3" />
-                            Налична {comp.latestVersion}
+                            {isBg ? `Налична ${comp.latestVersion}` : `Available ${comp.latestVersion}`}
                           </span>
                         )}
                       </div>
@@ -852,7 +874,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
 
                       {/* Subtle Subtitle: Compatibility Requirement & Drift Notes */}
                       <p className="mt-1.5 text-[11px] font-mono text-gray-500">
-                        Текуща: <span className="text-gray-300">{comp.currentVersion}</span> • Нова: <span className="text-cyan-400">{comp.latestVersion}</span> • Drift: <span className="text-gray-300">{comp.driftDescription}</span> • <span className="text-cyan-300/80">{comp.compatibilityRequirement}</span>
+                        {isBg ? 'Текуща:' : 'Current:'} <span className="text-gray-300">{comp.currentVersion}</span> • {isBg ? 'Нова:' : 'Latest:'} <span className="text-cyan-400">{comp.latestVersion}</span> • Drift: <span className="text-gray-300">{comp.driftDescription}</span> • <span className="text-cyan-300/80">{comp.compatibilityRequirement}</span>
                       </p>
                     </div>
                   </div>
@@ -864,10 +886,10 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                       onClick={() => handleCheckSingleComponent(comp.id)}
                       disabled={isTargetChecking || isUpdating}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-mono text-[11px] text-gray-400 hover:text-white bg-black/40 border border-white/10 hover:border-cyan-500/30 transition cursor-pointer"
-                      title="Провери за нова версия на този компонент"
+                      title={isBg ? 'Провери за нова версия на този компонент' : 'Check upstream version for this component'}
                     >
                       <Search className={`w-3 h-3 ${isTargetChecking ? 'animate-spin text-cyan-400' : 'text-gray-400'}`} />
-                      <span>{isTargetChecking ? 'Проверка...' : 'Провери'}</span>
+                      <span>{isTargetChecking ? (isBg ? 'Проверка...' : 'Checking...') : isBg ? 'Провери' : 'Check'}</span>
                     </button>
 
                     {/* Update or Reinstall Button */}
@@ -877,7 +899,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-xs text-gray-400 hover:text-white bg-black/40 border border-white/10 hover:border-cyan-500/30 transition cursor-pointer"
                       >
                         <RefreshCw className="w-3 h-3 text-gray-400" />
-                        <span>Преинсталирай</span>
+                        <span>{isBg ? 'Преинсталирай' : 'Reinstall'}</span>
                       </button>
                     ) : (
                       <button
@@ -888,12 +910,12 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
                         {isUpdating ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>{comp.progress}% Сваляне...</span>
+                            <span>{comp.progress}% {isBg ? 'Сваляне...' : 'Downloading...'}</span>
                           </>
                         ) : (
                           <>
                             <ArrowDownCircle className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Обнови ръчно</span>
+                            <span>{isBg ? 'Обнови ръчно' : 'Update'}</span>
                           </>
                         )}
                       </button>
@@ -920,10 +942,10 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
           <div className="flex items-center justify-between text-gray-400 mb-1.5">
             <span className="flex items-center gap-1.5 text-cyan-400">
               <Terminal className="w-3.5 h-3.5" />
-              Update Orchestration & Version Drift Audit Log
+              {isBg ? 'Конзолен одит на обновленията и Drift анализа' : 'Update Orchestration & Version Drift Audit Log'}
             </span>
-            <span className="text-[10px] text-gray-500">
-              {updateLogs.length} събития
+            <span className="text-[10px] text-gray-500 tabular-nums">
+              {updateLogs.length} {isBg ? 'събития' : 'events'}
             </span>
           </div>
           <div className="bg-black/60 rounded-lg p-2 max-h-20 overflow-y-auto space-y-0.5 border border-white/5 text-gray-300 font-mono text-[10px]">
@@ -934,7 +956,6 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

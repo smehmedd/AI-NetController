@@ -11,6 +11,7 @@ export interface UIState {
   isOmnibarOpen: boolean;
   language: Language;
   selectedModel: string;
+  pendingChatPrompt: string | null;
 
   setActiveTab: (tab: NavTab) => void;
   openModal: (type: ModalType, payload?: any) => void;
@@ -20,6 +21,7 @@ export interface UIState {
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   setSelectedModel: (model: string) => void;
+  setPendingChatPrompt: (prompt: string | null) => void;
 }
 
 const getInitialLanguage = (): Language => {
@@ -58,6 +60,7 @@ export const useUIStore = create<UIState>((set) => ({
   isOmnibarOpen: false,
   language: getInitialLanguage(),
   selectedModel: getInitialModel(),
+  pendingChatPrompt: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   openModal: (type, payload = null) => set({ activeModal: type, modalPayload: payload }),
@@ -84,4 +87,5 @@ export const useUIStore = create<UIState>((set) => ({
     } catch {}
     set({ selectedModel: model });
   },
+  setPendingChatPrompt: (prompt) => set({ pendingChatPrompt: prompt }),
 }));

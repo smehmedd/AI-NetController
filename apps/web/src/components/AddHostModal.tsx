@@ -188,7 +188,7 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 14 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="relative w-full max-w-lg bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-2xl sm:rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden my-auto landscape-compact-modal"
+          className="relative w-full max-w-lg bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 rounded-2xl sm:rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.9)] overflow-hidden my-auto landscape-compact-modal"
         >
           {/* Cyber Accent Top Bar */}
           <div className="h-1 w-full bg-gradient-to-r from-cyan-500 via-teal-400 to-violet-500" />

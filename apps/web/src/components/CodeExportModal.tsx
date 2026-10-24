@@ -229,7 +229,7 @@ gh release create v2.7.0 \\
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-[24px] bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.85)] overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-[24px] bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] overflow-hidden">
         {/* Header Bar */}
         <div className="px-5 sm:px-6 py-4 bg-white/[0.02] flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center space-x-3 min-w-0">
@@ -258,7 +258,7 @@ gh release create v2.7.0 \\
               type="button"
               onClick={handleDownloadZip}
               disabled={isZipping}
-              className="min-h-[40px] flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-mono font-bold transition shadow-[0_0_15px_rgba(34,211,238,0.35)] cursor-pointer"
+              className="min-h-[44px] flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 text-xs font-mono font-bold transition shadow-[0_0_15px_rgba(34,211,238,0.35)] cursor-pointer"
             >
               <Package className="w-3.5 h-3.5" />
               <span>{isZipping ? (isBg ? 'Архивиране...' : 'Archiving...') : isBg ? 'Свали Проект (.ZIP)' : 'Download Source (.ZIP)'}</span>
@@ -270,8 +270,9 @@ gh release create v2.7.0 \\
                 triggerHapticFeedback('light');
                 onClose();
               }}
-              className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 flex items-center justify-center transition cursor-pointer"
+              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 flex items-center justify-center transition cursor-pointer"
               title={isBg ? 'Затвори' : 'Close'}
+              aria-label={isBg ? 'Затвори' : 'Close'}
             >
               <X className="w-5 h-5" />
             </button>

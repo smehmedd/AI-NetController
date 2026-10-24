@@ -23,6 +23,8 @@ import {
   RotateCcw,
   HardDrive,
   Star,
+  Radio,
+  Link2,
 } from 'lucide-react';
 import { HostDevice } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -48,6 +50,7 @@ export interface HostCardProps {
   onViewScreen: (device: HostDevice) => void;
   onSelectForCommand?: (hostId: string) => void;
   onQuickCommand?: (command: string, targetOverride?: string) => void;
+  onDiagnoseHost?: (device: HostDevice) => void;
   onOpenDetailsModal: (device: HostDevice) => void;
   onWakeClick: (e: React.MouseEvent, device: HostDevice) => void;
 }
@@ -156,6 +159,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   onViewScreen,
   onSelectForCommand,
   onQuickCommand,
+  onDiagnoseHost,
   onWakeClick,
 }) => {
   const { t, language: storeLang } = useTranslation();
@@ -163,6 +167,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const isOffline = !host.isOnline;
   const [copiedMac, setCopiedMac] = useState(false);
   const [copiedIp, setCopiedIp] = useState(false);
+  const [copiedUri, setCopiedUri] = useState(false);
+  const [isSonarPulsing, setIsSonarPulsing] = useState(false);
   const [dispatchedAction, setDispatchedAction] = useState<string | null>(null);
 
   const handleCopyMac = (e: React.MouseEvent) => {
@@ -179,6 +185,26 @@ const HostCardComponent: React.FC<HostCardProps> = ({
     navigator.clipboard?.writeText(host.ip);
     setCopiedIp(true);
     setTimeout(() => setCopiedIp(false), 1600);
+  };
+
+  const connectionUri =
+    host.os === 'windows'
+      ? `ws://${host.ip}:${host.port || 8765}`
+      : `ssh admin@${host.ip}`;
+
+  const handleCopyUri = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHapticFeedback('light');
+    navigator.clipboard?.writeText(connectionUri);
+    setCopiedUri(true);
+    setTimeout(() => setCopiedUri(false), 1800);
+  };
+
+  const handleTriggerSonarPing = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHapticFeedback('medium');
+    setIsSonarPulsing(true);
+    setTimeout(() => setIsSonarPulsing(false), 1800);
   };
 
   const handleQuickAction = (e: React.MouseEvent, actionId: string, command: string) => {
@@ -226,7 +252,9 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const latencyConfig = getLatencyConfig(host.ping, host.isOnline, safeId, currentLang);
   const cpuVal = clampPercentage(host.cpuUsage, 15);
   const ramVal = clampPercentage(host.ramUsage, 40);
+  const isHighLoadAnomaly = host.isOnline && (cpuVal >= 75 || ramVal >= 75);
   const osBadge = host.os === 'windows' ? 'Win 11' : 'Linux';
+  const osFullLabel = host.os === 'windows' ? 'Windows 11 Pro' : 'Linux Kernel 6.8';
 
   const rttMs = latencyConfig.latency ?? 12;
   const firstChar = safeId.length > 0 ? safeId.charCodeAt(0) : 65;
@@ -245,7 +273,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
     },
     {
       id: 'dns',
-      label: currentLang === 'bg' ? 'Изчисти DNS и кеш' : 'Flush DNS & Cache',
+      label: currentLang === 'bg' ? 'Изчисти DNS и Temp' : 'Flush DNS & Temp',
       icon: Sparkles,
       command:
         host.os === 'windows'
@@ -255,7 +283,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
     },
     {
       id: 'lock',
-      label: currentLang === 'bg' ? 'Заключи станцията' : 'Lock Workstation',
+      label: currentLang === 'bg' ? 'Заключи екрана' : 'Lock Screen',
       icon: Lock,
       command:
         host.os === 'windows'
@@ -302,10 +330,12 @@ const HostCardComponent: React.FC<HostCardProps> = ({
           }
         }}
         className={`
-          bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)]
+          bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu
           w-full rounded-[1.75rem] p-3.5 sm:p-5 text-left cursor-pointer select-none relative overflow-hidden transition-colors
           ${
-            isSelected
+            isSonarPulsing
+              ? 'border-cyan-300 shadow-[0_0_38px_rgba(34,211,238,0.45)] ring-2 ring-cyan-400/50'
+              : isSelected
               ? 'border-cyan-400/50 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.7),0_0_28px_rgba(56,189,248,0.18)]'
               : 'hover:border-white/20'
           }
@@ -315,12 +345,12 @@ const HostCardComponent: React.FC<HostCardProps> = ({
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
 
         {/* Collapsed Header Row */}
-        <div className="relative z-10 flex items-center justify-between gap-2.5 sm:gap-3">
-          {/* Left: 44x44px Squircle Icon + Hostname + OS Badge + Monospace IP + Latency / Sleeping state */}
-          <div className="flex items-center space-x-3 sm:space-x-3.5 min-w-0 flex-1">
+        <div className="relative z-10 flex items-center justify-between gap-2 sm:gap-3">
+          {/* Left: 44x44px Squircle Icon + Full Hostname + OS Badge + Monospace IP + Latency / Sleeping state */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0 flex-1">
             <div
               className={`
-                w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden
+                w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden
                 ${
                   isOffline
                     ? 'bg-white/[0.03] text-white/35 border-white/[0.08]'
@@ -329,11 +359,14 @@ const HostCardComponent: React.FC<HostCardProps> = ({
               `}
             >
               <DeviceIcon className="w-5 h-5" />
+              {isSonarPulsing && (
+                <span className="absolute inset-0 rounded-2xl border-2 border-cyan-300 animate-ping" />
+              )}
             </div>
 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
-                <span className="text-[14px] sm:text-base font-bold text-white tracking-tight truncate max-w-[180px] sm:max-w-none">
+                <span className="text-[14px] sm:text-base font-bold text-white tracking-tight break-words">
                   {host.name || safeId}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono font-semibold text-white/75 shrink-0">
@@ -347,7 +380,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                       triggerHapticFeedback('selection');
                       onTogglePin(host.id);
                     }}
-                    className={`p-1 rounded-full transition cursor-pointer shrink-0 ${
+                    className={`p-1.5 rounded-full transition cursor-pointer shrink-0 ${
                       isPinned
                         ? 'text-amber-300 hover:text-amber-200'
                         : 'text-white/25 hover:text-white/70'
@@ -396,7 +429,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 <span className="text-white/25" aria-hidden="true">•</span>
                 {isOffline ? (
                   <span className="text-amber-300/80 text-[11.5px] font-medium">
-                    {currentLang === 'bg' ? 'Спящ • Готов за WoL' : 'Sleeping • Ready for WoL'}
+                    {currentLang === 'bg' ? 'Спящ • Готов за Wake-on-LAN' : 'Sleeping • Ready for Wake-on-LAN'}
                   </span>
                 ) : (
                   <>
@@ -423,12 +456,11 @@ const HostCardComponent: React.FC<HostCardProps> = ({
             </div>
           </div>
 
-
-          {/* Right: Primary 1-tap action buttons + expand chevron */}
+          {/* Right: Primary 1-tap action buttons (strict 44x44px touch targets) + expand chevron */}
           <div className="flex items-center space-x-1.5 shrink-0">
             {isOffline ? (
               remainingWakeSeconds !== undefined ? (
-                <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-400/40 flex flex-col items-center justify-center text-amber-300 text-[10px] font-mono font-bold">
+                <div className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-amber-500/15 border border-amber-400/40 flex flex-col items-center justify-center text-amber-300 text-[10px] font-mono font-bold">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400 mb-0.5" />
                   <span>{remainingWakeSeconds}s</span>
                 </div>
@@ -438,7 +470,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                   whileHover={{ scale: 1.08, y: -1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={(e) => onWakeClick(e, host)}
-                  className="w-10 h-10 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/45 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.3)]"
+                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/45 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.3)]"
                   title={t('host_wake_tooltip')}
                   aria-label={t('host_wake_tooltip')}
                 >
@@ -456,7 +488,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     triggerHapticFeedback('light');
                     onSelectForCommand?.(host.id);
                   }}
-                  className="w-10 h-10 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                   title={t('host_terminal_tooltip')}
                   aria-label={t('host_terminal_tooltip')}
                 >
@@ -472,7 +504,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     triggerHapticFeedback('light');
                     onViewScreen(host);
                   }}
-                  className="w-10 h-10 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 hover:text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_16px_rgba(56,189,248,0.2)]"
+                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 hover:text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_16px_rgba(56,189,248,0.2)]"
                   title={t('host_screen_tooltip')}
                   aria-label={t('host_screen_tooltip')}
                 >
@@ -490,7 +522,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 onToggleExpand(host.id);
               }}
               aria-expanded={isExpanded}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
+              className={`min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
                 isExpanded
                   ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/35'
                   : 'bg-white/[0.03] text-white/50 hover:text-white border-white/10'
@@ -507,50 +539,82 @@ const HostCardComponent: React.FC<HostCardProps> = ({
           </div>
         </div>
 
-        {/* Bottom of Collapsed Card (Online only): Ultra-sleek 3px progress bars for CPU and RAM */}
+        {/* Bottom of Collapsed Card (Online only): Ultra-sleek 3px progress bars for CPU and RAM + Proactive AI Anomaly Pill */}
         {host.isOnline && (
-          <div className="relative z-10 mt-3.5 pt-2.5 border-t border-white/[0.06] grid grid-cols-2 gap-4 items-center">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
-                <span className="text-white/45 font-medium">CPU</span>
-                <span className={cpuVal > 80 ? 'text-rose-300 font-semibold' : 'text-cyan-300 font-semibold'}>
-                  {cpuVal}%
-                </span>
+          <div className="relative z-10 mt-3.5 pt-2.5 border-t border-white/[0.06] space-y-2.5">
+            <div className="grid grid-cols-2 gap-4 items-center">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
+                  <span className="text-white/45 font-medium">CPU</span>
+                  <span className={cpuVal >= 75 ? 'text-rose-300 font-semibold' : 'text-cyan-300 font-semibold'}>
+                    {cpuVal}%
+                  </span>
+                </div>
+                <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, Math.max(4, cpuVal))}%` }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 24 }}
+                    className={`h-full rounded-full ${
+                      cpuVal >= 75
+                        ? 'bg-gradient-to-r from-rose-400 to-amber-400 shadow-[0_0_8px_#fb7185]'
+                        : 'bg-gradient-to-r from-cyan-400 to-sky-300 shadow-[0_0_8px_#38bdf8]'
+                    }`}
+                  />
+                </div>
               </div>
-              <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, Math.max(4, cpuVal))}%` }}
-                  transition={{ type: 'spring', stiffness: 180, damping: 24 }}
-                  className={`h-full rounded-full ${
-                    cpuVal > 80
-                      ? 'bg-gradient-to-r from-rose-400 to-amber-400 shadow-[0_0_8px_#fb7185]'
-                      : 'bg-gradient-to-r from-cyan-400 to-sky-300 shadow-[0_0_8px_#38bdf8]'
-                  }`}
-                />
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
+                  <span className="text-white/45 font-medium">RAM</span>
+                  <span className={ramVal >= 75 ? 'text-amber-300 font-semibold' : 'text-indigo-300 font-semibold'}>
+                    {ramVal}%
+                  </span>
+                </div>
+                <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, Math.max(4, ramVal))}%` }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 24 }}
+                    className={`h-full rounded-full ${
+                      ramVal >= 75
+                        ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_0_8px_#fbbf24]'
+                        : 'bg-gradient-to-r from-indigo-400 to-cyan-300 shadow-[0_0_8px_#818cf8]'
+                    }`}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
-                <span className="text-white/45 font-medium">RAM</span>
-                <span className={ramVal > 85 ? 'text-amber-300 font-semibold' : 'text-indigo-300 font-semibold'}>
-                  {ramVal}%
+            {/* Proactive "Diagnose with AI" Anomaly Pill for High CPU/RAM Hosts */}
+            {isHighLoadAnomaly && (
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[10.5px] font-mono text-rose-300/90 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                  <span>
+                    {currentLang === 'bg'
+                      ? `Високо натоварване (${cpuVal}% CPU / ${ramVal}% RAM)`
+                      : `High resource utilization (${cpuVal}% CPU / ${ramVal}% RAM)`}
+                  </span>
                 </span>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHapticFeedback('medium');
+                    onDiagnoseHost?.(host);
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-violet-500/20 hover:bg-violet-500/35 border border-violet-400/50 text-violet-200 text-[10.5px] font-semibold flex items-center gap-1 shadow-[0_0_16px_rgba(139,92,246,0.3)] transition cursor-pointer shrink-0"
+                >
+                  <Sparkles className="w-3 h-3 text-violet-300 animate-pulse" />
+                  <span>
+                    {currentLang === 'bg' ? 'Диагностицирай с AI' : 'Diagnose High Load'}
+                  </span>
+                </motion.button>
               </div>
-              <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, Math.max(4, ramVal))}%` }}
-                  transition={{ type: 'spring', stiffness: 180, damping: 24 }}
-                  className={`h-full rounded-full ${
-                    ramVal > 85
-                      ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_0_8px_#fbbf24]'
-                      : 'bg-gradient-to-r from-indigo-400 to-cyan-300 shadow-[0_0_8px_#818cf8]'
-                  }`}
-                />
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -637,8 +701,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                       />
                       {host.isOnline
                         ? currentLang === 'bg'
-                          ? 'ЖИВ ПРЕГЛЕД'
-                          : 'LIVE PREVIEW'
+                          ? 'НА ЖИВО'
+                          : 'LIVE'
                         : currentLang === 'bg'
                         ? 'СПЯЩ ХОСТ'
                         : 'HOST SLEEPING'}
@@ -650,13 +714,13 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                   </div>
 
                   <div className="relative z-10 mt-auto flex items-center justify-center">
-                    <div className="w-full py-1.5 px-3 rounded-xl bg-[#070c18]/90 group-hover:bg-cyan-500/25 border border-white/15 group-hover:border-cyan-400/50 text-center transition-all flex items-center justify-center gap-1.5 text-[11px] font-semibold text-cyan-200 shadow-lg">
+                    <div className="w-full min-h-[38px] py-1.5 px-3 rounded-xl bg-[#070c18]/90 group-hover:bg-cyan-500/25 border border-white/15 group-hover:border-cyan-400/50 text-center transition-all flex items-center justify-center gap-1.5 text-[11px] font-semibold text-cyan-200 shadow-lg">
                       <Maximize2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                       <span className="truncate">
                         {host.isOnline
                           ? currentLang === 'bg'
-                            ? 'Отвори Интерактивен Екран и Тракпад'
-                            : 'Open Interactive Screen & Trackpad'
+                            ? 'Отвори цял екран и тракпад'
+                            : 'Open Fullscreen & Trackpad'
                           : currentLang === 'bg'
                           ? 'Събуди с Magic Packet (WoL)'
                           : 'Wake via Magic Packet (WoL)'}
@@ -687,7 +751,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                           type="button"
                           disabled={isOffline}
                           onClick={(e) => handleQuickAction(e, act.id, act.command)}
-                          className={`px-2.5 py-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 ${
+                          className={`min-h-[44px] px-2.5 py-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 ${
                             isDispatched
                               ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-200'
                               : isWarning
@@ -717,15 +781,15 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                   </div>
                 </div>
 
-                {/* TILE 3: Compact Hardware & Network Strip (Full-Width Bottom Tile) */}
-                <div className="md:col-span-2 rounded-xl bg-[#070c18]/80 border border-white/10 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono tabular-nums">
+                {/* TILE 3: Compact Diagnostics & Copyable Identity (Full-Width Bottom Tile) */}
+                <div className="md:col-span-2 rounded-xl bg-[#070c18]/80 border border-white/10 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono tabular-nums">
                   <div className="flex items-center gap-1.5">
                     <span className="text-white/45">MAC:</span>
                     <span className="text-white/90 font-semibold">{host.mac}</span>
                     <button
                       type="button"
                       onClick={handleCopyMac}
-                      className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-cyan-300 transition cursor-pointer"
+                      className="p-1.5 rounded-md hover:bg-white/10 text-white/50 hover:text-cyan-300 transition cursor-pointer"
                       title={currentLang === 'bg' ? 'Копирай MAC адрес' : 'Copy MAC address'}
                     >
                       {copiedMac ? (
@@ -750,7 +814,49 @@ const HostCardComponent: React.FC<HostCardProps> = ({
 
                   <span className="hidden sm:inline text-white/20">•</span>
 
-                  <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white/45">OS:</span>
+                    <span className="text-white/85 font-medium">{osFullLabel}</span>
+                  </div>
+
+                  <span className="hidden lg:inline text-white/20">•</span>
+
+                  {/* 1-Click Copy Connection URI & Visual Sonar Ping */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleCopyUri}
+                      className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[10.5px] text-cyan-300 flex items-center gap-1 transition cursor-pointer"
+                      title={
+                        currentLang === 'bg'
+                          ? `Копирай URI (${connectionUri})`
+                          : `Copy URI (${connectionUri})`
+                      }
+                    >
+                      {copiedUri ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Link2 className="w-3 h-3 text-cyan-400" />
+                      )}
+                      <span>{copiedUri ? (currentLang === 'bg' ? 'Копирано' : 'Copied') : 'URI'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleTriggerSonarPing}
+                      className={`px-2 py-1 rounded-lg border text-[10.5px] flex items-center gap-1 transition cursor-pointer ${
+                        isSonarPulsing
+                          ? 'bg-cyan-500/25 border-cyan-300 text-cyan-200'
+                          : 'bg-white/[0.04] hover:bg-white/[0.1] border-white/10 text-white/75 hover:text-cyan-200'
+                      }`}
+                      title={currentLang === 'bg' ? 'Визуален Sonar Ping тест' : 'Visual Sonar Ping locate'}
+                    >
+                      <Radio className={`w-3 h-3 text-cyan-400 ${isSonarPulsing ? 'animate-ping' : ''}`} />
+                      <span>Ping</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
                     <InlineMiniSparkline
                       history={host.latencyHistory}
                       ping={host.ping}

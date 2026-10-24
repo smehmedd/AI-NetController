@@ -9,6 +9,7 @@ import { WsConfigModal } from './WsConfigModal';
 import { SystemUpdateModal } from './SystemUpdateModal';
 import { HostDetailsModal } from './HostDetailsModal';
 import { AddHostModal } from './AddHostModal';
+import { useTranslation } from '../i18n/useTranslation';
 
 // Props passed from Root Hook state
 interface ModalManagerProps {
@@ -39,6 +40,7 @@ interface ModalManagerProps {
 }
 
 export const ModalManager: React.FC<ModalManagerProps> = (props) => {
+  const { language } = useTranslation();
   const activeModal = useUIStore((s) => s.activeModal);
   const payload = useUIStore((s) => s.modalPayload);
   const closeModal = useUIStore((s) => s.closeModal);
@@ -116,8 +118,8 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
       <BottomSheet
         isOpen={activeModal === 'memory'}
         onClose={closeModal}
-        title="Contextual Memory Rules"
-        subtitle="RAM & Persistent config.json settings"
+        title={language === 'bg' ? 'Контекстна памет и инструкции' : 'Contextual Memory Rules'}
+        subtitle={language === 'bg' ? 'RAM и постоянни config.json настройки' : 'RAM & Persistent config.json settings'}
       >
         <MemoryManager hosts={props.hosts} onUpdateInstructions={props.onUpdateHostInstructions} />
       </BottomSheet>

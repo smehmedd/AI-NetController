@@ -114,8 +114,15 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
     }
   };
 
-  const handleSendKeyCombo = (combo: string) => {
+  const handleSendKeyCombo = async (combo: string) => {
     triggerHapticFeedback('medium');
+    if (combo === 'Paste Clipboard') {
+      try {
+        await navigator.clipboard?.readText();
+      } catch {
+        // Fallback when clipboard read permission is not granted
+      }
+    }
     setSentKeyCombo(combo);
     setTimeout(() => {
       setSentKeyCombo((prev) => (prev === combo ? null : prev));
@@ -152,18 +159,18 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && device && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-4 bg-black/80 backdrop-blur-md select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-4 bg-black/75 backdrop-blur-md select-none">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2 }}
-            className="landscape-compact-modal bg-[#091020]/95 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.85)] rounded-2xl sm:rounded-3xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[94dvh] transform-gpu will-change-transform"
+            className="landscape-compact-modal bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] rounded-2xl sm:rounded-3xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[94dvh] transform-gpu will-change-transform"
           >
             {/* Header Bar */}
             <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-white/[0.02] border-b border-white/[0.08] shrink-0 gap-2 flex-wrap">
               <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
-                <div className="p-1.5 sm:p-2 bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 rounded-xl shrink-0">
+                <div className="p-2 bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 rounded-xl shrink-0">
                   <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -193,7 +200,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                         triggerHapticFeedback('selection');
                         setAspectPreset(preset.id);
                       }}
-                      className={`px-2 py-1 rounded-full text-[10px] font-mono font-semibold transition cursor-pointer whitespace-nowrap ${
+                      className={`px-2.5 py-1.5 rounded-full text-[10px] font-mono font-semibold transition cursor-pointer whitespace-nowrap ${
                         active
                           ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40'
                           : 'text-white/55 hover:text-white'
@@ -209,12 +216,12 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
               {/* Action Controls */}
               <div className="flex items-center space-x-1.5 shrink-0">
                 {/* Zoom Out / Reset / Zoom In */}
-                <div className="hidden md:flex items-center bg-[#070f1e] border border-white/10 rounded-xl px-1 h-10">
+                <div className="hidden md:flex items-center bg-[#070f1e] border border-white/10 rounded-xl px-1 h-11">
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.max(0.75, Number((z - 0.25).toFixed(2))))}
-                    className="p-1.5 text-slate-300 hover:text-white cursor-pointer"
-                    title="Zoom Out"
+                    className="p-2 text-slate-300 hover:text-white cursor-pointer"
+                    title={language === 'bg' ? 'Намали' : 'Zoom Out'}
                   >
                     <ZoomOut className="w-3.5 h-3.5" />
                   </button>
@@ -222,15 +229,15 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     type="button"
                     onClick={() => setZoomLevel(1)}
                     className="px-1.5 text-[10px] font-mono text-cyan-300 tabular-nums cursor-pointer"
-                    title="Reset Zoom"
+                    title={language === 'bg' ? 'Нулирай мащаба' : 'Reset Zoom'}
                   >
                     {Math.round(zoomLevel * 100)}%
                   </button>
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.min(2.25, Number((z + 0.25).toFixed(2))))}
-                    className="p-1.5 text-slate-300 hover:text-white cursor-pointer"
-                    title="Zoom In"
+                    className="p-2 text-slate-300 hover:text-white cursor-pointer"
+                    title={language === 'bg' ? 'Увеличи' : 'Zoom In'}
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
                   </button>
@@ -239,10 +246,10 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                 <button
                   onClick={handleRefreshTrigger}
                   disabled={isCapturing}
-                  className="flex items-center space-x-1.5 px-3 py-2 bg-[#070f1e] hover:bg-[#0c182e] text-cyan-300 rounded-xl text-xs font-sans border border-cyan-500/30 transition disabled:opacity-50 min-h-[40px] cursor-pointer"
+                  className="flex items-center space-x-1.5 px-3 py-2 bg-[#070f1e] hover:bg-[#0c182e] text-cyan-300 rounded-xl text-xs font-sans border border-cyan-500/30 transition disabled:opacity-50 min-h-[44px] min-w-[44px] justify-center cursor-pointer"
                   title={language === 'bg' ? 'Обнови кадъра' : 'Refresh frame'}
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isCapturing ? 'animate-spin text-cyan-300' : ''}`} />
+                  <RefreshCw className={`w-4 h-4 ${isCapturing ? 'animate-spin text-cyan-300' : ''}`} />
                   <span className="hidden sm:inline">
                     {isCapturing
                       ? language === 'bg'
@@ -256,7 +263,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 
                 <button
                   onClick={handleDownload}
-                  className="p-2 bg-[#070f1e] hover:bg-[#0c182e] text-slate-300 hover:text-white rounded-xl text-xs border border-white/10 transition min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
+                  className="p-2 bg-[#070f1e] hover:bg-[#0c182e] text-slate-300 hover:text-white rounded-xl text-xs border border-white/10 transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                   title={language === 'bg' ? 'Свали екранна снимка' : 'Download screenshot'}
                 >
                   <Download className="w-4 h-4" />
@@ -264,7 +271,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 
                 <button
                   onClick={() => setIsTrackpadOpen((prev) => !prev)}
-                  className={`p-2 rounded-xl text-xs border transition min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer ${
+                  className={`p-2 rounded-xl text-xs border transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer ${
                     isTrackpadOpen
                       ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
                       : 'bg-[#070f1e] text-slate-300 border-white/10 hover:text-white'
@@ -276,7 +283,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 
                 <button
                   onClick={onClose}
-                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs border border-rose-500/20 transition min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
+                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs border border-rose-500/20 transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                   title={language === 'bg' ? 'Затвори' : 'Close'}
                   aria-label={language === 'bg' ? 'Затвори' : 'Close'}
                 >
@@ -333,7 +340,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     initial={{ y: 200, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 200, opacity: 0 }}
-                    className="absolute bottom-3 inset-x-3 sm:inset-x-16 bg-[#091020]/95 border border-cyan-500/35 rounded-2xl p-3 backdrop-blur-3xl shadow-2xl flex flex-col space-y-2 z-20"
+                    className="absolute bottom-3 inset-x-3 sm:inset-x-16 bg-[#091020]/96 border border-cyan-500/35 rounded-2xl p-3 backdrop-blur-3xl shadow-2xl flex flex-col space-y-2 z-20"
                   >
                     <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
                       <span className="text-xs font-sans font-semibold text-cyan-300 flex items-center space-x-1.5">
@@ -344,7 +351,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                       </span>
                       <button
                         onClick={() => setIsTrackpadOpen(false)}
-                        className="text-slate-400 hover:text-white cursor-pointer"
+                        className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
@@ -373,13 +380,13 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => triggerHapticFeedback('selection')}
-                        className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-sans text-slate-200 font-semibold active:scale-98 transition cursor-pointer"
+                        className="py-2.5 min-h-[44px] rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-sans text-slate-200 font-semibold active:scale-98 transition cursor-pointer"
                       >
                         {language === 'bg' ? 'Ляв клик' : 'Left Click'}
                       </button>
                       <button
                         onClick={() => triggerHapticFeedback('selection')}
-                        className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-sans text-slate-200 font-semibold active:scale-98 transition cursor-pointer"
+                        className="py-2.5 min-h-[44px] rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-sans text-slate-200 font-semibold active:scale-98 transition cursor-pointer"
                       >
                         {language === 'bg' ? 'Десен клик' : 'Right Click'}
                       </button>
@@ -389,8 +396,8 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Bottom Quick OS Key Passthrough Bar (QoL) */}
-            <div className="px-3 sm:px-4 py-2 bg-[#060b16] border-t border-white/[0.08] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none shrink-0">
+            {/* Bottom Quick Remote Keybar (Esc, Tab, Win/Super, Alt+F4, Ctrl+Alt+Del, Paste Clipboard) */}
+            <div className="px-3 sm:px-4 py-2 bg-[#070c18]/90 backdrop-blur-3xl border-t border-white/[0.12] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none shrink-0">
               <div className="flex items-center gap-1.5 text-[11px] font-mono text-white/50 shrink-0">
                 <Keyboard className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="hidden sm:inline">
@@ -399,21 +406,23 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
-                {['Ctrl+Alt+Del', 'Win / Super', 'Alt+Tab', 'Task Mgr', 'Esc'].map((combo) => {
+                {['Esc', 'Tab', 'Win/Super', 'Alt+F4', 'Ctrl+Alt+Del', 'Paste Clipboard'].map((combo) => {
                   const isSent = sentKeyCombo === combo;
+                  const displayLabel =
+                    combo === 'Paste Clipboard' && language === 'bg' ? 'Постави буфер' : combo;
                   return (
                     <button
                       key={combo}
                       type="button"
                       onClick={() => handleSendKeyCombo(combo)}
-                      className={`px-2.5 py-1 rounded-lg text-[10.5px] font-mono font-medium border transition cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                      className={`px-3 py-1.5 min-h-[38px] rounded-lg text-[10.5px] font-mono font-medium border transition cursor-pointer whitespace-nowrap flex items-center gap-1 ${
                         isSent
                           ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
                           : 'bg-white/[0.04] hover:bg-white/[0.1] border-white/10 text-slate-300 hover:text-white'
                       }`}
                     >
                       {isSent && <Check className="w-3 h-3 text-emerald-400" />}
-                      <span>{combo}</span>
+                      <span>{displayLabel}</span>
                     </button>
                   );
                 })}

@@ -72,6 +72,8 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const selectedModel = useUIStore((s) => s.selectedModel);
+  const pendingChatPrompt = useUIStore((s) => s.pendingChatPrompt);
+  const setPendingChatPrompt = useUIStore((s) => s.setPendingChatPrompt);
 
   const welcomeText = useMemo(
     () =>
@@ -231,7 +233,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       );
       actions.push({
         type: 'wol',
-        label: `Wake ${host ? host.name : target}`,
+        label: `${language === 'bg' ? 'Събуди' : 'Wake'} ${host ? host.name : target}`,
         payload: host || { id: target, mac: target },
       });
     }
@@ -360,6 +362,15 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     }
   };
 
+  // Auto-dispatch proactive AI diagnostic prompt from HostCard anomaly pill
+  useEffect(() => {
+    if (pendingChatPrompt && !isLoading) {
+      const promptToRun = pendingChatPrompt;
+      setPendingChatPrompt(null);
+      handleSendMessage(promptToRun);
+    }
+  }, [pendingChatPrompt, isLoading, setPendingChatPrompt]);
+
   const handleCopy = (id: string, text: string) => {
     triggerHapticFeedback('light');
     navigator.clipboard?.writeText(text);
@@ -406,17 +417,19 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               <button
                 type="button"
                 onClick={() => handleCopy(`code-${index}`, code)}
-                className="hover:text-white transition flex items-center space-x-1 cursor-pointer"
+                className="hover:text-white transition flex items-center space-x-1 cursor-pointer min-h-[28px] px-1.5"
               >
                 {copiedId === `code-${index}` ? (
                   <>
                     <Check className="w-3 h-3 text-emerald-400" />
-                    <span className="text-emerald-400 font-medium">Copied</span>
+                    <span className="text-emerald-400 font-medium">
+                      {language === 'bg' ? 'Копирано' : 'Copied'}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3 h-3" />
-                    <span>Copy</span>
+                    <span>{language === 'bg' ? 'Копирай' : 'Copy'}</span>
                   </>
                 )}
               </button>
@@ -437,14 +450,14 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100dvh-170px)] w-full max-w-5xl mx-auto px-1 sm:px-3 pb-[calc(env(safe-area-inset-bottom,24px)+6.5rem)] select-none">
-      {/* 1. Liquid Glass Header Bar with Samsung Style Role Pills */}
-      <header className="flex-none py-2.5 px-3 mb-2 rounded-full bg-[#070c18]/88 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-between relative gap-2">
+    <div className="flex-1 flex flex-col justify-between w-full max-w-5xl mx-auto px-1 sm:px-3 pb-1 select-none">
+      {/* 1. Tier 2 Optical Glass Header Bar with Role Pills */}
+      <header className="flex-none py-2 px-3 mb-2 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu flex items-center justify-between relative gap-2">
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
         {/* Gemini Identity */}
         <div className="flex items-center space-x-2.5 pl-1 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)] shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)] shrink-0">
             <Sparkles className="w-4 h-4 text-cyan-300" />
           </div>
           <div className="flex flex-col min-w-0">
@@ -458,7 +471,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           </div>
         </div>
 
-        {/* Liquid Glass Segmented Role Selector with Sliding Lens */}
+        {/* Segmented Role Selector with Sliding Lens */}
         <div className="flex items-center space-x-1.5 shrink-0">
           <div className="flex items-center glass-liquid-subtle p-1 rounded-full">
             {ROLES.map((r) => {
@@ -469,7 +482,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   key={r.id}
                   type="button"
                   onClick={() => handleRoleSelect(r.id)}
-                  className={`relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 whitespace-nowrap ${
+                  className={`relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 whitespace-nowrap min-h-[36px] ${
                     isSelected
                       ? 'text-cyan-200'
                       : 'text-white/50 hover:text-white/85'
@@ -492,13 +505,14 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           {messages.length > 1 && (
             <motion.button
               type="button"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
               onClick={handleClearHistory}
-              className="w-8 h-8 rounded-full glass-liquid-subtle hover:bg-white/10 text-white/45 hover:text-white flex items-center justify-center transition cursor-pointer"
-              title="Clear chat"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full glass-liquid-subtle hover:bg-white/10 text-white/55 hover:text-white flex items-center justify-center transition cursor-pointer"
+              title={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
+              aria-label={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
             </motion.button>
           )}
         </div>
@@ -543,13 +557,13 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopy(msg.id, msg.content.replace(/\[ACTION:[^\]]+\]/gi, '').trim())}
-                        className="text-white/45 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer"
+                        className="text-white/45 hover:text-cyan-300 transition flex items-center gap-1 cursor-pointer p-1"
                         title={language === 'bg' ? 'Копирай отговора' : 'Copy response'}
                       >
                         {copiedId === msg.id ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3.5 h-3.5" />
                         )}
                       </button>
                     </div>
@@ -558,8 +572,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 
                 {renderFormattedContent(msg.content)}
 
-
-                {/* Interactive Samsung Action Pills */}
+                {/* Interactive Action Pills */}
                 {msg.actions && msg.actions.length > 0 && (
                   <div className="mt-3 pt-2.5 border-t border-white/8 flex flex-wrap gap-2">
                     {msg.actions.map((action, idx) => (
@@ -576,13 +589,13 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                             onToggleLabMode();
                           }
                         }}
-                        className="samsung-pill px-3 py-1.5 bg-cyan-500/18 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer bubble-tap shadow-[0_4px_12px_rgba(0,212,255,0.2)]"
+                        className="samsung-pill px-3.5 py-2 min-h-[40px] bg-cyan-500/18 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-xs font-semibold flex items-center space-x-1.5 cursor-pointer bubble-tap shadow-[0_4px_12px_rgba(0,212,255,0.2)]"
                       >
-                        {action.type === 'wol' && <Power className="w-3 h-3 text-cyan-300" />}
-                        {action.type === 'rescan' && <RefreshCw className="w-3 h-3 text-cyan-300" />}
-                        {action.type === 'lab_mode' && <FlaskConical className="w-3 h-3 text-cyan-300" />}
+                        {action.type === 'wol' && <Power className="w-3.5 h-3.5 text-cyan-300" />}
+                        {action.type === 'rescan' && <RefreshCw className="w-3.5 h-3.5 text-cyan-300" />}
+                        {action.type === 'lab_mode' && <FlaskConical className="w-3.5 h-3.5 text-cyan-300" />}
                         <span>{action.label}</span>
-                        <ChevronRight className="w-3 h-3 opacity-60" />
+                        <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                       </button>
                     ))}
                   </div>
@@ -600,7 +613,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
             className="flex items-center space-x-2.5 px-4 py-2.5 rounded-full glass-liquid-subtle border border-cyan-400/30 text-cyan-300 text-xs font-mono w-max shadow-md"
           >
             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>Gemini reasoning...</span>
+            <span>{language === 'bg' ? 'Gemini анализира...' : 'Gemini reasoning...'}</span>
           </motion.div>
         )}
       </div>
@@ -613,7 +626,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               key={i}
               type="button"
               onClick={() => handleSendMessage(prompt)}
-              className="px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 text-xs font-medium cursor-pointer transition bubble-tap"
+              className="px-3.5 py-2 min-h-[40px] rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 text-xs font-medium cursor-pointer transition bubble-tap"
             >
               ⚡ {prompt}
             </button>
@@ -621,14 +634,14 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         </div>
       )}
 
-      {/* 3. Modern Samsung Liquid Glass Input Capsule Bar */}
+      {/* 3. Tier 2 Liquid Glass Input Capsule Bar */}
       <footer className="flex-none pt-1">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
           }}
-          className="relative glass-liquid-elevated rounded-full border border-white/15 p-1.5 flex items-center shadow-[0_12px_32px_rgba(0,0,0,0.6)]"
+          className="relative bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu rounded-full p-1.5 flex items-center"
         >
           <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
 
@@ -651,16 +664,16 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
             <button
               type="button"
               onClick={handleStopGeneration}
-              className="w-9 h-9 rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 flex items-center justify-center transition cursor-pointer shrink-0 bubble-tap"
-              title="Stop generation"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 flex items-center justify-center transition cursor-pointer shrink-0 bubble-tap"
+              title={language === 'bg' ? 'Спри генерирането' : 'Stop generation'}
             >
-              <Square className="w-3.5 h-3.5 fill-current" />
+              <Square className="w-4 h-4 fill-current" />
             </button>
           ) : (
             <button
               type="submit"
               disabled={!inputPrompt.trim()}
-              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer bubble-tap ${
+              className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer bubble-tap ${
                 inputPrompt.trim()
                   ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-bold shadow-[0_0_16px_rgba(0,212,255,0.5)]'
                   : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'

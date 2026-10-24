@@ -24,6 +24,7 @@ type Currency = 'BGN' | 'EUR' | 'USD';
 
 interface PresetScenario {
   name: string;
+  nameBg: string;
   hostCount: number;
   activeHours: number;
   daysPerWeek: number;
@@ -34,6 +35,7 @@ interface PresetScenario {
 const PRESET_SCENARIOS: PresetScenario[] = [
   {
     name: 'CST Lab (15 Workstations)',
+    nameBg: 'КСТ Лаборатория (15 компютъра)',
     hostCount: 15,
     activeHours: 8,
     daysPerWeek: 5,
@@ -42,6 +44,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
   },
   {
     name: 'Department Office (8 PCs)',
+    nameBg: 'Катедрен офис (8 компютъра)',
     hostCount: 8,
     activeHours: 9,
     daysPerWeek: 5,
@@ -50,6 +53,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
   },
   {
     name: 'AI Training Fleet (4 GPU Rigs)',
+    nameBg: 'AI GPU Клъстер (4 сървъра)',
     hostCount: 4,
     activeHours: 6,
     daysPerWeek: 6,
@@ -58,6 +62,7 @@ const PRESET_SCENARIOS: PresetScenario[] = [
   },
   {
     name: 'Single Remote Workstation',
+    nameBg: 'Единична работна станция',
     hostCount: 1,
     activeHours: 5,
     daysPerWeek: 5,
@@ -77,7 +82,7 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
   const [hostCount, setHostCount] = useState<number>(defaultHostCount > 0 ? defaultHostCount : 15);
   const [activeHoursPerDay, setActiveHoursPerDay] = useState<number>(8);
   const [daysPerWeek, setDaysPerWeek] = useState<number>(5);
-  const [activePowerWatts, setActivePowerWatts] = useState<number>(115);
+  const [activePowerWatts, setActivePowerWatts] = useState<number>(120);
   const [standbyPowerWatts, setStandbyPowerWatts] = useState<number>(1.8);
   const [kwhRate, setKwhRate] = useState<number>(0.28);
   const [currency, setCurrency] = useState<Currency>('BGN');
@@ -294,7 +299,9 @@ const WolEnergyCalculatorComponent: React.FC<WolEnergyCalculatorProps> = ({
                           : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20'
                       }`}
                     >
-                      <div className="font-semibold truncate">{preset.name}</div>
+                      <div className="font-semibold truncate">
+                        {language === 'bg' ? preset.nameBg : preset.name}
+                      </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                         {preset.hostCount} PC • {preset.activeHours}h/day • {preset.daysPerWeek}d/wk
                       </div>

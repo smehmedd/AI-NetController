@@ -30,6 +30,7 @@ import {
 } from '../services/wolService';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { HostDevice, Weekday, WolPacketPayload, WolSchedule, WolScheduleTargetType } from '../types';
+import { useTranslation } from '../i18n/useTranslation';
 
 interface WolModalProps {
   device: HostDevice | null;
@@ -54,6 +55,7 @@ export const WolModal: React.FC<WolModalProps> = ({
   onUpdateSchedules,
   initialTab = 'direct'
 }) => {
+  const { language } = useTranslation();
   const [activeTab, setActiveTab] = useState<'direct' | 'schedules'>(initialTab);
 
   // Direct Packet State
@@ -322,9 +324,9 @@ export const WolModal: React.FC<WolModalProps> = ({
             className="
               relative z-10 w-full max-w-3xl
               rounded-t-[2.5rem]
-              bg-[#091020]/95 backdrop-blur-3xl
+              bg-[#091020]/96 backdrop-blur-3xl
               border border-white/15 border-t-white/25
-              shadow-[0_24px_64px_rgba(0,0,0,0.85)]
+              shadow-[0_24px_64px_rgba(0,0,0,0.9)]
               flex flex-col overflow-hidden
               transform-gpu will-change-transform
               max-h-[92vh]
@@ -344,22 +346,24 @@ export const WolModal: React.FC<WolModalProps> = ({
               <div>
                 <div className="flex items-center space-x-2">
                   <h3 className="font-bold text-white text-base tracking-tight">
-                    Wake-on-LAN Контролер
+                    {language === 'bg' ? 'Wake-on-LAN Контролер' : 'Wake-on-LAN Controller'}
                   </h3>
                   <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
                     UDP 9
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  102-байтови Magic Packets • Рекурентни графици
+                  {language === 'bg'
+                    ? '102-байтови Magic Packets • Рекурентни графици'
+                    : '102-byte Magic Packets • Recurring Fleet Schedules'}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
               className="text-slate-400 hover:text-white min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center hover:bg-white/10 transition cursor-pointer"
-              title="Затвори"
-              aria-label="Затвори"
+              title={language === 'bg' ? 'Затвори' : 'Close'}
+              aria-label={language === 'bg' ? 'Затвори' : 'Close'}
             >
               <X className="w-5 h-5" />
             </button>
@@ -373,14 +377,16 @@ export const WolModal: React.FC<WolModalProps> = ({
                 triggerHapticFeedback('light');
                 setActiveTab('direct');
               }}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x ${
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x cursor-pointer ${
                 activeTab === 'direct'
                   ? 'bg-slate-950 text-cyan-300 border-slate-800 border-b-transparent shadow-sm'
                   : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-900/50'
               }`}
             >
               <Zap className="w-4 h-4 text-cyan-400" />
-              <span>Директен Magic Packet (UDP 9)</span>
+              <span>
+                {language === 'bg' ? 'Директен Magic Packet (UDP 9)' : 'Direct Magic Packet (UDP 9)'}
+              </span>
             </button>
 
             <button
@@ -389,16 +395,18 @@ export const WolModal: React.FC<WolModalProps> = ({
                 triggerHapticFeedback('light');
                 setActiveTab('schedules');
               }}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x ${
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x cursor-pointer ${
                 activeTab === 'schedules'
                   ? 'bg-slate-950 text-amber-300 border-slate-800 border-b-transparent shadow-sm'
                   : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-900/50'
               }`}
             >
               <Clock className="w-4 h-4 text-amber-400" />
-              <span>Графици за събуждане (Scheduler)</span>
+              <span>
+                {language === 'bg' ? 'Графици за събуждане (Scheduler)' : 'Wake-Up Schedules'}
+              </span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {schedules.filter(s => s.enabled).length} активни
+                {schedules.filter(s => s.enabled).length} {language === 'bg' ? 'активни' : 'active'}
               </span>
             </button>
           </div>
@@ -968,7 +976,7 @@ export const WolModal: React.FC<WolModalProps> = ({
                                 {schedule.time}
                               </div>
                               <div className="text-[10px] text-amber-300 font-mono">
-                                {formatTimeDisplay(schedule.time).match(/\(([^)]+)\)/)?.[1] || '24-часов'}
+                                {formatTimeDisplay(schedule.time)}
                               </div>
                             </div>
                           </div>
@@ -1000,12 +1008,14 @@ export const WolModal: React.FC<WolModalProps> = ({
                           {/* Next Run Calculation */}
                           <div className="text-right sm:text-left">
                             <span className="text-[10px] text-slate-400 uppercase font-mono block">
-                              Следващо изпълнение:
+                              {language === 'bg' ? 'Следващо изпълнение:' : 'Next execution:'}
                             </span>
                             <span className="text-xs font-semibold text-emerald-400 font-mono">
                               {schedule.enabled && nextRun
-                                ? `${nextRun.relativeText} (след ${nextRun.timeUntilFormatted})`
-                                : 'Паузиран'}
+                                ? `${nextRun.relativeText} (${language === 'bg' ? 'след' : 'in'} ${nextRun.timeUntilFormatted})`
+                                : language === 'bg'
+                                ? 'Паузиран'
+                                : 'Paused'}
                             </span>
                           </div>
                         </div>
@@ -1013,7 +1023,9 @@ export const WolModal: React.FC<WolModalProps> = ({
                         {/* Targets Breakdown & Action Buttons */}
                         <div className="mt-3 pt-2.5 border-t border-cyan-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                           <div className="text-slate-400 font-mono text-[11px] flex items-center gap-1.5 flex-wrap">
-                            <span className="text-cyan-400">🎯 {resolvedTargets.length} целеви компютъра:</span>
+                            <span className="text-cyan-400">
+                              🎯 {resolvedTargets.length} {language === 'bg' ? 'целеви компютъра:' : 'target hosts:'}
+                            </span>
                             {resolvedTargets.map(t => (
                               <span key={t.id} className="text-slate-300 bg-slate-800/60 px-1.5 py-0.5 rounded">
                                 {t.name} ({t.mac})
@@ -1027,23 +1039,31 @@ export const WolModal: React.FC<WolModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleTestTriggerSchedule(schedule)}
-                              className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                              className={`flex items-center space-x-1 px-2.5 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition border cursor-pointer ${
                                 isFired
                                   ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-[0_0_10px_#00FFA3]'
                                   : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30'
                               }`}
-                              title="Тестово ръчно излъчване на Magic Packet за този график"
+                              title={language === 'bg' ? 'Тестово ръчно излъчване на Magic Packet' : 'Test manual Magic Packet dispatch'}
                             >
                               {isFired ? <Check className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-                              <span>{isFired ? 'Излъчено!' : 'Събуди сега'}</span>
+                              <span>
+                                {isFired
+                                  ? language === 'bg'
+                                    ? 'Излъчено!'
+                                    : 'Dispatched!'
+                                  : language === 'bg'
+                                  ? 'Събуди сега'
+                                  : 'Wake Now'}
+                              </span>
                             </button>
 
                             {/* Edit Button */}
                             <button
                               type="button"
                               onClick={() => handleStartEditSchedule(schedule)}
-                              className="p-1 text-slate-400 hover:text-cyan-300 rounded hover:bg-white/5 transition"
-                              title="Редактирай"
+                              className="p-2 text-slate-400 hover:text-cyan-300 rounded hover:bg-white/5 transition cursor-pointer"
+                              title={language === 'bg' ? 'Редактирай' : 'Edit'}
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -1052,8 +1072,8 @@ export const WolModal: React.FC<WolModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleDeleteSchedule(schedule.id)}
-                              className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-white/5 transition"
-                              title="Изтрий"
+                              className="p-2 text-slate-400 hover:text-rose-400 rounded hover:bg-white/5 transition cursor-pointer"
+                              title={language === 'bg' ? 'Изтрий' : 'Delete'}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1062,7 +1082,8 @@ export const WolModal: React.FC<WolModalProps> = ({
 
                         {schedule.lastTriggered && (
                           <div className="mt-2 text-[10px] text-slate-500 font-mono">
-                            Последно събуждане: <span className="text-slate-400">{schedule.lastTriggered}</span>
+                            {language === 'bg' ? 'Последно събуждане:' : 'Last triggered:'}{' '}
+                            <span className="text-slate-400">{schedule.lastTriggered}</span>
                           </div>
                         )}
                       </div>
@@ -1079,7 +1100,7 @@ export const WolModal: React.FC<WolModalProps> = ({
           <div className="text-xs text-slate-400 flex items-center space-x-2">
             {activeTab === 'direct' ? (
               <>
-                <span>Протокол:</span>
+                <span>{language === 'bg' ? 'Протокол:' : 'Protocol:'}</span>
                 <span className="font-mono text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
                   UDP Broadcast (Port {port})
                 </span>
@@ -1089,14 +1110,23 @@ export const WolModal: React.FC<WolModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyConfigJson}
-                  className="flex items-center space-x-1 text-slate-400 hover:text-cyan-300 transition text-[11px] min-h-[36px] py-1 px-2 rounded"
+                  className="flex items-center space-x-1 text-slate-400 hover:text-cyan-300 transition text-[11px] min-h-[36px] py-1 px-2 rounded cursor-pointer"
                 >
                   {copiedConfig ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedConfig ? 'Конфигурацията е копирана!' : 'Копирай Config JSON'}</span>
+                  <span>
+                    {copiedConfig
+                      ? language === 'bg'
+                        ? 'Конфигурацията е копирана!'
+                        : 'Config JSON copied!'
+                      : language === 'bg'
+                      ? 'Копирай Config JSON'
+                      : 'Copy Config JSON'}
+                  </span>
                 </button>
                 <span className="text-slate-600">•</span>
                 <span className="text-[11px] text-slate-500">
-                  {schedules.length} графика ({schedules.filter(s => s.enabled).length} активни)
+                  {schedules.length} {language === 'bg' ? 'графика' : 'schedules'} (
+                  {schedules.filter(s => s.enabled).length} {language === 'bg' ? 'активни' : 'active'})
                 </span>
               </>
             )}
@@ -1108,7 +1138,7 @@ export const WolModal: React.FC<WolModalProps> = ({
               onClick={onClose}
               className="px-5 py-2.5 min-h-[44px] text-xs font-semibold text-slate-400 hover:text-white rounded-full transition hover:bg-white/5 flex items-center justify-center cursor-pointer"
             >
-              Затвори
+              {language === 'bg' ? 'Затвори' : 'Close'}
             </button>
 
             {activeTab === 'direct' && (
@@ -1119,7 +1149,15 @@ export const WolModal: React.FC<WolModalProps> = ({
                 className="flex items-center justify-center space-x-2 px-6 py-2.5 min-h-[44px] bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-bold rounded-full text-xs shadow-lg shadow-amber-500/20 transition active:scale-95 cursor-pointer"
               >
                 <Zap className={`w-4 h-4 ${isSending ? 'animate-bounce' : ''}`} />
-                <span>{isSending ? 'Излъчване...' : 'Изпрати Magic Packet'}</span>
+                <span>
+                  {isSending
+                    ? language === 'bg'
+                      ? 'Излъчване...'
+                      : 'Broadcasting...'
+                    : language === 'bg'
+                    ? 'Изпрати Magic Packet'
+                    : 'Send Magic Packet'}
+                </span>
               </button>
             )}
           </div>
