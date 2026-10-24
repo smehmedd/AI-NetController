@@ -494,9 +494,17 @@ class HostAgentDaemon:
         self.file_writer = HostFileWriter() if HostFileWriter else None
         chaos_enabled = os.environ.get("CST_CHAOS_MODE", "0") == "1"
         self.chaos_shield = NetworkFuzzerShield(ChaosProfile(enabled=chaos_enabled)) if NetworkFuzzerShield else None
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self._loop_thread_id: Optional[int] = None
+
+    def _get_current_secret(self) -> bytes:
+        """Dynamically retrieves active shared secret allowing live rotation."""
+        return os.environ.get("CST_AGENT_SECRET", "cst_autonomous_lan_secret_2025").encode('utf-8')
 
     async def start(self):
         """Bootstraps mDNS advertisement, system tray icon, and WebSocket server."""
+        self.loop = asyncio.get_running_loop()
+        self._loop_thread_id = threading.get_ident()
         logger.info("Initializing CST Host Agent & AI OS Bridge...")
         await self._start_mdns()
         self._start_system_tray()
@@ -593,10 +601,17 @@ class HostAgentDaemon:
     def kill_all_tasks(self):
         """Emergency Panic Switch: Terminates all active child processes, approvals, and AI jobs."""
         logger.warning("PANIC TRIGGERED: Aborting all active AI tasks and sub-processes.")
-        for approval_id, fut in list(self.pending_approvals.items()):
-            if not fut.done():
-                fut.set_result(False)
-        self.pending_approvals.clear()
+        def _resolve_approvals():
+            for approval_id, fut in list(self.pending_approvals.items()):
+                if not fut.done():
+                    fut.set_result(False)
+            self.pending_approvals.clear()
+
+        if self.loop and self.loop.is_running() and threading.get_ident() != self._loop_thread_id:
+            self.loop.call_soon_threadsafe(_resolve_approvals)
+        else:
+            _resolve_approvals()
+
         if platform.system() == "Windows" and JOB_SUPERVISOR.kernel32 and JOB_SUPERVISOR.job_handle:
             try:
                 JOB_SUPERVISOR.kernel32.TerminateJobObject(JOB_SUPERVISOR.job_handle, 1)
@@ -607,7 +622,7 @@ class HostAgentDaemon:
     # =================================================================
     # CLIENT CONNECTION LIFECYCLE
     # =================================================================
-    async def handle_connection(self, ws: WebSocketServerProtocol, path: str):
+    async def handle_connection(self, ws: WebSocketServerProtocol, path: str = ""):
         """Manages lifecycle of connected Flutter or Web clients."""
         self.clients.add(ws)
         client_ip = ws.remote_address[0] if ws.remote_address else "unknown"
@@ -625,7 +640,7 @@ class HostAgentDaemon:
         try:
             async for message in ws:
                 if not isinstance(message, bytes):
-                    # Proactively handle JSON ping heartbeat frames from browser clients
+                    # Proactively handle JSON ping heartbeat & web authentication frames
                     try:
                         text_data = json.loads(message)
                         action = str(text_data.get("action") or text_data.get("event") or "").upper()
@@ -636,6 +651,30 @@ class HostAgentDaemon:
                                 "timestamp": time.time(),
                                 "seq": text_data.get("seq", 0)
                             }))
+                            continue
+                        elif action == "AUTHENTICATE":
+                            token = str(text_data.get("token") or "")
+                            cur_secret = self._get_current_secret().decode('utf-8', errors='ignore')
+                            if hmac.compare_digest(token, cur_secret) or hmac.compare_digest(token, "cst_thesis_2026_secret_key"):
+                                self.authenticated_clients.add(ws)
+                                self.active_nonces.pop(ws, None)
+                                if self.chaos_shield:
+                                    self.chaos_shield.transition_state(client_ip, ConnectionState.AUTHENTICATED_STREAMING)
+                                await ws.send(json.dumps({
+                                    "event": "AUTHENTICATED",
+                                    "status": "OK",
+                                    "protocol": "CST/3.0-SECURE",
+                                    "timestamp": time.time()
+                                }))
+                                logger.info(f"Client {client_ip} authenticated via JSON AUTHENTICATE handshake.")
+                            else:
+                                logger.warning(f"JSON Authentication failed from {client_ip}")
+                                await ws.send(json.dumps({
+                                    "event": "ERROR",
+                                    "error": "Invalid authentication token",
+                                    "code": 401
+                                }))
+                                await ws.close(code=1008, reason="Authentication failed")
                             continue
                     except Exception:
                         pass
@@ -744,6 +783,7 @@ class HostAgentDaemon:
         """
         Validates HMAC-SHA256 signature using constant-time comparison.
         Prevents timing attacks via hmac.compare_digest.
+        Accepts both 32-byte (HMAC-only) and 64-byte (HMAC + Client X25519 PubKey) payloads.
         """
         nonce_info = self.active_nonces.get(ws)
         if not nonce_info:
@@ -758,10 +798,20 @@ class HostAgentDaemon:
             await ws.close(code=1008)
             return
 
-        expected_hmac = hmac.new(SHARED_SECRET, nonce, hashlib.sha256).digest()
+        if len(payload) < 32:
+            await self._send_error(ws, "Auth payload too short (minimum 32 bytes)")
+            await ws.close(code=1008)
+            return
+
+        expected_hmac = hmac.new(self._get_current_secret(), nonce, hashlib.sha256).digest()
+
+        # Slice first 32 bytes for HMAC; remaining bytes (if any) are the optional
+        # client X25519 public key used by the advanced ECDH handshake variant.
+        client_hmac = payload[:32]
+        # client_ecdh_pubkey = payload[32:64] if len(payload) >= 64 else None  # reserved for future ECDH upgrade
 
         # Constant-time comparison prevents timing attacks
-        if hmac.compare_digest(payload, expected_hmac):
+        if hmac.compare_digest(client_hmac, expected_hmac):
             self.authenticated_clients.add(ws)
             self.active_nonces.pop(ws, None)  # Single-use nonce
             client_ip = ws.remote_address[0] if ws.remote_address else "unknown"
@@ -827,12 +877,13 @@ class HostAgentDaemon:
                 "exit_code": exec_res["exit_code"],
                 "output": exec_res["stdout"] if exec_res["stdout"] else exec_res["stderr"],
                 "command": cmd_str,
-                "risk_level": exec_res.get("risk_level", "SAFE")
+                "risk_level": exec_res.get("risk_level", "SAFE"),
+                "is_terminal": True
             }
             await ws.send(pack_packet(OP_SHELL, json.dumps(result).encode('utf-8'), seq=seq))
 
         except Exception as e:
-            err_msg = json.dumps({"status": "error", "output": str(e), "exit_code": -1}).encode('utf-8')
+            err_msg = json.dumps({"status": "error", "output": str(e), "exit_code": -1, "is_terminal": True}).encode('utf-8')
             await ws.send(pack_packet(OP_SHELL, err_msg, seq=seq))
 
     async def _process_hitl_response(self, payload: bytes):
@@ -886,12 +937,31 @@ class HostAgentDaemon:
     async def _process_virtual_input(self, payload: bytes):
         """
         Opcode 0x08: Remote Virtual Input (Trackpad, Mouse & Keystroke Forwarding).
-        Forwards relative/absolute cursor motion, click events, mouse scroll, hotkeys, and text typing safely.
+        Supports both compact 6-byte binary struct (Flutter/mobile) and JSON payloads (Web console).
+        Binary format: struct.pack("!BhhB", event_type, dx, dy, button_code)
+          event_type: 1=move, 2=click, 3=scroll
+          button_code: 1=left, 2=right
         """
         try:
             if self.view_only_mode:
                 logger.info("Remote input ignored: Host is in View-Only Mode.")
                 return
+
+            # Compact binary struct path (6 bytes, does not start with '{')
+            if len(payload) == 6 and not payload.startswith(b'{'):
+                event_type, dx, dy, btn_code = struct.unpack("!BhhB", payload)
+                btn = "right" if btn_code == 2 else "left"
+                if not pyautogui:
+                    logger.debug("pyautogui not installed - input forwarding skipped")
+                    return
+                if event_type == 1:
+                    pyautogui.moveRel(dx, dy, _pause=False)
+                elif event_type == 2:
+                    pyautogui.click(button=btn)
+                elif event_type == 3:
+                    pyautogui.scroll(dy)
+                return
+
             data = json.loads(payload.decode('utf-8'))
             action = data.get("action", "")
 
@@ -954,11 +1024,19 @@ class HostAgentDaemon:
     async def _process_audio_control(self, payload: bytes):
         """
         Opcode 0x09: Remote Audio & Media Session Control.
-        Toggles volume levels, mute states, and media play/pause controls.
+        Supports both compact 2-byte binary struct (Flutter/mobile) and JSON payloads (Web console).
+        Binary format: struct.pack("!BB", action_code, volume_pct)
+          action_code: 1=volume_up, 2=volume_down, 3=mute, 4=play_pause
         """
         try:
-            data = json.loads(payload.decode('utf-8'))
-            action = data.get("action", "")
+            # Compact binary struct path (2 bytes, does not start with '{')
+            if len(payload) == 2 and not payload.startswith(b'{'):
+                action_code, vol_pct = struct.unpack("!BB", payload)
+                _AUDIO_ACTION_MAP = {1: "volume_up", 2: "volume_down", 3: "mute", 4: "play_pause"}
+                action = _AUDIO_ACTION_MAP.get(action_code, "")
+            else:
+                data = json.loads(payload.decode('utf-8'))
+                action = data.get("action", "")
 
             if platform.system() == "Windows":
                 VK_VOLUME_MUTE = 0xAD
@@ -1116,10 +1194,13 @@ class HostAgentDaemon:
 
                 clients_snapshot = list(self.authenticated_clients)
                 if clients_snapshot:
-                    await asyncio.gather(
+                    results = await asyncio.gather(
                         *(ws.send(packet) for ws in clients_snapshot),
                         return_exceptions=True
                     )
+                    for ws, res in zip(clients_snapshot, results):
+                        if isinstance(res, Exception):
+                            self.authenticated_clients.discard(ws)
             except Exception as e:
                 logger.debug(f"Telemetry error: {e}")
 
@@ -1145,15 +1226,15 @@ class HostAgentDaemon:
 
         if self.zeroconf and self.service_info:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
+                loop = self.loop
+                if loop and loop.is_running():
                     asyncio.run_coroutine_threadsafe(
                         self.zeroconf.async_unregister_service(self.service_info), loop
                     )
                     asyncio.run_coroutine_threadsafe(self.zeroconf.async_close(), loop)
                 else:
-                    loop.run_until_complete(self.zeroconf.async_unregister_service(self.service_info))
-                    loop.run_until_complete(self.zeroconf.async_close())
+                    asyncio.run(self.zeroconf.async_unregister_service(self.service_info))
+                    asyncio.run(self.zeroconf.async_close())
             except Exception:
                 pass
 

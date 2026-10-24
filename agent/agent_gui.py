@@ -89,38 +89,8 @@ class HostDaemonState:
         self.frames_broadcast: int = 0
 
         # Connected peers & Firewall Blacklist
-        self.connected_clients: List[Dict[str, Any]] = [
-            {
-                "id": "PEER-WEB-01",
-                "ip": "192.168.1.50",
-                "mac": "A4:83:E7:21:9B:04",
-                "device": "CST Web Fleet Console (Chrome)",
-                "auth": "HMAC-SHA256 + Curve25519",
-                "connectedAt": datetime.datetime.now().strftime("%H:%M:%S"),
-                "inputAllowed": True,
-                "isTrusted": True,
-            },
-            {
-                "id": "PEER-MOB-02",
-                "ip": "192.168.1.88",
-                "mac": "F8:E4:3B:7C:10:92",
-                "device": "Android 15 Controller (arm64)",
-                "auth": "ChaCha20-Poly1305 AEAD",
-                "connectedAt": datetime.datetime.now().strftime("%H:%M:%S"),
-                "inputAllowed": True,
-                "isTrusted": True,
-            },
-        ]
-        self.blacklisted_devices: List[Dict[str, Any]] = [
-            {
-                "id": "BAN-901",
-                "ip": "192.168.1.211",
-                "mac": "DE:AD:BE:EF:44:19",
-                "device": "Unknown Scanner (LAN)",
-                "reason": "Auto-Ban: 3 failed HMAC handshake attempts",
-                "bannedAt": datetime.datetime.now().strftime("%H:%M:%S"),
-            }
-        ]
+        self.connected_clients: List[Dict[str, Any]] = []
+        self.blacklisted_devices: List[Dict[str, Any]] = []
 
         # AV-Safe Integrity Checklist
         self.av_integrity = {
@@ -293,8 +263,10 @@ class HostDaemonState:
             try:
                 stats = psutil.net_if_stats()
                 addrs = psutil.net_if_addrs()
+                _VIRTUAL_NIC_PREFIXES = ("lo", "vethernet", "wsl", "docker", "br-", "virbr", "vboxnet", "vmnet", "loopback")
+
                 for nic_name, nic_stat in stats.items():
-                    if not nic_stat.isup or nic_name.lower().startswith("lo"):
+                    if not nic_stat.isup or nic_name.lower().startswith(_VIRTUAL_NIC_PREFIXES):
                         continue
                     ipv4_list = [
                         a.address for a in addrs.get(nic_name, [])
@@ -1231,13 +1203,33 @@ def launch_gui_with_background_daemon(daemon_runner: Optional[Callable[[HostDaem
     visible Tkinter Desktop Control Center on the main thread.
     """
     state = HostDaemonState()
+    daemon_server_instance = None
+    if daemon_runner is None:
+        try:
+            import asyncio
+            from agent_daemon import DaemonServer
+            daemon_server_instance = DaemonServer(host=state.local_ip, port=state.port)
+            def _default_runner(_state: HostDaemonState) -> None:
+                try:
+                    asyncio.run(daemon_server_instance.run())
+                except Exception as ex:
+                    logger.error(f"Daemon background reactor error: {ex}")
+            daemon_runner = _default_runner
+        except Exception as exc:
+            logger.info(f"Background DaemonServer auto-link omitted: {exc}")
+
     if daemon_runner is not None:
         t = threading.Thread(target=daemon_runner, args=(state,), daemon=True, name="CST_AsyncDaemonThread")
         t.start()
 
     if HAS_TKINTER and ("--headless" not in sys.argv):
         try:
-            gui = HostDaemonDesktopGUI(state=state)
+            stop_fn = daemon_server_instance.stop if daemon_server_instance else None
+            gui = HostDaemonDesktopGUI(
+                state=state,
+                on_disconnect_all=lambda: state.add_log("ALERT", "Disconnected all active peers."),
+                on_stop_daemon=stop_fn,
+            )
             gui.run()
             return
         except Exception as e:
@@ -1248,6 +1240,8 @@ def launch_gui_with_background_daemon(daemon_runner: Optional[Callable[[HostDaem
             time.sleep(1.0)
     except KeyboardInterrupt:
         state.is_running = False
+        if daemon_server_instance:
+            daemon_server_instance.stop()
 
 
 if __name__ == "__main__":

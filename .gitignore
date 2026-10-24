@@ -35,3 +35,10 @@ apps/mobile/android/key.properties
 *.jks
 *.keystore
 *.p12
+
+# Standalone root convenience binaries (official releases tracked in public/releases/)
+/*.exe
+/*.apk
+package-lock.json
+
+

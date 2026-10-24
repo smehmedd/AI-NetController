@@ -17,11 +17,20 @@ export const HEADER_SIZE = 12;
 export enum Opcode {
   OP_UNKNOWN = 0x00,
   OP_PING = 0x01,
-  OP_PONG = 0x02,
+  OP_TELEMETRY = 0x02,
+  OP_PONG = 0x02, // Legacy alias
   OP_SCREEN_FRAME = 0x03,
   OP_COMMAND = 0x04,
+  OP_SHELL = 0x04,
   OP_HITL = 0x05,
-  OP_TELEMETRY = 0x06
+  OP_AUTH = 0x06,
+  OP_CLIP = 0x07,
+  OP_INPUT = 0x08,
+  OP_AUDIO = 0x09,
+  OP_VIEWPORT_RESIZE = 0x0A,
+  OP_LLM_STREAM = 0x0B,
+  OP_FILE_TRANSFER = 0x0C,
+  OP_ERROR = 0xEE,
 }
 
 export interface ParsedHeader {

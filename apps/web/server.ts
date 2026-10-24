@@ -63,6 +63,16 @@ const apiRateBuckets = new Map<string, { count: number; resetAt: number }>();
 const API_WINDOW_MS = 60_000;
 const API_MAX_REQUESTS = 120;
 
+// Periodic cleanup of expired rate limit buckets to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, b] of apiRateBuckets.entries()) {
+    if (now >= b.resetAt) {
+      apiRateBuckets.delete(ip);
+    }
+  }
+}, 60_000).unref();
+
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   const clientIp = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1')
     .split(',')[0]
@@ -224,7 +234,8 @@ app.get('/api/releases', (_req: Request, res: Response) => {
 // Rebuild Release Binaries (.EXE & .APK) on Demand
 app.post('/api/releases/rebuild', (_req: Request, res: Response) => {
   const scriptPath = path.join(ROOT_DIR, 'scripts', 'build_release_binaries.py');
-  exec(`python3 "${scriptPath}"`, { timeout: 25000 }, (err, stdout, stderr) => {
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  exec(`"${pythonCmd}" "${scriptPath}"`, { timeout: 25000 }, (err, stdout, stderr) => {
     if (err) {
       return res.status(500).json({
         success: false,
@@ -433,57 +444,8 @@ const pcDaemonState = {
   securityProfile: 'balanced' as 'zero_trust' | 'balanced' | 'view_only',
   pairingPin: '482910',
   pairingToken: process.env.CST_AGENT_SECRET || 'cst_autonomous_lan_secret_2025',
-  connectedClients: [
-    {
-      id: 'PEER-WEB-01',
-      ip: '192.168.1.50',
-      mac: 'A4:83:E7:21:9B:04',
-      device: 'CST Web Fleet Console (Chrome 134)',
-      platform: 'web',
-      auth: 'HMAC-SHA256 + Curve25519',
-      connectedAt: new Date(Date.now() - 420_000).toLocaleTimeString('en-GB', { hour12: false }),
-      latencyMs: 4,
-      commandsSent: 14,
-      inputAllowed: true,
-      isTrusted: true,
-    },
-    {
-      id: 'PEER-MOB-02',
-      ip: '192.168.1.88',
-      mac: 'F8:E4:3B:7C:10:92',
-      device: 'Android 15 Controller (Pixel 9 Pro)',
-      platform: 'android',
-      auth: 'ChaCha20-Poly1305 AEAD',
-      connectedAt: new Date(Date.now() - 180_000).toLocaleTimeString('en-GB', { hour12: false }),
-      latencyMs: 9,
-      commandsSent: 6,
-      inputAllowed: true,
-      isTrusted: true,
-    },
-    {
-      id: 'PEER-IOS-03',
-      ip: '192.168.1.119',
-      mac: '6C:40:08:AD:55:1E',
-      device: 'iPhone 16 Pro (PWA Controller)',
-      platform: 'ios',
-      auth: 'TLS 1.3 + Ephemeral PIN',
-      connectedAt: new Date(Date.now() - 65_000).toLocaleTimeString('en-GB', { hour12: false }),
-      latencyMs: 12,
-      commandsSent: 2,
-      inputAllowed: false,
-      isTrusted: false,
-    },
-  ] as DaemonConnectedClient[],
-  blacklistedDevices: [
-    {
-      id: 'BAN-901',
-      ip: '192.168.1.211',
-      mac: 'DE:AD:BE:EF:44:19',
-      device: 'Unknown Scanner (Kali-LAN)',
-      reason: 'Auto-Ban: 3 failed HMAC-SHA256 handshake attempts',
-      bannedAt: new Date(Date.now() - 900_000).toLocaleTimeString('en-GB', { hour12: false }),
-    },
-  ] as BlacklistedDeviceEntry[],
+  connectedClients: [] as DaemonConnectedClient[],
+  blacklistedDevices: [] as BlacklistedDeviceEntry[],
   avIntegrity: {
     upxDisabled: true,
     visibleHwnd: true,
@@ -493,10 +455,9 @@ const pcDaemonState = {
     sandboxJobObject: true,
   },
   logs: [
-    { time: new Date(Date.now() - 300_000).toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `CST Host Daemon GUI v2.7.0-LTS initialized on ${detectPrimaryLanIp()}:8765` },
-    { time: new Date(Date.now() - 295_000).toLocaleTimeString('en-GB', { hour12: false }), level: 'SECURITY', message: 'AV-Safe Mode verified: Native Tkinter HWND window, UPX disabled, zero hidden PowerShell spawns.' },
-    { time: new Date(Date.now() - 240_000).toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: 'mDNS Service registered: _cst-agent._tcp.local. (RFC 6762)' },
-    { time: new Date(Date.now() - 180_000).toLocaleTimeString('en-GB', { hour12: false }), level: 'SECURITY', message: 'Zero-Trust Ephemeral Curve25519 + HMAC-SHA256 session established with 192.168.1.88' },
+    { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `CST Host Daemon GUI v2.7.0-LTS initialized on ${detectPrimaryLanIp()}:8765` },
+    { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'SECURITY', message: 'AV-Safe Mode verified: Native Tkinter HWND window, UPX disabled, zero hidden PowerShell spawns.' },
+    { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: 'mDNS Service registered: _cst-agent._tcp.local. (RFC 6762)' },
   ] as DaemonLogEntry[],
 };
 
@@ -814,52 +775,6 @@ app.post('/api/daemon/action', (req: Request, res: Response) => {
         addDaemonLog('ALERT', `PANIC DISCONNECT: Terminated ${count} active peer session(s) and zeroized ephemeral session keys.`);
         break;
       }
-      case 'simulate_reconnect': {
-        const sampleCandidates: DaemonConnectedClient[] = [
-          {
-            id: `PEER-MOB-${Math.floor(10 + Math.random() * 89)}`,
-            ip: `192.168.1.${Math.floor(60 + Math.random() * 120)}`,
-            mac: `A0:C9:12:${Math.floor(10 + Math.random() * 89)}:${Math.floor(10 + Math.random() * 89)}:FE`,
-            device: 'Samsung Galaxy S25 Ultra (Android 15)',
-            platform: 'android',
-            auth: 'ChaCha20-Poly1305 AEAD',
-            connectedAt: nowTime,
-            latencyMs: 7,
-            commandsSent: 1,
-            inputAllowed: true,
-            isTrusted: false,
-          },
-          {
-            id: 'PEER-WEB-01',
-            ip: '192.168.1.50',
-            mac: 'A4:83:E7:21:9B:04',
-            device: 'CST Web Fleet Console (Chrome 134)',
-            platform: 'web',
-            auth: 'HMAC-SHA256 + Curve25519',
-            connectedAt: nowTime,
-            latencyMs: 3,
-            commandsSent: 4,
-            inputAllowed: true,
-            isTrusted: true,
-          },
-        ];
-        const candidate =
-          pcDaemonState.connectedClients.length === 0 ? sampleCandidates[1] : sampleCandidates[0];
-
-        if (pcDaemonState.blacklistedDevices.some((b) => b.ip === candidate.ip)) {
-          addDaemonLog(
-            'ALERT',
-            `FIREWALL BLOCKED: Rejected connection attempt from blacklisted IP ${candidate.ip} (${candidate.device}).`
-          );
-        } else {
-          pcDaemonState.connectedClients.push(candidate);
-          addDaemonLog(
-            'SECURITY',
-            `Controller ${candidate.device} (${candidate.ip}) authenticated via constant-time HMAC-SHA256 challenge.`
-          );
-        }
-        break;
-      }
       case 'clear_logs':
         pcDaemonState.logs = [];
         addDaemonLog('INFO', 'Daemon event log cleared by operator.');
@@ -911,8 +826,9 @@ app.get('/api/setup/info', (_req: Request, res: Response) => {
         pairingToken: snap.pairingToken,
         webOrigin,
         mobilePairUrl,
-        exeDownloadUrl: '/releases/v2.7.0/CST_Agent_Daemon.exe',
-        apkDownloadUrl: '/releases/v2.7.0/CST-NetController-Mobile.apk',
+        exeDownloadUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe',
+        apkDownloadUrl: '/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk',
+        portableZipUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip',
         launcherDownloadUrl: '/api/setup/windows-launcher',
       },
     });
@@ -944,7 +860,7 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     '        python -m pip install -r agent\\requirements.txt --quiet',
     '    )',
     ') else (',
-    '    echo [!] Python not found in PATH. Looking for standalone CST_Agent_Daemon.exe...',
+    '    echo [!] Python not found in PATH. Looking for standalone CST_HostAgent_v2.7.0_win64.exe...',
     ')',
     '',
     'echo [2/4] Configuring Windows Private LAN Firewall rules (Ports 8765 ^& 3000)...',
@@ -956,10 +872,12 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     ')',
     '',
     'echo [3/4] Launching CST PC Host Daemon Desktop Control Center...',
-    'if exist "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe" (',
+    'if exist "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe" (',
+    '    start "CST PC Daemon" "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe"',
+    ') else if exist "CST_HostAgent_v2.7.0_win64.exe" (',
+    '    start "CST PC Daemon" "CST_HostAgent_v2.7.0_win64.exe"',
+    ') else if exist "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe" (',
     '    start "CST PC Daemon" "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe"',
-    ') else if exist "CST_Agent_Daemon.exe" (',
-    '    start "CST PC Daemon" "CST_Agent_Daemon.exe"',
     ') else if exist "agent\\agent_gui.py" (',
     '    start "CST PC Daemon" python "agent\\agent_gui.py"',
     ')',

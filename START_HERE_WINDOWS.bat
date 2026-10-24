@@ -28,8 +28,12 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [3/4] Starting CST PC Host Daemon Desktop Control Center GUI...
-if exist "agent\dist\CST_Agent_Daemon\CST_Agent_Daemon.exe" (
+if exist "agent\dist\CST_HostAgent\CST_HostAgent.exe" (
+    start "CST PC Daemon" "agent\dist\CST_HostAgent\CST_HostAgent.exe"
+) else if exist "agent\dist\CST_Agent_Daemon\CST_Agent_Daemon.exe" (
     start "CST PC Daemon" "agent\dist\CST_Agent_Daemon\CST_Agent_Daemon.exe"
+) else if exist "agent\agent_daemon.py" (
+    start "CST PC Daemon" python "agent\agent_daemon.py"
 ) else if exist "agent\agent_gui.py" (
     start "CST PC Daemon" python "agent\agent_gui.py"
 )

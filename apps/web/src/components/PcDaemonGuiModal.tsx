@@ -34,7 +34,6 @@ import {
   Clipboard,
   Gauge,
   QrCode,
-  Plus,
   Trash2,
 } from 'lucide-react';
 import { triggerHapticFeedback } from '../services/hapticService';
@@ -152,57 +151,8 @@ const FALLBACK_DAEMON_STATE: DaemonStateSnapshot = {
   ramTotalGb: 16.0,
   diskPercent: 42.8,
   captureFps: 60,
-  connectedClients: [
-    {
-      id: 'PEER-WEB-01',
-      ip: '192.168.1.50',
-      mac: 'A4:83:E7:21:9B:04',
-      device: 'CST Web Fleet Console (Chrome 134)',
-      platform: 'web',
-      auth: 'HMAC-SHA256 + Curve25519',
-      connectedAt: '14:20:05',
-      latencyMs: 4,
-      commandsSent: 14,
-      inputAllowed: true,
-      isTrusted: true,
-    },
-    {
-      id: 'PEER-MOB-02',
-      ip: '192.168.1.88',
-      mac: 'F8:E4:3B:7C:10:92',
-      device: 'Android 15 Controller (Pixel 9 Pro)',
-      platform: 'android',
-      auth: 'ChaCha20-Poly1305 AEAD',
-      connectedAt: '14:24:18',
-      latencyMs: 9,
-      commandsSent: 6,
-      inputAllowed: true,
-      isTrusted: true,
-    },
-    {
-      id: 'PEER-IOS-03',
-      ip: '192.168.1.119',
-      mac: '6C:40:08:AD:55:1E',
-      device: 'iPhone 16 Pro (PWA Controller)',
-      platform: 'ios',
-      auth: 'TLS 1.3 + Ephemeral PIN',
-      connectedAt: '14:28:40',
-      latencyMs: 12,
-      commandsSent: 2,
-      inputAllowed: false,
-      isTrusted: false,
-    },
-  ],
-  blacklistedDevices: [
-    {
-      id: 'BAN-901',
-      ip: '192.168.1.211',
-      mac: 'DE:AD:BE:EF:44:19',
-      device: 'Unknown Scanner (Kali-LAN)',
-      reason: 'Auto-Ban: 3 failed HMAC-SHA256 handshake attempts',
-      bannedAt: '14:05:12',
-    },
-  ],
+  connectedClients: [],
+  blacklistedDevices: [],
   activeAdapters: [
     { name: 'Ethernet0 (Intel I225-V 2.5GbE)', ipv4: '192.168.1.104', mac: '00:2B:67:89:AB:CD' },
   ],
@@ -528,8 +478,8 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
 
           <div className="flex items-center gap-2 shrink-0">
             <a
-              href="/releases/v2.7.0/CST_Agent_Daemon.exe"
-              download="CST_Agent_Daemon.exe"
+              href="/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe"
+              download="CST_HostAgent_v2.7.0_win64.exe"
               onClick={() => triggerHapticFeedback('medium')}
               className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(34,211,238,0.3)] transition"
             >
@@ -865,19 +815,10 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
                     </div>
 
                     {daemon.connectedClients.length === 0 ? (
-                      <div className="p-2.5 rounded-xl bg-black/30 border border-white/[0.06] text-xs font-mono text-slate-400 flex items-center justify-between">
-                        <span>
-                          {isBg
-                            ? `Няма активни сесии (Слуша на порт ${daemon.port})`
-                            : `No active sessions (Listening on port ${daemon.port})`}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => dispatchAction('simulate_reconnect')}
-                          className="text-cyan-400 hover:underline cursor-pointer"
-                        >
-                          {isBg ? '+ Симулирай' : '+ Simulate Peer'}
-                        </button>
+                      <div className="p-2.5 rounded-xl bg-black/30 border border-white/[0.06] text-xs font-mono text-slate-400">
+                        {isBg
+                          ? `Няма активни сесии (Слуша на порт ${daemon.port})`
+                          : `No active sessions (Listening on port ${daemon.port})`}
                       </div>
                     ) : (
                       <div className="space-y-1.5 max-h-28 overflow-y-auto">
@@ -1131,16 +1072,8 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => dispatchAction('simulate_reconnect')}
-                    className="min-h-[40px] px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-200 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{isBg ? 'Симулирай устройство' : 'Simulate New Peer'}</span>
-                  </button>
-                  {daemon.connectedClients.length > 0 && (
+                {daemon.connectedClients.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={() => dispatchAction('panic_disconnect')}
@@ -1149,8 +1082,8 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
                       <OctagonAlert className="w-3.5 h-3.5" />
                       <span>{isBg ? 'Прекъсни всички' : 'Disconnect All'}</span>
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Connected Devices List */}

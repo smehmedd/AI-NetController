@@ -204,8 +204,10 @@ class CommandASTFirewall:
                     if script and script[0] in {'"', "'"} and script[-1] == script[0]:
                         script = script[1:-1]
                     args.extend(["-c", script])
-                else:
+                elif remainder:
                     args.extend(shlex.split(remainder, posix=not IS_WINDOWS))
+                else:
+                    args.extend(["-c", "pass"])
                 proc = await asyncio.create_subprocess_exec(
                     *args,
                     stdout=asyncio.subprocess.PIPE,
@@ -247,10 +249,20 @@ class CommandASTFirewall:
                         await proc.wait()
                 except ProcessLookupError:
                     await proc.wait()
+                # Cleanly terminate pipe transports so proactor loop does not throw on closed pipe
                 try:
-                    await asyncio.wait_for(asyncio.shield(communicate_task), timeout=2.0)
-                except asyncio.TimeoutError:
+                    await asyncio.wait_for(asyncio.shield(communicate_task), timeout=1.0)
+                except (asyncio.TimeoutError, asyncio.CancelledError):
                     communicate_task.cancel()
+                    if proc.stdout and hasattr(proc.stdout, 'feed_eof'):
+                        proc.stdout.feed_eof()
+                    if proc.stderr and hasattr(proc.stderr, 'feed_eof'):
+                        proc.stderr.feed_eof()
+                    if hasattr(proc, '_transport') and proc._transport:
+                        try:
+                            proc._transport.close()
+                        except Exception:
+                            pass
                     await asyncio.gather(communicate_task, return_exceptions=True)
 
                 return {

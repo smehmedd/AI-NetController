@@ -303,7 +303,10 @@ class AuthenticatedCipher:
         if len(nonce) != NONCE_SIZE:
             raise ValueError(f"Nonce must be {NONCE_SIZE} bytes")
         if self._cipher:
-            return self._cipher.decrypt(nonce, ciphertext_with_tag, aad)
+            try:
+                return self._cipher.decrypt(nonce, ciphertext_with_tag, aad)
+            except Exception as e:
+                raise ValueError(f"Poly1305 MAC tag mismatch: {e}") from e
         return pure_chacha20_poly1305_decrypt(self.session_key, nonce, ciphertext_with_tag, aad)
 
 

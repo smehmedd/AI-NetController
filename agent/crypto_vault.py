@@ -74,7 +74,11 @@ class SlidingWindowReplayProtector:
         """
         Validates sequence number against sliding window.
         Returns True if sequence is fresh and valid; False if replay/too old.
+        Rejects seq <= 0 as invalid (sequence numbers must be positive).
         """
+        if seq <= 0:
+            return False
+
         if not self.initialized:
             self.max_seq = seq
             self.bitmap = 1

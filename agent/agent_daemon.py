@@ -142,8 +142,10 @@ class WoLDoctor:
             stats = psutil.net_if_stats()
             addrs = psutil.net_if_addrs()
 
+            _VIRTUAL_NIC_PREFIXES = ("lo", "vethernet", "wsl", "docker", "br-", "virbr", "vboxnet", "vmnet", "loopback")
+
             for nic_name, nic_stat in stats.items():
-                if nic_name.lower().startswith("lo"):
+                if nic_name.lower().startswith(_VIRTUAL_NIC_PREFIXES):
                     continue
                 ipv4_addrs = [
                     a.address for a in addrs.get(nic_name, [])
