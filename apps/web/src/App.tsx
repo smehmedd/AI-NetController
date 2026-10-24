@@ -145,9 +145,51 @@ export default function App() {
 
   useEffect(() => {
     if (!qolToast) return;
-    const id = setTimeout(() => setQolToast(null), 2200);
+    const id = setTimeout(() => setQolToast(null), 2600);
     return () => clearTimeout(id);
   }, [qolToast]);
+
+  // Zero-Typing URL Auto-Pairing (QR Scan on Phone) & ?setup=1 Wizard Opener
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const pairIp = params.get('pair_ip');
+      const setupFlag = params.get('setup');
+
+      if (pairIp) {
+        const pairPort = params.get('pair_port') || '8765';
+        const pairName = params.get('pair_name') || `PC-${pairIp.split('.').pop() || 'HOST'}`;
+        const pairMac = params.get('pair_mac') || '00:2B:67:89:AB:CD';
+        const pairOs = params.get('pair_os') === 'linux' ? 'linux' : 'windows';
+        const wsUri = `ws://${pairIp}:${pairPort}`;
+
+        fleet.addCustomHost({
+          id: pairName.toUpperCase().replace(/[^A-Z0-9-]/g, '-'),
+          name: pairName,
+          ip: pairIp,
+          mac: pairMac,
+          os: pairOs,
+          deviceType: 'pc',
+          isOnline: true,
+          lastSeen: 'Just now',
+          tags: ['QR-Paired', `Port-${pairPort}`],
+        });
+        agent.setWsUrl(wsUri);
+        agent.connect(wsUri);
+        triggerHapticFeedback('heavy');
+        triggerToast(
+          language === 'bg'
+            ? `✓ Автоматично сдвоен с ${pairName} (${pairIp})!`
+            : `✓ Automatically paired with ${pairName} (${pairIp})!`
+        );
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (setupFlag === '1' || setupFlag === 'true') {
+        openModal('quickSetup');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Global QoL Keyboard Shortcuts (1-4 Tabs, R Rescan, / Omnibar)
   useEffect(() => {

@@ -425,6 +425,23 @@ class HostDaemonDesktopGUI:
         self.token_lbl = tk.Label(tok_row, text="••••••••••••••••", bg="#0b1324", fg="#cbd5e1", font=("Consolas", 9))
         self.token_lbl.pack(side=tk.RIGHT, padx=6)
 
+        # 1-Click Phone QR Setup Button
+        pair_row = tk.Frame(net_card, bg="#0b1324")
+        pair_row.pack(fill=tk.X, pady=(8, 0))
+        tk.Button(
+            pair_row,
+            text="📱 Pair Phone (Open QR Setup & Copy Auto-Pair Link)",
+            command=self._open_phone_qr_setup,
+            bg="#0e7490",
+            fg="#ffffff",
+            activebackground="#0891b2",
+            relief=tk.FLAT,
+            font=("Segoe UI", 9, "bold"),
+            padx=10,
+            pady=4,
+            cursor="hand2",
+        ).pack(fill=tk.X)
+
         # Right Card: Live PC Hardware Telemetry
         hw_card = tk.Frame(mid_frame, bg="#0b1324", padx=14, pady=12, highlightthickness=1, highlightbackground="#1e293b")
         hw_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
@@ -571,6 +588,21 @@ class HostDaemonDesktopGUI:
         self.root.clipboard_clear()
         self.root.clipboard_append(uri)
         self.state.add_log("INFO", f"Copied WebSocket URI to clipboard: {uri}")
+        self._refresh_ui()
+
+    def _open_phone_qr_setup(self) -> None:
+        pair_url = (
+            f"http://{self.state.local_ip}:3000/?pair_ip={self.state.local_ip}"
+            f"&pair_port={self.state.port}&pair_name={self.state.hostname}"
+            f"&pair_token={self.state.pairing_token}"
+        )
+        self.root.clipboard_clear()
+        self.root.clipboard_append(pair_url)
+        self.state.add_log("INFO", f"Phone Auto-Pairing URL copied & QR Wizard opened: {pair_url}")
+        try:
+            webbrowser.open("http://localhost:3000/?setup=1")
+        except Exception:
+            pass
         self._refresh_ui()
 
     def _toggle_and_copy_token(self) -> None:

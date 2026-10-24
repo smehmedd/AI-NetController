@@ -587,6 +587,114 @@ app.post('/api/daemon/action', (req: Request, res: Response) => {
   }
 });
 
+// Zero-Friction Setup & Auto-Pairing Info Endpoint
+app.get('/api/setup/info', (_req: Request, res: Response) => {
+  try {
+    const snap = getDaemonSnapshot();
+    const primaryAdapter = snap.activeAdapters[0] || {
+      name: 'eth0 (GbE LAN)',
+      ipv4: snap.localIp,
+      mac: '00:2B:67:89:AB:CD',
+    };
+    const webOrigin = `http://${snap.localIp}:${PORT}`;
+    const pairParams = new URLSearchParams({
+      pair_ip: snap.localIp,
+      pair_port: String(snap.port),
+      pair_name: snap.hostname,
+      pair_mac: primaryAdapter.mac,
+      pair_os: snap.osName.toLowerCase().includes('win') ? 'windows' : 'linux',
+      pair_token: snap.pairingToken,
+    });
+    const mobilePairUrl = `${webOrigin}/?${pairParams.toString()}`;
+
+    return res.json({
+      success: true,
+      setup: {
+        hostname: snap.hostname,
+        osName: snap.osName,
+        localIp: snap.localIp,
+        daemonPort: snap.port,
+        webPort: PORT,
+        mac: primaryAdapter.mac,
+        adapterName: primaryAdapter.name,
+        wsUri: snap.wsUri,
+        pairingToken: snap.pairingToken,
+        webOrigin,
+        mobilePairUrl,
+        exeDownloadUrl: '/releases/v2.7.0/CST_Agent_Daemon.exe',
+        apkDownloadUrl: '/releases/v2.7.0/CST-NetController-Mobile.apk',
+        launcherDownloadUrl: '/api/setup/windows-launcher',
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message || 'Failed to generate setup info' });
+  }
+});
+
+// 1-Click Pre-Configured Windows Auto-Setup Launcher (.BAT)
+app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
+  const snap = getDaemonSnapshot();
+  const batLines = [
+    '@echo off',
+    'title CST NetController AI — 1-Click PC & Phone Setup',
+    'color 0B',
+    'echo ============================================================================',
+    'echo   CST NetController AI v2.7.0-LTS — Automatic PC ^& Phone Setup Wizard',
+    'echo ============================================================================',
+    'echo.',
+    `set CST_AGENT_SECRET=${snap.pairingToken}`,
+    `set CST_AGENT_PORT=${snap.port}`,
+    'cd /d "%~dp0"',
+    '',
+    'echo [1/4] Checking Python environment for PC Host Daemon...',
+    'where python >nul 2>nul',
+    'if %ERRORLEVEL% EQU 0 (',
+    '    if exist "agent\\requirements.txt" (',
+    '        echo       Installing/verifying Python packages...',
+    '        python -m pip install -r agent\\requirements.txt --quiet',
+    '    )',
+    ') else (',
+    '    echo [!] Python not found in PATH. Looking for standalone CST_Agent_Daemon.exe...',
+    ')',
+    '',
+    'echo [2/4] Configuring Windows Private LAN Firewall rules (Ports 8765 ^& 3000)...',
+    'netsh advfirewall firewall show rule name="CST NetController Daemon" >nul 2>nul',
+    'if %ERRORLEVEL% NEQ 0 (',
+    `    netsh advfirewall firewall add rule name="CST NetController Daemon" dir=in action=allow protocol=TCP localport=${snap.port} profile=private >nul 2>nul`,
+    '    netsh advfirewall firewall add rule name="CST NetController Web" dir=in action=allow protocol=TCP localport=3000 profile=private >nul 2>nul',
+    '    netsh advfirewall firewall add rule name="CST NetController WoL" dir=in action=allow protocol=UDP localport=9 profile=private >nul 2>nul',
+    ')',
+    '',
+    'echo [3/4] Launching CST PC Host Daemon Desktop Control Center...',
+    'if exist "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe" (',
+    '    start "CST PC Daemon" "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe"',
+    ') else if exist "CST_Agent_Daemon.exe" (',
+    '    start "CST PC Daemon" "CST_Agent_Daemon.exe"',
+    ') else if exist "agent\\agent_gui.py" (',
+    '    start "CST PC Daemon" python "agent\\agent_gui.py"',
+    ')',
+    '',
+    'echo [4/4] Starting Web ^& Phone Controller Server on Port 3000...',
+    'if exist "package.json" (',
+    '    if not exist "node_modules" (',
+    '        echo       Running first-time npm install...',
+    '        call npm install',
+    '    )',
+    '    start "" "http://localhost:3000/?setup=1"',
+    '    call npm run dev',
+    ') else (',
+    '    echo.',
+    '    echo [OK] PC Daemon is running! Open the CST app on your phone and scan the QR code.',
+    '    pause',
+    ')',
+  ];
+
+  const content = batLines.join('\r\n');
+  res.setHeader('Content-Type', 'application/x-bat; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="CST_OneClick_PC_Setup.bat"');
+  return res.send(content);
+});
+
 // System Update Status Endpoint
 app.get('/api/update/status', async (_req: Request, res: Response) => {
   try {

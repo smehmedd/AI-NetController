@@ -19,6 +19,7 @@ import {
   SlidersHorizontal,
   Monitor,
   ShieldCheck,
+  QrCode,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticFeedback } from '../services/hapticService';
@@ -609,6 +610,37 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
           <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
+            <motion.div
+              whileTap={{ scale: 0.985 }}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                useUIStore.getState().openModal('quickSetup');
+              }}
+              className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.035] transition group"
+            >
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center border border-emerald-400/30 shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                  <QrCode className="w-4 h-4 icon-bubbly" />
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+                    {language === 'bg' ? 'Бърза Настройка с 1 Клик (Телефон + PC)' : '1-Click Easy Setup (Phone QR + PC .EXE)'}
+                  </span>
+                  <span className="text-fluid-meta text-slate-400 truncate">
+                    {language === 'bg'
+                      ? 'Сканирай QR код за автоматично сдвояване или изтегли 1-клик .BAT / .EXE / .APK'
+                      : 'Scan QR code for zero-typing phone pairing or download 1-click .BAT / .EXE / .APK'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 shrink-0">
+                <span className="hidden sm:inline-block text-[10px] font-mono text-emerald-300">
+                  {language === 'bg' ? 'Авто-Сдвояване' : 'Auto-Pair'}
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </motion.div>
+
             <motion.div
               whileTap={{ scale: 0.985 }}
               onClick={() => {

@@ -19,6 +19,7 @@ import {
   Check,
   ShieldCheck,
   Monitor,
+  QrCode,
 } from 'lucide-react';
 import { HostDevice, WolPacketPayload } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -727,6 +728,29 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               </motion.button>
             )}
 
+            {/* [ 📱 Quick Setup (Phone + PC) ] 1-Click Setup & QR Pairing Wizard */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05, y: -1.5 }}
+              whileTap={{ scale: 0.92 }}
+              transition={SPRING_POP}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                openModal('quickSetup');
+              }}
+              className="group min-h-[44px] px-3 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(16,185,129,0.18)] transition transform-gpu"
+              title={
+                language === 'bg'
+                  ? 'Бърза Настройка с 1 Клик: Свържи Телефон (QR/APK) и Компютър (.EXE)'
+                  : '1-Click Easy Setup: Connect Phone (QR/APK) & PC (.EXE)'
+              }
+            >
+              <QrCode className="w-3.5 h-3.5 text-emerald-400 icon-bubbly" />
+              <span className="hidden xs:inline font-display">
+                {language === 'bg' ? 'Бърз Старт' : 'Quick Setup'}
+              </span>
+            </motion.button>
+
             {/* [ 🖥️ PC Daemon GUI ] Native Control Center Launcher */}
             <motion.button
               type="button"
@@ -745,7 +769,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               }
             >
               <Monitor className="w-3.5 h-3.5 text-cyan-400 icon-bubbly" />
-              <span className="hidden xs:inline font-display">
+              <span className="hidden sm:inline font-display">
                 {language === 'bg' ? 'PC Демон' : 'PC Daemon'}
               </span>
             </motion.button>

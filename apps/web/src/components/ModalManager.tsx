@@ -10,6 +10,7 @@ import { SystemUpdateModal } from './SystemUpdateModal';
 import { HostDetailsModal } from './HostDetailsModal';
 import { AddHostModal } from './AddHostModal';
 import { PcDaemonGuiModal } from './PcDaemonGuiModal';
+import { QuickSetupModal } from './QuickSetupModal';
 import { useTranslation } from '../i18n/useTranslation';
 
 // Props passed from Root Hook state
@@ -139,6 +140,33 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
         isOpen={activeModal === 'pcDaemonGui'}
         onClose={closeModal}
         onOpenCodeReleases={() => useUIStore.getState().openModal('code')}
+      />
+
+      <QuickSetupModal
+        isOpen={activeModal === 'quickSetup'}
+        onClose={closeModal}
+        isConnected={props.isConnected}
+        onAutoPairHost={(hostData) => {
+          if (props.onAddHost) {
+            props.onAddHost({
+              id: hostData.id,
+              name: hostData.name,
+              ip: hostData.ip,
+              mac: hostData.mac,
+              os: hostData.os,
+              deviceType: 'pc',
+              isOnline: true,
+              lastSeen: 'Just now',
+              tags: ['Paired-PC', 'LAN-8765'],
+            });
+          }
+          if (props.setWsUrl) {
+            props.setWsUrl(hostData.wsUri);
+          }
+          if (props.onConnectWs) {
+            props.onConnectWs(hostData.wsUri);
+          }
+        }}
       />
     </>
   );

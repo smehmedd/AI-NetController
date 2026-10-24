@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { NavTab } from '../components/FloatingPillNav';
 import { Language } from '../i18n/translations';
 
-export type ModalType = 'none' | 'wol' | 'screen' | 'memory' | 'code' | 'wsConfig' | 'update' | 'hitl' | 'hostDetails' | 'addHost' | 'pcDaemonGui';
+export type ModalType = 'none' | 'wol' | 'screen' | 'memory' | 'code' | 'wsConfig' | 'update' | 'hitl' | 'hostDetails' | 'addHost' | 'pcDaemonGui' | 'quickSetup';
 
 export interface UIState {
   activeTab: NavTab;
