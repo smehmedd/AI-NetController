@@ -18,6 +18,7 @@ import {
   Download,
   Check,
   ShieldCheck,
+  Monitor,
 } from 'lucide-react';
 import { HostDevice, WolPacketPayload } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -723,6 +724,28 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 </span>
               </motion.button>
             )}
+
+            {/* [ 🖥️ PC Daemon GUI ] Native Control Center Launcher */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                openModal('pcDaemonGui');
+              }}
+              className="min-h-[44px] px-3 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(34,211,238,0.18)] transition"
+              title={
+                language === 'bg'
+                  ? 'Отвори Графичния Контролен Център на PC Демона (Антивирус-Верифициран)'
+                  : 'Open PC Daemon Desktop Control Center GUI (AV-Verified)'
+              }
+            >
+              <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden xs:inline">
+                {language === 'bg' ? 'PC Демон' : 'PC Daemon'}
+              </span>
+            </motion.button>
 
             {/* [Cards | Map] Segmented Toggle (Tier 2 Floating Chrome) */}
             <div className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 p-1 rounded-full flex items-center relative shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu">

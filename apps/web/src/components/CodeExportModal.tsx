@@ -16,12 +16,14 @@ import {
   Package,
   ShieldCheck,
   RefreshCw,
-  FileText
+  FileText,
+  Monitor
 } from 'lucide-react';
 import { CODE_SNIPPETS } from '../data/codeSnippets';
 import { ENTERPRISE_SNIPPETS } from '../data/enterpriseSnippets';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
+import { useUIStore } from '../store/uiStore';
 
 const ALL_SNIPPETS = [...ENTERPRISE_SNIPPETS, ...CODE_SNIPPETS];
 
@@ -401,7 +403,18 @@ gh release create v2.7.0 \\
                     : 'Direct download for Windows .EXE Host Daemon, Android .APK Mobile Controller, and SHA-256 checksums'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('light');
+                    useUIStore.getState().openModal('pcDaemonGui');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-xs font-mono font-semibold text-emerald-300 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>{isBg ? 'Отвори PC Демон GUI' : 'Open PC Daemon GUI'}</span>
+                </button>
                 <a
                   href="/releases/v2.7.0/SHA256SUMS.txt"
                   download="SHA256SUMS.txt"

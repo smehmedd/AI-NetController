@@ -488,6 +488,7 @@ class HostAgentDaemon:
         self.service_info: Optional[ServiceInfo] = None
         self.server = None
         self.is_running = True
+        self.view_only_mode = False
         self.pending_approvals: Dict[str, asyncio.Future] = {}
         self.tray_icon = None
         self.file_writer = HostFileWriter() if HostFileWriter else None
@@ -574,10 +575,11 @@ class HostAgentDaemon:
             draw.point((32, 32), fill=(138, 43, 226, 255))
 
             menu = pystray.Menu(
-                pystray.MenuItem("CST Host Agent: Online", lambda: None, enabled=False),
+                pystray.MenuItem("CST Host Agent: Online (v2.7.0-LTS)", lambda: None, enabled=False),
                 pystray.MenuItem(lambda text: f"Active Clients: {len(self.authenticated_clients)}", lambda: None, enabled=False),
                 pystray.MenuItem(f"Port: {self.port}", lambda: None, enabled=False),
                 pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Toggle View-Only Input Lock", lambda: setattr(self, 'view_only_mode', not self.view_only_mode)),
                 pystray.MenuItem("Panic: Kill All AI Tasks", lambda: self.kill_all_tasks()),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Exit Agent", lambda: self.stop())
@@ -857,12 +859,17 @@ class HostAgentDaemon:
                 text = payload.decode('utf-8', errors='replace')
                 if pyperclip:
                     pyperclip.copy(text)
-                elif platform.system() == "Windows":
-                    import subprocess
-                    subprocess.run(['clip'], input=text.encode('utf-16le'), check=True, timeout=2.0)
-                elif platform.system() == "Linux":
-                    import subprocess
-                    subprocess.run(['xclip', '-selection', 'clipboard'], input=text.encode('utf-8'), check=True, timeout=2.0)
+                else:
+                    try:
+                        import tkinter as tk
+                        r = tk.Tk()
+                        r.withdraw()
+                        r.clipboard_clear()
+                        r.clipboard_append(text)
+                        r.update()
+                        r.destroy()
+                    except Exception:
+                        pass
 
             # Retrieve active clipboard and send back to client
             host_clip = ""
@@ -878,15 +885,18 @@ class HostAgentDaemon:
 
     async def _process_virtual_input(self, payload: bytes):
         """
-        Opcode 0x08: Remote Virtual Input (Trackpad, Mouse & Keystroke Injection).
-        Injects relative/absolute cursor motion, click events, mouse scroll, hotkeys, and text typing safely.
+        Opcode 0x08: Remote Virtual Input (Trackpad, Mouse & Keystroke Forwarding).
+        Forwards relative/absolute cursor motion, click events, mouse scroll, hotkeys, and text typing safely.
         """
         try:
+            if self.view_only_mode:
+                logger.info("Remote input ignored: Host is in View-Only Mode.")
+                return
             data = json.loads(payload.decode('utf-8'))
             action = data.get("action", "")
 
             if not pyautogui:
-                logger.debug("pyautogui not installed - input injection skipped")
+                logger.debug("pyautogui not installed - input forwarding skipped")
                 return
 
             if action == "move":
@@ -1155,6 +1165,36 @@ class HostAgentDaemon:
 # =====================================================================
 def main():
     daemon = HostAgentDaemon()
+    if "--headless" not in sys.argv:
+        try:
+            from agent_gui import HostDaemonState, HostDaemonDesktopGUI, HAS_TKINTER
+            if HAS_TKINTER:
+                gui_state = HostDaemonState(host=daemon.host, port=daemon.port)
+
+                def _run_ws_daemon():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(daemon.start())
+                        loop.run_forever()
+                    except Exception as exc:
+                        logger.error(f"Async daemon loop error: {exc}")
+                    finally:
+                        loop.close()
+
+                bg_thread = threading.Thread(target=_run_ws_daemon, daemon=True, name="CST_WsDaemonThread")
+                bg_thread.start()
+
+                gui = HostDaemonDesktopGUI(
+                    state=gui_state,
+                    on_disconnect_all=daemon.kill_all_tasks,
+                    on_stop_daemon=daemon.stop,
+                )
+                gui.run()
+                return
+        except Exception as e:
+            logger.info(f"Desktop GUI fallback to console mode: {e}")
+
     try:
         asyncio.run(daemon.start())
     except (KeyboardInterrupt, SystemExit):

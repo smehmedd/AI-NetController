@@ -120,6 +120,7 @@ def build_windows_exe(output_exe_path: str, output_zip_path: str) -> None:
     agent_files = [
         "agent.py",
         "agent_daemon.py",
+        "agent_gui.py",
         "command_ast_firewall.py",
         "crypto_handshake.py",
         "crypto_vault.py",
@@ -129,6 +130,7 @@ def build_windows_exe(output_exe_path: str, output_zip_path: str) -> None:
         "requirements.txt",
         "build_agent.spec",
         "build_exe.bat",
+        "sign_binary.ps1",
         "version_info.txt",
     ]
 
@@ -137,7 +139,7 @@ def build_windows_exe(output_exe_path: str, output_zip_path: str) -> None:
     with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         main_boot = (
             "# -*- coding: utf-8 -*-\n"
-            "# CST_HostAgent v2.7.0-LTS Entry Bootstrapper\n"
+            "# CST_HostAgent v2.7.0-LTS Entry Bootstrapper (Desktop GUI + Async Daemon)\n"
             "from agent_daemon import main\n"
             "if __name__ == '__main__':\n"
             "    main()\n"
@@ -147,10 +149,12 @@ def build_windows_exe(output_exe_path: str, output_zip_path: str) -> None:
             "BUILD_METADATA.json",
             json.dumps(
                 {
-                    "product": "CST NetController AI - Host Agent Daemon",
+                    "product": "CST NetController AI - Host Agent & Desktop GUI",
                     "version": "2.7.0-LTS",
                     "protocol": "CST/3.0-SECURE",
                     "architecture": "win64 (x86_64)",
+                    "guiEngine": "Tkinter/TTK Native HWND Control Center",
+                    "avSafeProfile": "Zero-UPX • PerMonitorV2 Manifest • No Hidden PowerShell",
                     "pythonTarget": "3.12.9",
                     "builtAt": datetime.now(timezone.utc).isoformat(),
                 },

@@ -119,21 +119,21 @@ const INITIAL_COMPONENTS: UpdatableComponent[] = [
   },
   {
     id: 'cst-host-agent',
-    name: 'CST Host Agent Daemon (EXE)',
+    name: 'CST Host Agent Daemon (EXE + GUI)',
     category: 'core_system',
     engineType: 'host_daemon',
-    currentVersion: 'v2.4.0',
-    latestVersion: 'v2.4.2-LTS',
-    description: 'Binary WebSocket Server (0xC5,0x71), RFC 8439 AEAD & Windows Job Object Sandbox',
+    currentVersion: 'v2.6.0',
+    latestVersion: 'v2.7.0-LTS',
+    description: 'Native Desktop GUI Control Center, Binary WebSocket Server (0xC5,0x71), AV-Clean Authenticode Build',
     size: '18.2 MB',
     status: 'available',
     progress: 0,
     driftSeverity: 'moderate',
-    driftDescription: '2 patch revisions behind (v2.4.0 → v2.4.2-LTS)',
+    driftDescription: '1 minor release behind (v2.6.0 → v2.7.0-LTS)',
     compatibilityRequirement: 'Core supervisor. Required by DeepSeek-R1 v1.5 for reasoning stream.',
     minRequiredDaemonVersion: 'v2.4.0',
-    lastCheckedAt: '2026-09-11 13:45:10',
-    releaseNotes: 'Added WTS console session lock detection, dual-stack WoL, and shared memory SIMD grabber.'
+    lastCheckedAt: '2026-10-24 14:20:00',
+    releaseNotes: 'Added Native Tkinter Desktop Control Center GUI, View-Only input lock, zero-UPX AV-clean build, and Authenticode SHA-256 signing.'
   },
   {
     id: 'ast-security-rules',

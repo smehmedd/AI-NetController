@@ -9,6 +9,7 @@ import { WsConfigModal } from './WsConfigModal';
 import { SystemUpdateModal } from './SystemUpdateModal';
 import { HostDetailsModal } from './HostDetailsModal';
 import { AddHostModal } from './AddHostModal';
+import { PcDaemonGuiModal } from './PcDaemonGuiModal';
 import { useTranslation } from '../i18n/useTranslation';
 
 // Props passed from Root Hook state
@@ -132,6 +133,12 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
             props.onAddHost(newHost);
           }
         }}
+      />
+
+      <PcDaemonGuiModal
+        isOpen={activeModal === 'pcDaemonGui'}
+        onClose={closeModal}
+        onOpenCodeReleases={() => useUIStore.getState().openModal('code')}
       />
     </>
   );

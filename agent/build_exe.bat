@@ -1,6 +1,7 @@
 @echo off
 echo =========================================================
 echo CST Autonomous Host Agent - 1-Click Windows EXE Builder
+echo (AV-Safe Desktop GUI Edition • Zero UPX • Authenticode)
 echo =========================================================
 echo.
 
@@ -13,30 +14,33 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [1/3] Setting up Python virtual environment...
+echo [1/4] Setting up Python virtual environment...
 if not exist "venv" (
     python -m venv venv
 )
 call venv\Scripts\activate
 
-echo [2/3] Installing dependencies and PyInstaller...
+echo [2/4] Installing dependencies and PyInstaller...
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-echo [3/3] Compiling standalone CST_HostAgent.exe...
+echo [3/4] Compiling AV-Safe Desktop GUI Executable (No UPX)...
 pyinstaller --clean build_agent.spec
 
-if exist "dist\CST_HostAgent.exe" (
+if exist "dist\CST_HostAgent\CST_HostAgent.exe" (
+    echo [4/4] Applying Authenticode Digital Signature & Defender Check...
+    powershell -ExecutionPolicy Bypass -File sign_binary.ps1 -ExePath "dist\CST_HostAgent\CST_HostAgent.exe"
     echo.
     echo =========================================================
-    echo [SUCCESS] Standalone Executable Created!
-    echo Location: %cd%\dist\CST_HostAgent.exe
+    echo [SUCCESS] Standalone GUI Executable Created!
+    echo Location: %cd%\dist\CST_HostAgent\CST_HostAgent.exe
     echo.
-    echo Double-click CST_HostAgent.exe to start the silent background
-    echo daemon with System Tray and ZeroConf mDNS discovery.
+    echo Double-click CST_HostAgent.exe to open the Desktop Control
+    echo Center GUI with live telemetry, security toggles, and mDNS.
     echo =========================================================
 ) else (
     echo.
     echo [ERROR] Build failed. Review log above.
 )
 pause
+

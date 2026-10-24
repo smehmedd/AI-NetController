@@ -20,6 +20,18 @@
 
 ## ✨ What's New in `v2.7.0` (Patch Notes)
 
+### 0. Native PC Daemon Control Center GUI & Antivirus False-Positive Hardening
+- **Native PC Daemon Desktop Control Center (`agent/agent_gui.py` & `PcDaemonGuiModal.tsx`)**:
+  - **Live Host Telemetry**: Real-time CPU, RAM, Disk, and Desktop Stream FPS cards with progress indicators and system uptime.
+  - **1-Click Pairing & Network Controls**: Displays Hostname, Local IPv4, WebSocket URI (`ws://<ip>:8765`), and Masked Pairing Key (`CST-XXXX-XXXX`) with 1-click Copy and Rotate Key buttons, plus configurable port (`1`–`65535`).
+  - **Quick Security & Service Actions**: Start/Pause Daemon Listener toggle, **View-Only Mode** (blocks remote mouse/keyboard injection while keeping telemetry & screen streaming active), **HITL Command Approval** gate toggle, **mDNS Beacon** toggle, **NIC & WoL Readiness Check**, and **Panic Disconnect All**.
+  - **Connected Controllers & Live Security Log**: View active mobile/web controller sessions with instant session revocation and live event console.
+- **Antivirus False-Positive Prevention (Windows Defender / SmartScreen / EDR Clean)**:
+  - **Zero UPX Compression (`upx=False`)**: Disabled UPX packing on both `EXE` and `COLLECT` in `agent/build_agent.spec` to eliminate packed-section entropy heuristics (`Win32/Wacatac.B!ml`).
+  - **Visible Top-Level `HWND` Window**: Bundled `tkinter` / `ttk` so the executable registers a standard interactive desktop GUI window instead of running as a headless background listener.
+  - **Zero Hidden Shell Spawning**: Replaced hidden `powershell.exe -NoProfile -Command ...` and `clip.exe` subprocesses with pure Python `psutil.net_if_stats()`, `socket` inspection, and native Tkinter clipboard APIs.
+  - **Authenticode SHA-256 Code Signing (`agent/sign_binary.ps1`)**: Automated PowerShell Authenticode signing + `MpCmdRun.exe -Scan -ScanType 3` verification inside `agent/build_exe.bat`.
+
 ### 1. Native `.APK` & `.EXE` Release Packaging + GitHub Release Pipeline
 - **Automated Binary Builder (`scripts/build_release_binaries.py`)**: Generates pre-packaged `CST_HostAgent_v2.7.0_win64.exe`, `CST_NetController_AI_v2.7.0_arm64-v8a.apk`, `CST_HostAgent_v2.7.0_win64_portable.zip`, `SHA256SUMS.txt`, and `RELEASE_MANIFEST.json` inside `public/releases/v2.7.0/`.
 - **GitHub Actions Multi-OS Release Workflow (`.github/workflows/release.yml`)**: Automatically compiles the Windows `.exe` via PyInstaller on `windows-latest` and the Android `.apk` via Flutter 3.29 on `ubuntu-latest`, computes SHA-256 checksums, and publishes an official GitHub Release with `PATCH_NOTES.md` whenever a `v*` tag is pushed.

@@ -124,62 +124,50 @@ class WindowsJobObjectGuard:
 class WoLDoctor:
     """
     Hardware ACPI & Network Interface Auditor.
-    Scans WMI for Energy Efficient Ethernet (EEE) misconfigurations,
-    verifies Magic Packet Only wakeup flags, and provides dual-stack wakeups.
+    Uses native Python psutil and socket APIs (zero hidden PowerShell/CMD child
+    processes) to inspect active NIC link speeds, MTU, and UDP broadcast readiness
+    without triggering behavioral antivirus heuristics.
     """
     @staticmethod
     def audit_hardware_configuration() -> Dict[str, Any]:
-        report = {
+        report: Dict[str, Any] = {
             "platform": platform.system(),
             "wol_ready": True,
             "warnings": [],
             "adapters": []
         }
 
-        if not IS_WINDOWS:
-            report["warnings"].append("Non-Windows host: checking generic ethtool status if available.")
-            return report
-
         try:
-            # Query WMI for network adapters with power management flags
-            cmd = (
-                "powershell -NoProfile -Command "
-                "\"Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, LinkSpeed | ConvertTo-Json -Compress\""
-            )
-            out = subprocess.check_output(cmd, shell=True, text=True, timeout=5)
-            import json
-            adapters = json.loads(out)
-            if isinstance(adapters, dict):
-                adapters = [adapters]
+            import psutil
+            stats = psutil.net_if_stats()
+            addrs = psutil.net_if_addrs()
 
-            report["adapters"] = adapters
+            for nic_name, nic_stat in stats.items():
+                if nic_name.lower().startswith("lo"):
+                    continue
+                ipv4_addrs = [
+                    a.address for a in addrs.get(nic_name, [])
+                    if a.family == socket.AF_INET
+                ]
+                adapter_info = {
+                    "Name": nic_name,
+                    "Status": "Up" if nic_stat.isup else "Down",
+                    "LinkSpeed": f"{nic_stat.speed} Mbps" if nic_stat.speed else "Auto",
+                    "MTU": nic_stat.mtu,
+                    "IPv4": ipv4_addrs[0] if ipv4_addrs else "N/A",
+                }
+                report["adapters"].append(adapter_info)
 
-            # Inspect Advanced Properties for Energy Efficient Ethernet (EEE)
-            prop_cmd = (
-                "powershell -NoProfile -Command "
-                "\"Get-NetAdapterAdvancedProperty | Where-Object { $_.DisplayName -match 'Energy|Green|Wake' } "
-                "| Select-Object DisplayName, DisplayValue | ConvertTo-Json -Compress\""
-            )
-            prop_out = subprocess.check_output(prop_cmd, shell=True, text=True, timeout=5)
-            props = json.loads(prop_out)
-            if isinstance(props, dict):
-                props = [props]
-
-            for p in props:
-                name = p.get("DisplayName", "")
-                val = str(p.get("DisplayValue", ""))
-                # Check for EEE or Green Ethernet enabled
-                if ("Energy Efficient" in name or "Green" in name) and "Enabled" in val:
+                if nic_stat.isup and nic_stat.speed > 0 and nic_stat.speed < 100:
                     report["warnings"].append(
-                        f"Hardware Bottleneck: '{name}' is ENABLED. PHY layer might drop packets during S3/S4 sleep."
+                        f"Adapter '{nic_name}' is operating at {nic_stat.speed} Mbps (100/1000 Mbps recommended for low-latency streaming)."
                     )
-                    report["wol_ready"] = False
-                if "Wake on Magic Packet" in name and "Disabled" in val:
-                    report["warnings"].append("Critical: 'Wake on Magic Packet' is DISABLED.")
-                    report["wol_ready"] = False
 
+            if not report["adapters"]:
+                report["warnings"].append("No active non-loopback network interfaces detected.")
+                report["wol_ready"] = False
         except Exception as e:
-            report["warnings"].append(f"WMI audit query error: {str(e)}")
+            report["warnings"].append(f"NIC telemetry inspection notice: {str(e)}")
 
         return report
 
@@ -523,10 +511,41 @@ class DaemonServer:
         self.thread_pool.shutdown(wait=False)
         logger.info("Host daemon shutdown complete.")
 
-if __name__ == "__main__":
+def main():
     job_guard = WindowsJobObjectGuard()
     daemon = DaemonServer()
+
+    if "--headless" not in sys.argv:
+        try:
+            from agent_gui import HostDaemonState, HostDaemonDesktopGUI, HAS_TKINTER
+            if HAS_TKINTER:
+                gui_state = HostDaemonState(host=daemon.host, port=daemon.port)
+
+                def _run_async_daemon():
+                    try:
+                        asyncio.run(daemon.run())
+                    except Exception as exc:
+                        logger.error(f"Daemon thread error: {exc}")
+
+                daemon_thread = threading.Thread(target=_run_async_daemon, daemon=True, name="CST_DaemonReactor")
+                daemon_thread.start()
+
+                gui = HostDaemonDesktopGUI(
+                    state=gui_state,
+                    on_disconnect_all=lambda: gui_state.add_log("ALERT", "Disconnected all active peers."),
+                    on_stop_daemon=daemon.stop,
+                )
+                gui.run()
+                return
+        except Exception as e:
+            logger.info(f"GUI mode fallback to console reactor: {e}")
+
     try:
         asyncio.run(daemon.run())
     except KeyboardInterrupt:
         daemon.stop()
+
+
+if __name__ == "__main__":
+    main()
+

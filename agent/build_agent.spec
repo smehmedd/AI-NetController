@@ -1,22 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
 # CST Autonomous LAN PC Inspector - Production PyInstaller Specification
-# Configured for --onedir to eliminate Windows Defender %TEMP% false positives
+# Configured for --onedir, visible Tkinter GUI, and zero UPX packing to eliminate
+# Windows Defender / heuristic antivirus false positives.
 
 import sys
 import os
 
 block_cipher = None
 
-# Embedded Windows Application Manifest
+# Embedded Windows Application Manifest (asInvoker + PerMonitorV2 High-DPI Awareness)
 MANIFEST_XML = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
   <assemblyIdentity
     version="2.7.0.0"
-    processorArchitecture="*"
-    name="CST.AutonomousLAN.Agent"
+    processorArchitecture="amd64"
+    name="CST.NetController.HostAgent"
     type="win32"
   />
-  <description>CST Autonomous LAN PC Inspector and Agentic OS Bridge</description>
+  <description>CST NetController AI - PC Host Agent &amp; Desktop Control Center</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
@@ -24,6 +25,12 @@ MANIFEST_XML = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       </requestedPrivileges>
     </security>
   </trustInfo>
+  <asmv3:application>
+    <asmv3:windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+    </asmv3:windowsSettings>
+  </asmv3:application>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Windows 10 & Windows 11 -->
@@ -42,6 +49,11 @@ a = Analysis(
     binaries=[],
     datas=[],
     hiddenimports=[
+        'agent_gui',
+        'agent',
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.messagebox',
         'zeroconf',
         'zeroconf.asyncio',
         'websockets',
@@ -59,12 +71,12 @@ a = Analysis(
         'crypto_vault',
         'command_ast_firewall',
         'multi_monitor_streamer',
+        'host_file_writer',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'tkinter',
         'unittest',
         'email',
         'http.server',
@@ -89,8 +101,8 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,  # Disabled UPX to eliminate Windows Defender heuristic false positives
-    console=False,  # Silent background execution
+    upx=False,  # Strictly disabled: UPX compression triggers heuristic AV false positives
+    console=False,  # Launches visible Tkinter Desktop Control Center GUI window (HWND)
     disable_windowed_traceback=False,
     manifest='app_manifest.xml',
     version='version_info.txt',
@@ -102,8 +114,9 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=True,
-    upx=True,
+    strip=False,
+    upx=False,  # Strictly disabled on all collected DLLs/PYDs to preserve Authenticode & AV trust
     upx_exclude=[],
     name='CST_HostAgent'
 )
+

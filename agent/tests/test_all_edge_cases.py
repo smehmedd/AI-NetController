@@ -513,6 +513,45 @@ class TestProcessSupervisionEdgeCases(unittest.TestCase):
 
 
 # ==============================================================================
+# EDGE CASE MATRIX 8: PC DAEMON GUI STATE & ANTIVIRUS FALSE-POSITIVE HARDENING
+# ==============================================================================
+class TestHostDaemonGuiAndAvHardening(unittest.TestCase):
+    """Verifies HostDaemonState GUI controller and AV-clean PyInstaller spec rules."""
+
+    def test_daemon_gui_state_and_diagnostics(self):
+        from agent_gui import HostDaemonState
+        state = HostDaemonState(host="0.0.0.0", port=8765)
+        self.assertTrue(len(state.pairing_token) >= 8)
+        old_token = state.pairing_token
+        new_token = state.rotate_pairing_token()
+        self.assertNotEqual(old_token, new_token)
+        self.assertTrue(new_token.startswith("cst_sec_"))
+
+        snap = state.sample_telemetry()
+        self.assertGreaterEqual(state.cpu_percent, 0.0)
+        self.assertLessEqual(state.cpu_percent, 100.0)
+        self.assertGreaterEqual(state.ram_percent, 0.0)
+        self.assertLessEqual(state.ram_percent, 100.0)
+        self.assertTrue(snap["avIntegrity"]["upx_disabled"])
+        self.assertTrue(snap["avIntegrity"]["visible_hwnd"])
+        self.assertTrue(snap["avIntegrity"]["zero_hidden_shell"])
+
+        diag = state.run_safe_nic_diagnostics()
+        self.assertIn("udp_broadcast_ready", diag)
+        self.assertIn("active_interfaces", diag)
+
+    def test_pyinstaller_spec_antivirus_compliance(self):
+        spec_path = AGENT_DIR / "build_agent.spec"
+        self.assertTrue(spec_path.exists(), "build_agent.spec must exist")
+        spec_content = spec_path.read_text(encoding="utf-8")
+        # Must NEVER enable UPX packing (major cause of Win32/Wacatac.B!ml false positives)
+        self.assertNotIn("upx=True", spec_content, "upx=True triggers AV false positives and must be False")
+        self.assertGreaterEqual(spec_content.count("upx=False"), 2, "Both EXE and COLLECT must set upx=False")
+        self.assertIn("'agent_gui'", spec_content)
+        self.assertIn("PerMonitorV2", spec_content)
+
+
+# ==============================================================================
 # UNIFIED EDGE-CASE VERIFICATION RUNNER
 # ==============================================================================
 def run_all_edge_case_tests() -> bool:
@@ -530,6 +569,7 @@ def run_all_edge_case_tests() -> bool:
         ("EC-05: Curve25519 & ChaCha20 Tamper Resistance", TestCryptoTamperResistance),
         ("EC-06: Chunked Zero-Trust Transfer Parity Edge Cases", TestChunkedTransferEdgeCases),
         ("EC-07: Process Supervision Timeout & Teardown", TestProcessSupervisionEdgeCases),
+        ("EC-08: PC Daemon GUI & AV False-Positive Hardening", TestHostDaemonGuiAndAvHardening),
     ]
 
     total_tests = 0
