@@ -11,6 +11,7 @@ import { useFleetState } from './hooks/useFleetState';
 import { useUIStore } from './store/uiStore';
 import { triggerHapticFeedback } from './services/hapticService';
 import { AlertTriangle, ShieldAlert, X } from 'lucide-react';
+import { SPRING_BUBBLY, TAB_VIEW_VARIANTS } from './utils/springPhysics';
 
 const CommandTerminal = React.lazy(() =>
   import('./components/CommandTerminal').then((module) => ({
@@ -196,29 +197,29 @@ export default function App() {
   return (
     <GlobalErrorBoundary>
       <div className="min-h-[100dvh] bg-[#040711] text-white flex flex-col font-sans selection:bg-cyan-500/30 relative overflow-x-hidden">
-        {/* Futuristic Liquid Glass Ambient Refraction Field */}
+        {/* 120Hz Zero-Blur Ambient Refraction Field (Multi-stop soft radial gradients, zero runtime Gaussian filter) */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
           <div
-            className="liquid-aurora-orb absolute -top-[18%] -right-[10%] w-[520px] h-[520px] rounded-full opacity-90"
+            className="liquid-aurora-orb absolute -top-[18%] -right-[10%] w-[560px] h-[560px] rounded-full opacity-90"
             style={{
-              background: 'radial-gradient(circle, rgba(56,189,248,0.13) 0%, rgba(14,165,233,0.04) 45%, transparent 70%)',
-              filter: 'blur(40px)',
+              background:
+                'radial-gradient(circle, rgba(56,189,248,0.12) 0%, rgba(14,165,233,0.05) 35%, rgba(14,165,233,0.015) 55%, transparent 72%)',
             }}
           />
           <div
-            className="liquid-aurora-orb absolute top-[28%] -left-[15%] w-[480px] h-[480px] rounded-full opacity-80"
+            className="liquid-aurora-orb absolute top-[28%] -left-[15%] w-[520px] h-[520px] rounded-full opacity-80"
             style={{
-              background: 'radial-gradient(circle, rgba(99,102,241,0.11) 0%, rgba(56,189,248,0.03) 50%, transparent 72%)',
-              filter: 'blur(48px)',
-              animationDelay: '-6s',
+              background:
+                'radial-gradient(circle, rgba(99,102,241,0.10) 0%, rgba(56,189,248,0.04) 38%, rgba(56,189,248,0.01) 58%, transparent 74%)',
+              animationDelay: '-7s',
             }}
           />
           <div
-            className="liquid-aurora-orb absolute -bottom-[15%] right-[12%] w-[440px] h-[440px] rounded-full opacity-75"
+            className="liquid-aurora-orb absolute -bottom-[15%] right-[12%] w-[480px] h-[480px] rounded-full opacity-75"
             style={{
-              background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(56,189,248,0.04) 48%, transparent 70%)',
-              filter: 'blur(44px)',
-              animationDelay: '-12s',
+              background:
+                'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(56,189,248,0.035) 38%, rgba(56,189,248,0.01) 56%, transparent 72%)',
+              animationDelay: '-14s',
             }}
           />
         </div>
@@ -227,11 +228,11 @@ export default function App() {
         <AnimatePresence>
           {qolToast && (
             <motion.div
-              initial={{ opacity: 0, y: -16, scale: 0.95 }}
+              initial={{ opacity: 0, y: -18, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -12, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 460, damping: 28 }}
-              className="fixed top-[calc(env(safe-area-inset-top,12px)+0.5rem)] left-1/2 -translate-x-1/2 z-[88] px-4 py-2 rounded-full bg-[#070c18]/92 backdrop-blur-3xl border border-cyan-400/40 text-cyan-200 text-xs font-semibold shadow-[0_12px_32px_rgba(0,0,0,0.7)] pointer-events-none whitespace-nowrap"
+              exit={{ opacity: 0, y: -12, scale: 0.94, transition: { duration: 0.12 } }}
+              transition={SPRING_BUBBLY}
+              className="fixed top-[calc(env(safe-area-inset-top,12px)+0.5rem)] left-1/2 -translate-x-1/2 z-[88] px-4 py-2 rounded-full bg-[#070c18]/92 backdrop-blur-3xl border border-cyan-400/40 text-cyan-200 text-xs font-semibold shadow-[0_12px_32px_rgba(0,0,0,0.7)] pointer-events-none whitespace-nowrap transform-gpu"
             >
               {qolToast}
             </motion.div>
@@ -241,10 +242,10 @@ export default function App() {
         <AnimatePresence>
           {agent.unreachableAlert && (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              initial={{ opacity: 0, y: -22, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              exit={{ opacity: 0, y: -14, scale: 0.95, transition: { duration: 0.13 } }}
+              transition={SPRING_BUBBLY}
               className="fixed top-[env(safe-area-inset-top,12px)] left-1/2 -translate-x-1/2 z-[90] w-11/12 max-w-lg glass-liquid-elevated border border-rose-500/40 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-rose-100"
             >
               <div className="flex items-center gap-2.5">
@@ -265,10 +266,10 @@ export default function App() {
         <AnimatePresence>
           {agent.securityAlert && (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              initial={{ opacity: 0, y: -22, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+              exit={{ opacity: 0, y: -14, scale: 0.95, transition: { duration: 0.13 } }}
+              transition={SPRING_BUBBLY}
               className="fixed top-[calc(env(safe-area-inset-top,12px)+60px)] left-1/2 -translate-x-1/2 z-[95] w-11/12 max-w-lg glass-liquid-elevated border border-amber-500/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-amber-100"
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -294,10 +295,10 @@ export default function App() {
             {activeTab === 'fleet' && (
               <motion.div
                 key="fleet"
-                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
-                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
+                variants={TAB_VIEW_VARIANTS}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <FleetDashboard
@@ -329,10 +330,10 @@ export default function App() {
             {activeTab === 'terminal' && (
               <motion.div
                 key="terminal"
-                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
-                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
+                variants={TAB_VIEW_VARIANTS}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>
@@ -355,10 +356,10 @@ export default function App() {
             {activeTab === 'chat' && (
               <motion.div
                 key="chat"
-                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
-                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
+                variants={TAB_VIEW_VARIANTS}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>
@@ -380,10 +381,10 @@ export default function App() {
             {activeTab === 'settings' && (
               <motion.div
                 key="settings"
-                initial={{ opacity: 0, y: 12, scale: 0.985, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, scale: 0.99, filter: 'blur(4px)', transition: { duration: 0.14 } }}
-                transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }}
+                variants={TAB_VIEW_VARIANTS}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 className="flex-1 flex flex-col transform-gpu"
               >
                 <React.Suspense fallback={<TabLoadingFallback />}>

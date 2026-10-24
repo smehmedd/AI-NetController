@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence, PanInfo } from 'motion/react';
 import { X } from 'lucide-react';
+import { SPRING_BUBBLY } from '../../utils/springPhysics';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -32,27 +33,28 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/75 backdrop-blur-md"
+            className="fixed inset-0 bg-black/75 backdrop-blur-md transform-gpu"
           />
 
           {/* Sheet / Dialog Surface */}
           <motion.div
             drag="y"
             dragConstraints={{ top: 0 }}
-            dragElastic={0.18}
+            dragElastic={0.2}
             onDragEnd={handleDragEnd}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.75 }}
+            initial={{ opacity: 0, y: 48, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 36, scale: 0.96, transition: { duration: 0.14 } }}
+            transition={SPRING_BUBBLY}
             className="
               bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)]
               relative z-10 w-full max-w-xl
               rounded-t-[2.5rem] sm:rounded-[2.4rem]
               flex flex-col overflow-hidden
               max-h-[90vh] sm:max-h-[85vh]
-              transform-gpu will-change-transform
+              transform-gpu
             "
           >
             {/* Samsung Specular Rim Highlight */}

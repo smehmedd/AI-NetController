@@ -458,10 +458,10 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         {/* Gemini Identity */}
         <div className="flex items-center space-x-2.5 pl-1 min-w-0">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.25)] shrink-0">
-            <Sparkles className="w-4 h-4 text-cyan-300" />
+            <Sparkles className="w-4 h-4 text-cyan-300 icon-sparkle-live" />
           </div>
           <div className="flex flex-col min-w-0">
-            <h2 className="text-xs font-bold text-white tracking-wide flex items-center space-x-1.5">
+            <h2 className="font-display text-xs sm:text-[13px] font-bold text-white tracking-tight flex items-center space-x-1.5">
               <span className="truncate">Gemini Copilot</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
             </h2>
@@ -482,7 +482,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   key={r.id}
                   type="button"
                   onClick={() => handleRoleSelect(r.id)}
-                  className={`relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1 z-10 whitespace-nowrap min-h-[36px] ${
+                  className={`group relative px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors duration-200 cursor-pointer flex items-center space-x-1.5 z-10 whitespace-nowrap min-h-[36px] ${
                     isSelected
                       ? 'text-cyan-200'
                       : 'text-white/50 hover:text-white/85'
@@ -491,12 +491,22 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
                   {isSelected && (
                     <motion.div
                       layoutId="geminiRoleLens"
-                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 to-sky-500/20 border border-cyan-400/45 shadow-[0_0_12px_rgba(56,189,248,0.25)] -z-10"
-                      transition={{ type: 'spring', stiffness: 460, damping: 28, mass: 0.6 }}
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 to-sky-500/20 border border-cyan-400/45 shadow-[0_0_12px_rgba(56,189,248,0.25)] -z-10 transform-gpu"
+                      transition={{ type: 'spring', stiffness: 480, damping: 24, mass: 0.6 }}
                     />
                   )}
-                  <Icon className="w-3 h-3 shrink-0" />
-                  <span>{r.label}</span>
+                  <motion.div
+                    animate={
+                      isSelected
+                        ? { scale: 1.18, rotate: r.id === 'commander' ? 10 : r.id === 'diagnostics' ? -8 : 6 }
+                        : { scale: 1, rotate: 0 }
+                    }
+                    transition={{ type: 'spring', stiffness: 560, damping: 22 }}
+                    className="flex items-center justify-center transform-gpu"
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0 icon-bubbly" />
+                  </motion.div>
+                  <span className="font-display">{r.label}</span>
                 </button>
               );
             })}
@@ -505,14 +515,14 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           {messages.length > 1 && (
             <motion.button
               type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.08, rotate: -8 }}
+              whileTap={{ scale: 0.9 }}
               onClick={handleClearHistory}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full glass-liquid-subtle hover:bg-white/10 text-white/55 hover:text-white flex items-center justify-center transition cursor-pointer"
+              className="group w-11 h-11 min-w-[44px] min-h-[44px] rounded-full glass-liquid-subtle hover:bg-white/10 text-white/55 hover:text-white flex items-center justify-center transition cursor-pointer transform-gpu"
               title={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
               aria-label={language === 'bg' ? 'Изчисти чата' : 'Clear chat'}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 icon-bubbly" />
             </motion.button>
           )}
         </div>

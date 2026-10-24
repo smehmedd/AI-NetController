@@ -19,6 +19,7 @@ import { HostDevice, AgentExecutionResponse } from '../types';
 import { GlassContainer } from './ui/GlassContainer';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
+import { SPRING_BUBBLY, SPRING_POP } from '../utils/springPhysics';
 
 interface CommandTerminalProps {
   hosts: HostDevice[];
@@ -222,26 +223,36 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
           {hosts.map((h) => {
             const isSelected = h.id === selectedTarget;
             return (
-              <button
+              <motion.button
                 key={h.id}
                 type="button"
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.93 }}
+                transition={SPRING_POP}
                 onClick={() => {
                   triggerHapticFeedback('selection');
                   onSelectTarget(h.id);
                 }}
-                className={`relative min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-mono transition-all flex items-center space-x-2 shrink-0 overflow-hidden cursor-pointer border ${
+                className={`relative min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-mono transition-colors flex items-center space-x-2 shrink-0 overflow-hidden cursor-pointer border z-10 transform-gpu ${
                   isSelected
-                    ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200 font-bold shadow-[0_0_16px_rgba(56,189,248,0.25)]'
+                    ? 'border-cyan-400/50 text-cyan-200 font-bold shadow-[0_0_16px_rgba(56,189,248,0.25)]'
                     : 'bg-[#070c18]/90 border-white/12 text-white/65 hover:text-white hover:border-white/25'
                 }`}
               >
+                {isSelected && (
+                  <motion.div
+                    layoutId="terminalTargetPill"
+                    className="absolute inset-0 rounded-full bg-cyan-500/20 -z-10 transform-gpu"
+                    transition={SPRING_BUBBLY}
+                  />
+                )}
                 <span
                   className={`w-2 h-2 rounded-full shrink-0 ${
                     h.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-white/30'
                   }`}
                 />
                 <span className="whitespace-nowrap">{h.name}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -283,8 +294,9 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
           {selectedHost && (
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.94 }}
+              whileHover={{ scale: 1.05, y: -1.5 }}
+              whileTap={{ scale: 0.92 }}
+              transition={SPRING_POP}
               onClick={() => {
                 triggerHapticFeedback('light');
                 onViewScreen(selectedHost);
@@ -302,10 +314,11 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
       <AnimatePresence>
         {isHistoryDrawerOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-3"
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.12 } }}
+            transition={SPRING_BUBBLY}
+            className="overflow-hidden mb-3 transform-gpu"
           >
             <div className="p-3.5 rounded-2xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] space-y-2.5">
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -538,22 +551,23 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
             <motion.button
               key={preset.id}
               type="button"
-              whileHover={{ y: -1.5 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -2, scale: 1.03 }}
+              whileTap={{ scale: 0.93 }}
+              transition={SPRING_POP}
               disabled={isExecuting}
               onClick={() => dispatchPrompt(preset.prompt)}
-              className="min-h-[40px] px-3.5 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transition cursor-pointer disabled:opacity-40 transform-gpu"
+              className="group min-h-[40px] px-3.5 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 hover:border-cyan-400/45 text-xs font-semibold text-white/85 hover:text-cyan-200 whitespace-nowrap shrink-0 flex items-center gap-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transition cursor-pointer disabled:opacity-40 transform-gpu"
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span>{preset.label}</span>
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0 icon-bubbly" />
+              <span className="font-display">{preset.label}</span>
             </motion.button>
           ))}
         </div>
 
         {/* Tier 2 Liquid Glass Prompt Input Capsule */}
         <form onSubmit={handleSubmit} className="w-full relative">
-          <div className="min-h-[54px] h-14 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-4 flex items-center space-x-2.5 focus-within:border-cyan-400/60 transition transform-gpu">
-            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+          <div className="group min-h-[54px] h-14 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-4 flex items-center space-x-2.5 focus-within:border-cyan-400/60 transition transform-gpu">
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 icon-sparkle-live" />
             <input
               type="text"
               value={prompt}
@@ -564,10 +578,13 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               className="flex-1 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40 disabled:opacity-50 min-w-0"
             />
             {prompt.trim() && (
-              <button
+              <motion.button
                 type="button"
+                whileHover={{ scale: 1.2, rotate: 15 }}
+                whileTap={{ scale: 0.88 }}
+                transition={SPRING_POP}
                 onClick={() => togglePinCommand(prompt)}
-                className={`p-2 rounded-full transition cursor-pointer shrink-0 ${
+                className={`p-2 rounded-full transition cursor-pointer shrink-0 transform-gpu ${
                   pinnedCommands.includes(prompt.trim())
                     ? 'text-amber-300'
                     : 'text-white/40 hover:text-amber-300'
@@ -579,20 +596,21 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
                     pinnedCommands.includes(prompt.trim()) ? 'fill-amber-400 text-amber-400' : ''
                   }`}
                 />
-              </button>
+              </motion.button>
             )}
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.08, y: -1.5 }}
+              whileTap={{ scale: 0.89 }}
+              transition={SPRING_POP}
               disabled={!prompt.trim() || isExecuting}
-              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 hover:brightness-110 disabled:opacity-35 text-slate-950 flex items-center justify-center transition shadow-[0_0_16px_rgba(56,189,248,0.45)] shrink-0 cursor-pointer"
+              className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 disabled:opacity-35 text-slate-950 flex items-center justify-center transition shadow-[0_0_16px_rgba(56,189,248,0.45)] shrink-0 cursor-pointer transform-gpu"
               aria-label={t('term_send_btn')}
             >
               {isExecuting ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
-                <ArrowUp className="w-5 h-5 stroke-[2.5]" />
+                <ArrowUp className="w-5 h-5 stroke-[2.5] icon-bubbly" />
               )}
             </motion.button>
           </div>

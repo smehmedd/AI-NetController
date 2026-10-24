@@ -27,6 +27,12 @@ import { WolEnergyCalculator } from './WolEnergyCalculator';
 import { useTranslation } from '../i18n/useTranslation';
 import { LanguageToggle } from './ui/LanguageToggle';
 import { useUIStore } from '../store/uiStore';
+import {
+  SPRING_BUBBLY,
+  SPRING_POP,
+  POPOVER_BUBBLE_VARIANTS,
+  MODAL_BUBBLE_VARIANTS,
+} from '../utils/springPhysics';
 
 interface SettingsScreenProps {
   onOpenPersistentInstructions: () => void;
@@ -136,35 +142,33 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
         triggerHapticFeedback('light');
         onChange(!checked);
       }}
-      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
+      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer group"
       aria-label="Toggle setting"
     >
       <div
-        className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 flex items-center relative border ${
+        className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 flex items-center relative border transform-gpu ${
           checked
-            ? 'bg-cyan-500/20 border-cyan-400/50'
-            : 'bg-white/10 border-white/10'
+            ? 'bg-cyan-500/25 border-cyan-400/55 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
+            : 'bg-white/10 border-white/12'
         }`}
       >
         <motion.div
-          layout
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className={`w-5 h-5 rounded-full shadow-xs ${
-            checked ? 'bg-cyan-300 shadow-[0_0_10px_#22d3ee]' : 'bg-white/60'
+          initial={false}
+          animate={{
+            x: checked ? 20 : 0,
+            scale: checked ? 1.06 : 0.96,
+          }}
+          transition={SPRING_POP}
+          className={`w-4.5 h-4.5 rounded-full transform-gpu ${
+            checked ? 'bg-cyan-300 shadow-[0_0_10px_#22d3ee]' : 'bg-white/60 group-hover:bg-white/80'
           }`}
-          style={{ marginLeft: checked ? 'auto' : '0' }}
         />
       </div>
     </button>
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-      className="w-full max-w-6xl mx-auto pb-4 select-none grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
-    >
+    <div className="w-full max-w-6xl mx-auto pb-4 select-none grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* LEFT COLUMN (Desktop): GENERAL & AI + GREEN WOL ENERGY CALCULATOR */}
       <div className="lg:col-span-7 flex flex-col space-y-6">
         {/* SECTION 1: GENERAL & AI */}
@@ -176,16 +180,16 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
           <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-visible">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
             {/* Row 0: Language */}
-            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="group p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                  <Languages className="w-4 h-4" />
+                  <Languages className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_language')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_language_desc')}
                   </span>
                 </div>
@@ -194,17 +198,17 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             </div>
 
             {/* Row 1: Dynamic AI Model Selector & Management */}
-            <div className="p-3.5 sm:p-4 flex flex-col space-y-3 relative">
+            <div className="group p-3.5 sm:p-4 flex flex-col space-y-3 relative">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center space-x-3 min-w-0 flex-1">
                   <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                    <Brain className="w-4 h-4" />
+                    <Brain className="w-4 h-4 icon-bubbly" />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                    <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                       {t('settings_ai_model')}
                     </span>
-                    <span className="text-[11px] text-slate-400 truncate">
+                    <span className="text-fluid-meta text-slate-400 truncate">
                       {t('settings_ai_model_desc')}
                     </span>
                   </div>
@@ -248,11 +252,11 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                       onClick={() => setIsModelDropdownOpen(false)}
                     />
                     <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                      className="absolute right-4 top-14 w-80 max-w-[calc(100vw-2rem)] rounded-2xl z-[80] bg-[#0a1224]/98 backdrop-blur-3xl border border-white/20 shadow-2xl p-2.5 space-y-1.5 max-h-80 overflow-y-auto"
+                      variants={POPOVER_BUBBLE_VARIANTS}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="absolute right-4 top-14 w-80 max-w-[calc(100vw-2rem)] rounded-2xl z-[80] bg-[#0a1224]/98 backdrop-blur-3xl border border-white/20 shadow-2xl p-2.5 space-y-1.5 max-h-80 overflow-y-auto transform-gpu"
                     >
                       <div className="flex items-center justify-between px-2 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-white/10">
                         <span>{language === 'bg' ? 'Налични AI Модели' : 'Available AI Models'}</span>
@@ -299,11 +303,11 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
                 {isAddModelOpen && (
                   <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                      className="w-full max-w-md rounded-3xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6 space-y-4 text-white"
+                      variants={MODAL_BUBBLE_VARIANTS}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="w-full max-w-md rounded-3xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] p-6 space-y-4 text-white transform-gpu"
                     >
                       <div className="flex items-center justify-between border-b border-white/10 pb-3">
                         <h3 className="text-base font-bold text-cyan-300">
@@ -450,13 +454,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-violet-500/12 text-violet-300 flex items-center justify-center border border-violet-500/20 shrink-0">
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_memory')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_memory_desc')}
                   </span>
                 </div>
@@ -477,13 +481,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-amber-500/12 text-amber-300 flex items-center justify-center border border-amber-500/20 shrink-0">
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_wol_scheduler')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_wol_scheduler_desc')}
                   </span>
                 </div>
@@ -517,16 +521,16 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
           <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
-            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="group p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-rose-500/12 text-rose-300 flex items-center justify-center border border-rose-500/20 shrink-0">
-                  <ShieldAlert className="w-4 h-4" />
+                  <ShieldAlert className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_hitl')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_hitl_desc')}
                   </span>
                 </div>
@@ -534,16 +538,16 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
               <CyberToggle checked={isHitlEnabled} onChange={setIsHitlEnabled} />
             </div>
 
-            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="group p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                  <Fingerprint className="w-4 h-4" />
+                  <Fingerprint className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_biometric')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_biometric_desc')}
                   </span>
                 </div>
@@ -561,16 +565,16 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
 
           <div className="bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu w-full rounded-[2rem] p-1 divide-y divide-white/[0.05] relative overflow-hidden">
             <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
-            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="group p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                  <Bell className="w-4 h-4" />
+                  <Bell className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_confirmations')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_confirmations_desc')}
                   </span>
                 </div>
@@ -578,16 +582,16 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
               <CyberToggle checked={isCommandConfirmations} onChange={setIsCommandConfirmations} />
             </div>
 
-            <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="group p-3.5 sm:p-4 flex items-center justify-between gap-3">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-500/12 text-emerald-300 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                  <Activity className="w-4 h-4" />
+                  <Activity className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_alerts')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_alerts_desc')}
                   </span>
                 </div>
@@ -615,13 +619,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center border border-cyan-400/30 shrink-0 shadow-[0_0_12px_rgba(34,211,238,0.2)]">
-                  <Monitor className="w-4 h-4" />
+                  <Monitor className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {language === 'bg' ? 'PC Демон Контролен Център (GUI)' : 'PC Daemon Control Center (GUI)'}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {language === 'bg'
                       ? 'Графичен панел на хост демона, сдвояване, изглед-само и антивирусна защита'
                       : 'Host daemon GUI dashboard, pairing key, view-only lock & AV integrity'}
@@ -630,7 +634,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
               </div>
               <div className="flex items-center space-x-2 shrink-0">
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 bg-emerald-500/12 border border-emerald-400/25 px-2 py-0.5 rounded-full">
-                  <ShieldCheck className="w-3 h-3" />
+                  <ShieldCheck className="w-3 h-3 icon-bubbly" />
                   <span>AV Clean</span>
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
@@ -647,18 +651,18 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                  <Info className="w-4 h-4" />
+                  <Info className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_code_viewer')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_code_viewer_desc')}
                   </span>
                 </div>
               </div>
-              <Code className="w-4 h-4 text-slate-400 group-hover:text-cyan-300 transition-colors shrink-0" />
+              <Code className="w-4 h-4 text-slate-400 group-hover:text-cyan-300 transition-colors shrink-0 icon-bubbly" />
             </motion.div>
 
             <motion.div
@@ -671,13 +675,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4 icon-spin-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_update_center')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_update_center_desc')}
                   </span>
                 </div>
@@ -701,13 +705,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-500/12 text-emerald-300 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                  <ArrowUpCircle className="w-4 h-4" />
+                  <ArrowUpCircle className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_ws_config')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_ws_config_desc')}
                   </span>
                 </div>
@@ -725,13 +729,13 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
             >
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 <div className="w-9 h-9 rounded-2xl bg-violet-500/12 text-violet-300 flex items-center justify-center border border-violet-500/20 shrink-0">
-                  <Terminal className="w-4 h-4" />
+                  <Terminal className="w-4 h-4 icon-bubbly" />
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm font-semibold text-white tracking-wide truncate">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {t('settings_system_logs')}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-fluid-meta text-slate-400 truncate">
                     {t('settings_system_logs_desc')}
                   </span>
                 </div>
@@ -741,7 +745,7 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

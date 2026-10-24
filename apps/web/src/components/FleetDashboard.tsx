@@ -28,6 +28,7 @@ import { HostCard } from './HostCard';
 import { LanguageToggle } from './ui/LanguageToggle';
 import { generateMagicPacket } from '../services/wolService';
 import { useTranslation, Language } from '../i18n/useTranslation';
+import { SPRING_BUBBLY, SPRING_POP, POPOVER_BUBBLE_VARIANTS } from '../utils/springPhysics';
 
 const LazyNetworkTopologyGraph = React.lazy(() =>
   import('./NetworkTopologyGraph').then((module) => ({
@@ -677,7 +678,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
         {/* 1. HEADER ROW: Title + Inline Non-Wrapping Status Pill + Health Pill on Left | Wake All + Cards/Map + EN/BG on Right */}
         <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-display truncate">
+            <h1 className="text-fluid-title font-extrabold tracking-tight text-white font-display truncate">
               {t('fleet_title')}
             </h1>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-[0_8px_20px_rgba(0,0,0,0.5)] tabular-nums">
@@ -691,14 +692,14 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               </span>
             </div>
             <div
-              className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-[10.5px] font-mono font-semibold text-emerald-300 whitespace-nowrap shrink-0"
+              className="group hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-[10.5px] font-mono font-semibold text-emerald-300 whitespace-nowrap shrink-0"
               title={
                 language === 'bg'
                   ? 'Индекс на здравето на мрежата (RTT + натоварване + сигурност)'
                   : 'Real-time Fleet Network Health Index (RTT + load + security)'
               }
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 icon-bubbly" />
               <span>{fleetHealthScore}% {language === 'bg' ? 'Здраве' : 'Health'}</span>
             </div>
           </div>
@@ -708,18 +709,19 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             {offlineCount > 0 && (
               <motion.button
                 type="button"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.05, y: -1.5 }}
+                whileTap={{ scale: 0.92 }}
+                transition={SPRING_POP}
                 onClick={handleWakeAllOffline}
-                className="min-h-[44px] px-3.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)] transition"
+                className="group min-h-[44px] px-3.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)] transition transform-gpu"
                 title={
                   language === 'bg'
                     ? `Събуди всички спящи хостове (${offlineCount})`
                     : `Wake all sleeping hosts (${offlineCount})`
                 }
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30" />
-                <span>
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/30 icon-bolt-live" />
+                <span className="font-display">
                   {language === 'bg' ? `Събуди (${offlineCount})` : `Wake All (${offlineCount})`}
                 </span>
               </motion.button>
@@ -728,21 +730,22 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             {/* [ 🖥️ PC Daemon GUI ] Native Control Center Launcher */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.94 }}
+              whileHover={{ scale: 1.05, y: -1.5 }}
+              whileTap={{ scale: 0.92 }}
+              transition={SPRING_POP}
               onClick={() => {
                 triggerHapticFeedback('light');
                 openModal('pcDaemonGui');
               }}
-              className="min-h-[44px] px-3 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(34,211,238,0.18)] transition"
+              className="group min-h-[44px] px-3 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(34,211,238,0.18)] transition transform-gpu"
               title={
                 language === 'bg'
                   ? 'Отвори Графичния Контролен Център на PC Демона (Антивирус-Верифициран)'
                   : 'Open PC Daemon Desktop Control Center GUI (AV-Verified)'
               }
             >
-              <Monitor className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden xs:inline">
+              <Monitor className="w-3.5 h-3.5 text-cyan-400 icon-bubbly" />
+              <span className="hidden xs:inline font-display">
                 {language === 'bg' ? 'PC Демон' : 'PC Daemon'}
               </span>
             </motion.button>
@@ -761,7 +764,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                       triggerHapticFeedback('selection');
                       setViewMode(mode);
                     }}
-                    className={`relative min-h-[36px] px-2.5 rounded-full text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer z-10 whitespace-nowrap ${
+                    className={`group relative min-h-[36px] px-2.5 rounded-full text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer z-10 whitespace-nowrap ${
                       isActive ? 'text-cyan-300 font-semibold' : 'text-white/55 hover:text-white'
                     }`}
                     title={label}
@@ -770,12 +773,22 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                     {isActive && (
                       <motion.div
                         layoutId="fleetViewModeLens"
-                        className="absolute inset-0 rounded-full bg-cyan-500/20 border border-cyan-400/35 shadow-[0_0_12px_rgba(56,189,248,0.2)] -z-10"
-                        transition={{ type: 'spring', stiffness: 450, damping: 28 }}
+                        className="absolute inset-0 rounded-full bg-cyan-500/20 border border-cyan-400/35 shadow-[0_0_12px_rgba(56,189,248,0.2)] -z-10 transform-gpu"
+                        transition={SPRING_BUBBLY}
                       />
                     )}
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{label}</span>
+                    <motion.div
+                      animate={
+                        isActive
+                          ? { scale: 1.15, rotate: mode === 'grid' ? -6 : 8 }
+                          : { scale: 1, rotate: 0 }
+                      }
+                      transition={SPRING_POP}
+                      className="flex items-center justify-center transform-gpu"
+                    >
+                      <Icon className="w-3.5 h-3.5 icon-bubbly" />
+                    </motion.div>
+                    <span className="hidden sm:inline font-display">{label}</span>
                   </button>
                 );
               })}
@@ -788,17 +801,18 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             {onPanicKill && (
               <motion.button
                 type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.92 }}
+                whileHover={{ scale: 1.07, rotate: -6 }}
+                whileTap={{ scale: 0.9 }}
+                transition={SPRING_POP}
                 onClick={() => {
                   triggerHapticFeedback('heavy');
                   onPanicKill();
                 }}
-                className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center transition shrink-0 cursor-pointer"
+                className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-rose-500/15 border border-rose-500/35 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center transition shrink-0 cursor-pointer transform-gpu"
                 title={t('fleet_panic_tooltip')}
                 aria-label={t('fleet_panic_aria')}
               >
-                <OctagonAlert className="w-4 h-4 stroke-[2.1]" />
+                <OctagonAlert className="w-4 h-4 stroke-[2.1] icon-bubbly" />
               </motion.button>
             )}
           </div>
@@ -806,8 +820,8 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
 
         {/* 2. UNIFIED SEARCH + REFRESH + EXPORT + ADD HOST ROW */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-h-[44px] h-11 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-3 flex items-center gap-2 focus-within:border-cyan-400/50 transition min-w-0 transform-gpu">
-            <Search className="w-4 h-4 text-cyan-400/80 shrink-0" />
+          <div className="group flex-1 min-h-[44px] h-11 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] px-3 flex items-center gap-2 focus-within:border-cyan-400/50 transition min-w-0 transform-gpu">
+            <Search className="w-4 h-4 text-cyan-400/80 shrink-0 icon-bubbly" />
             <input
               type="text"
               value={searchQuery}
@@ -843,36 +857,38 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           {/* [Refresh] Button */}
           <motion.button
             type="button"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.94 }}
+            whileHover={{ scale: 1.05, y: -1.5 }}
+            whileTap={{ scale: 0.92 }}
+            transition={SPRING_POP}
             onClick={() => {
               triggerHapticFeedback('medium');
               rescanHandler();
             }}
             disabled={isScanning}
-            className="min-h-[44px] min-w-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-40 cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
+            className="group min-h-[44px] min-w-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-40 cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
             title={`${t('fleet_rescan_tooltip')} [R]`}
             aria-label={t('fleet_rescan_aria')}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{language === 'bg' ? 'Обнови' : 'Refresh'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : 'icon-spin-bubbly'}`} />
+            <span className="hidden sm:inline font-display">{language === 'bg' ? 'Обнови' : 'Refresh'}</span>
           </motion.button>
 
           {/* [Export Fleet JSON] Button */}
           <motion.button
             type="button"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.94 }}
+            whileHover={{ scale: 1.05, y: -1.5 }}
+            whileTap={{ scale: 0.92 }}
+            transition={SPRING_POP}
             onClick={handleExportFleetJson}
-            className="hidden sm:inline-flex min-h-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-white/80 hover:text-cyan-200 text-xs font-semibold items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
+            className="group hidden sm:inline-flex min-h-[44px] h-11 px-3 rounded-xl bg-[#070c18]/90 backdrop-blur-3xl border border-white/15 border-t-white/25 hover:border-cyan-400/40 text-white/80 hover:text-cyan-200 text-xs font-semibold items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu"
             title={language === 'bg' ? 'Експортирай JSON манифест на флота' : 'Export Fleet JSON manifest'}
           >
             {exportedFleetFeedback ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-emerald-400 icon-bubbly" />
             ) : (
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
+              <Download className="w-3.5 h-3.5 text-cyan-400 icon-bubbly" />
             )}
-            <span className="hidden md:inline">
+            <span className="hidden md:inline font-display">
               {exportedFleetFeedback
                 ? language === 'bg'
                   ? 'Експортирано'
@@ -884,18 +900,19 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           {/* [+ Add Host] Button */}
           <motion.button
             type="button"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.94 }}
+            whileHover={{ scale: 1.05, y: -1.5 }}
+            whileTap={{ scale: 0.92 }}
+            transition={SPRING_POP}
             onClick={() => {
               triggerHapticFeedback('light');
               addHostHandler();
             }}
-            className="min-h-[44px] h-11 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_16px_rgba(16,185,129,0.15)]"
+            className="group min-h-[44px] h-11 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_16px_rgba(16,185,129,0.15)] transform-gpu"
             title={t('fleet_add_host_tooltip')}
             aria-label={t('fleet_add_host_aria')}
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{language === 'bg' ? 'Добави хост' : 'Add Host'}</span>
+            <Plus className="w-4 h-4 stroke-[2.5] icon-plus-bubbly" />
+            <span className="font-display">{language === 'bg' ? 'Добави хост' : 'Add Host'}</span>
           </motion.button>
         </div>
 
@@ -925,8 +942,8 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                   {isActive && (
                     <motion.div
                       layoutId="fleetFilterLens"
-                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 to-sky-500/20 border border-cyan-400/40 shadow-[0_0_12px_rgba(56,189,248,0.2)] -z-10"
-                      transition={{ type: 'spring', stiffness: 460, damping: 30, mass: 0.6 }}
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/25 to-sky-500/20 border border-cyan-400/40 shadow-[0_0_12px_rgba(56,189,248,0.2)] -z-10 transform-gpu"
+                      transition={SPRING_BUBBLY}
                     />
                   )}
                   <span>{chip.label}</span>
@@ -973,7 +990,9 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             <div className="relative shrink-0">
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.04, y: -1 }}
+                whileTap={{ scale: 0.93 }}
+                transition={SPRING_POP}
                 onClick={() => {
                   triggerHapticFeedback('light');
                   setIsSortMenuOpen((prev) => !prev);
@@ -1004,10 +1023,10 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                     />
                     {/* Tier 3 Dropdown Surface */}
                     <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.95 }}
-                      transition={{ type: 'spring', stiffness: 440, damping: 28 }}
+                      variants={POPOVER_BUBBLE_VARIANTS}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
                       className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.9)] space-y-1 transform-gpu"
                     >
                       {sortOptions.map((opt) => {

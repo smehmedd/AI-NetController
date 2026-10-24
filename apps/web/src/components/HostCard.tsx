@@ -4,9 +4,9 @@ import {
   Laptop,
   Server,
   Power,
-  Eye,
+  ScanEye,
   RefreshCw,
-  Terminal,
+  TerminalSquare,
   ChevronDown,
   Copy,
   Battery,
@@ -32,6 +32,7 @@ import { triggerHapticFeedback } from '../services/hapticService';
 import { getLatencyConfig, FleetSortMode } from './FleetDashboard';
 import { useTranslation, Language } from '../i18n/useTranslation';
 import { clampPercentage } from '../utils/viewportScale';
+import { SPRING_BUBBLY, SPRING_POP, SPRING_ELASTIC } from '../utils/springPhysics';
 
 export interface HostCardProps {
   host: HostDevice;
@@ -305,13 +306,13 @@ const HostCardComponent: React.FC<HostCardProps> = ({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      layout="position"
+      initial={{ opacity: 0, y: 16, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-      whileHover={{ y: -2, scale: 1.004 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 28, mass: 0.7 }}
-      className={isExpanded ? 'lg:col-span-2' : ''}
+      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.13 } }}
+      whileHover={{ y: -2.5, scale: 1.005 }}
+      transition={SPRING_BUBBLY}
+      className={`${isExpanded ? 'lg:col-span-2' : ''} transform-gpu`}
     >
       {/* Tier 1 — Resting Canvas Card */}
       <div
@@ -348,9 +349,16 @@ const HostCardComponent: React.FC<HostCardProps> = ({
         <div className="relative z-10 flex items-center justify-between gap-2 sm:gap-3">
           {/* Left: 44x44px Squircle Icon + Full Hostname + OS Badge + Monospace IP + Latency / Sleeping state */}
           <div className="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0 flex-1">
-            <div
+            <motion.div
+              animate={
+                isExpanded
+                  ? { scale: 1.07, rotate: -5 }
+                  : { scale: 1, rotate: 0 }
+              }
+              whileHover={{ scale: 1.14, rotate: -8, y: -1.5 }}
+              transition={SPRING_POP}
               className={`
-                w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden
+                w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden transform-gpu
                 ${
                   isOffline
                     ? 'bg-white/[0.03] text-white/35 border-white/[0.08]'
@@ -358,32 +366,40 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 }
               `}
             >
-              <DeviceIcon className="w-5 h-5" />
+              <DeviceIcon className="w-5 h-5 icon-bubbly" />
               {isSonarPulsing && (
                 <span className="absolute inset-0 rounded-2xl border-2 border-cyan-300 animate-ping" />
               )}
-            </div>
+            </motion.div>
 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
-                <span className="text-[14px] sm:text-base font-bold text-white tracking-tight break-words">
+                <span className="text-fluid-card-title font-bold text-white tracking-tight break-words">
                   {host.name || safeId}
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono font-semibold text-white/75 shrink-0">
+                <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono font-semibold text-white/80 shrink-0">
                   {osBadge}
                 </span>
                 {onTogglePin && (
-                  <button
+                  <motion.button
                     type="button"
+                    whileHover={{ scale: 1.22, rotate: 16 }}
+                    whileTap={{ scale: 0.85, rotate: -12 }}
+                    animate={
+                      isPinned
+                        ? { scale: 1.08, rotate: 12 }
+                        : { scale: 1, rotate: 0 }
+                    }
+                    transition={SPRING_POP}
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHapticFeedback('selection');
                       onTogglePin(host.id);
                     }}
-                    className={`p-1.5 rounded-full transition cursor-pointer shrink-0 ${
+                    className={`p-1.5 rounded-full transition cursor-pointer shrink-0 transform-gpu ${
                       isPinned
                         ? 'text-amber-300 hover:text-amber-200'
-                        : 'text-white/25 hover:text-white/70'
+                        : 'text-white/25 hover:text-white/75'
                     }`}
                     title={
                       isPinned
@@ -396,8 +412,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     }
                     aria-label="Pin host"
                   >
-                    <Star className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400 text-amber-400' : ''}`} />
-                  </button>
+                    <Star className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]' : ''}`} />
+                  </motion.button>
                 )}
                 {isQuarantined && (
                   <span className="text-[10px] font-mono font-semibold text-rose-400 shrink-0">
@@ -412,7 +428,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
               </div>
 
               {/* Clean Scannable Metadata Sub-row (1-Click Copy IP + Online RTT or Offline Ready state) */}
-              <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs mt-1 tabular-nums">
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-fluid-meta mt-1 tabular-nums">
                 <button
                   type="button"
                   onClick={handleCopyIp}
@@ -467,62 +483,66 @@ const HostCardComponent: React.FC<HostCardProps> = ({
               ) : (
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.08, y: -1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.11, y: -2, rotate: -6 }}
+                  whileTap={{ scale: 0.88 }}
+                  transition={SPRING_POP}
                   onClick={(e) => onWakeClick(e, host)}
-                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/45 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.3)]"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/45 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.3)] transform-gpu"
                   title={t('host_wake_tooltip')}
                   aria-label={t('host_wake_tooltip')}
                 >
-                  <Power className="w-4 h-4 stroke-[2.3]" />
+                  <Power className="w-4 h-4 stroke-[2.3] icon-bolt-live" />
                 </motion.button>
               )
             ) : (
               <>
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.08, y: -1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.11, y: -2, rotate: 5 }}
+                  whileTap={{ scale: 0.88 }}
+                  transition={SPRING_POP}
                   onClick={(e) => {
                     e.stopPropagation();
                     triggerHapticFeedback('light');
                     onSelectForCommand?.(host.id);
                   }}
-                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer transform-gpu"
                   title={t('host_terminal_tooltip')}
                   aria-label={t('host_terminal_tooltip')}
                 >
-                  <Terminal className="w-4 h-4" />
+                  <TerminalSquare className="w-4 h-4 icon-bubbly" />
                 </motion.button>
 
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.08, y: -1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.11, y: -2, rotate: -5 }}
+                  whileTap={{ scale: 0.88 }}
+                  transition={SPRING_POP}
                   onClick={(e) => {
                     e.stopPropagation();
                     triggerHapticFeedback('light');
                     onViewScreen(host);
                   }}
-                  className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 hover:text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_16px_rgba(56,189,248,0.2)]"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 hover:text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_16px_rgba(56,189,248,0.2)] transform-gpu"
                   title={t('host_screen_tooltip')}
                   aria-label={t('host_screen_tooltip')}
                 >
-                  <Eye className="w-4 h-4" />
+                  <ScanEye className="w-4 h-4 icon-bubbly" />
                 </motion.button>
               </>
             )}
 
             <motion.button
               type="button"
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.08, y: -1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={SPRING_POP}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleExpand(host.id);
               }}
               aria-expanded={isExpanded}
-              className={`min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
+              className={`min-w-[44px] min-h-[44px] w-11 h-11 rounded-full flex items-center justify-center transition-colors cursor-pointer border transform-gpu ${
                 isExpanded
                   ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/35'
                   : 'bg-white/[0.03] text-white/50 hover:text-white border-white/10'
@@ -530,8 +550,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
               title={isExpanded ? t('host_hide_details_btn') : t('host_details_btn')}
             >
               <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                animate={{ rotate: isExpanded ? 180 : 0, scale: isExpanded ? 1.1 : 1 }}
+                transition={SPRING_POP}
               >
                 <ChevronDown className="w-4 h-4" />
               </motion.div>
@@ -552,10 +572,11 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 </div>
                 <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, Math.max(4, cpuVal))}%` }}
-                    transition={{ type: 'spring', stiffness: 180, damping: 24 }}
-                    className={`h-full rounded-full ${
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: Math.min(1, Math.max(0.04, cpuVal / 100)) }}
+                    transition={SPRING_ELASTIC}
+                    style={{ transformOrigin: 'left' }}
+                    className={`h-full w-full rounded-full transform-gpu ${
                       cpuVal >= 75
                         ? 'bg-gradient-to-r from-rose-400 to-amber-400 shadow-[0_0_8px_#fb7185]'
                         : 'bg-gradient-to-r from-cyan-400 to-sky-300 shadow-[0_0_8px_#38bdf8]'
@@ -573,10 +594,11 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 </div>
                 <div className="h-[3px] w-full rounded-full bg-white/[0.07] overflow-hidden">
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, Math.max(4, ramVal))}%` }}
-                    transition={{ type: 'spring', stiffness: 180, damping: 24 }}
-                    className={`h-full rounded-full ${
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: Math.min(1, Math.max(0.04, ramVal / 100)) }}
+                    transition={SPRING_ELASTIC}
+                    style={{ transformOrigin: 'left' }}
+                    className={`h-full w-full rounded-full transform-gpu ${
                       ramVal >= 75
                         ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_0_8px_#fbbf24]'
                         : 'bg-gradient-to-r from-indigo-400 to-cyan-300 shadow-[0_0_8px_#818cf8]'
@@ -599,14 +621,15 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 </span>
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.05, y: -1 }}
+                  whileTap={{ scale: 0.92 }}
+                  transition={SPRING_POP}
                   onClick={(e) => {
                     e.stopPropagation();
                     triggerHapticFeedback('medium');
                     onDiagnoseHost?.(host);
                   }}
-                  className="px-2.5 py-1 rounded-full bg-violet-500/20 hover:bg-violet-500/35 border border-violet-400/50 text-violet-200 text-[10.5px] font-semibold flex items-center gap-1 shadow-[0_0_16px_rgba(139,92,246,0.3)] transition cursor-pointer shrink-0"
+                  className="px-2.5 py-1 rounded-full bg-violet-500/20 hover:bg-violet-500/35 border border-violet-400/50 text-violet-200 text-[10.5px] font-semibold flex items-center gap-1 shadow-[0_0_16px_rgba(139,92,246,0.3)] transition cursor-pointer shrink-0 transform-gpu"
                 >
                   <Sparkles className="w-3 h-3 text-violet-300 animate-pulse" />
                   <span>
@@ -618,15 +641,15 @@ const HostCardComponent: React.FC<HostCardProps> = ({
           </div>
         )}
 
-        {/* Expanded 3-Tile "Bento" Drawer (2-Column Desktop / Stacked Mobile) */}
+        {/* Expanded 3-Tile "Bento" Drawer (120Hz Bubbly Spring Reveal) */}
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, height: 0, scale: 0.98 }}
-              animate={{ opacity: 1, height: 'auto', scale: 1 }}
-              exit={{ opacity: 0, height: 0, scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 28, mass: 0.65 }}
-              className="overflow-hidden relative z-10"
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.13 } }}
+              transition={SPRING_BUBBLY}
+              className="overflow-hidden relative z-10 transform-gpu"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mt-4 pt-3.5 border-t border-white/[0.08] grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -745,13 +768,22 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                       const ActIcon = act.icon;
                       const isDispatched = dispatchedAction === act.id;
                       const isWarning = act.variant === 'warning';
+                      const iconAnimClass =
+                        act.id === 'updates'
+                          ? 'icon-spin-bubbly'
+                          : act.id === 'dns'
+                          ? 'icon-sparkle-live'
+                          : 'icon-bubbly';
                       return (
-                        <button
+                        <motion.button
                           key={act.id}
                           type="button"
                           disabled={isOffline}
+                          whileHover={isOffline ? undefined : { scale: 1.03, y: -1.5 }}
+                          whileTap={isOffline ? undefined : { scale: 0.93 }}
+                          transition={SPRING_POP}
                           onClick={(e) => handleQuickAction(e, act.id, act.command)}
-                          className={`min-h-[44px] px-2.5 py-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 ${
+                          className={`group min-h-[44px] px-2.5 py-2 rounded-xl border text-left transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transform-gpu ${
                             isDispatched
                               ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-200'
                               : isWarning
@@ -760,22 +792,22 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                           }`}
                         >
                           {isDispatched ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 icon-bubbly" />
                           ) : (
                             <ActIcon
-                              className={`w-3.5 h-3.5 shrink-0 ${
+                              className={`w-3.5 h-3.5 shrink-0 ${iconAnimClass} ${
                                 isWarning ? 'text-amber-400' : 'text-cyan-400'
                               }`}
                             />
                           )}
-                          <span className="text-[11px] font-semibold leading-tight line-clamp-2">
+                          <span className="font-display text-[11px] font-semibold leading-tight line-clamp-2">
                             {isDispatched
                               ? currentLang === 'bg'
                                 ? 'Изпратено!'
                                 : 'Sent!'
                               : act.label}
                           </span>
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>

@@ -24,10 +24,10 @@ const GlassContainerComponent: React.FC<GlassContainerProps> = ({
         }
         relative overflow-hidden
         rounded-[2rem] sm:rounded-[2.25rem]
-        transform-gpu will-change-[transform,backdrop-filter]
+        transform-gpu
         ${
           interactive
-            ? 'cursor-pointer active:scale-[0.975] transition-[transform,filter,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:brightness-[1.08] hover:border-white/25 select-none hover:shadow-[0_20px_48px_rgba(0,0,0,0.6),0_0_24px_rgba(0,212,255,0.12)]'
+            ? 'cursor-pointer hover:-translate-y-0.5 hover:scale-[1.006] active:scale-[0.975] transition-[transform,box-shadow,border-color,background-color] duration-250 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:border-white/25 select-none hover:shadow-[0_20px_48px_rgba(0,0,0,0.6),0_0_24px_rgba(0,212,255,0.12)]'
             : ''
         }
         ${className}
@@ -36,7 +36,7 @@ const GlassContainerComponent: React.FC<GlassContainerProps> = ({
     >
       {/* Specular Top Rim Illumination & Subtle Optical Refraction Flare */}
       <div className="absolute inset-x-6 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none z-10" />
-      <div className="absolute -top-12 -right-12 w-36 h-32 rounded-full bg-cyan-400/[0.03] blur-2xl pointer-events-none z-0" />
+      <div className="absolute -top-12 -right-12 w-36 h-32 rounded-full bg-cyan-400/[0.03] pointer-events-none z-0" />
       <div className="relative z-1">{children}</div>
     </div>
   );

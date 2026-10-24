@@ -14,18 +14,58 @@
     --samsung-rose: #ff1744;
     --samsung-purple: #7c4dff;
     --ease-samsung: cubic-bezier(0.22, 1, 0.36, 1);
-    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.35);
+    --ease-spring: cubic-bezier(0.22, 1.38, 0.36, 1);
     --ease-bubbly: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-elastic: cubic-bezier(0.68, -0.6, 0.265, 1.65);
-    --ease-fluid: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-fluid: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Cohesive Rounded-Geometric UI, Display & Telemetry Font Stack (100% Latin + Bulgarian Cyrillic Parity) */
+    --font-sans: "Onest", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --font-display: "Plus Jakarta Sans", "Onest", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+
+    /* Fluid Root Font Size Scaling Across Resolutions & Aspect Ratios */
+    font-size: clamp(14.5px, 0.88rem + 0.22vw, 16.5px);
+  }
+
+  /* Compact Narrow Mobile (< 375px) */
+  @media (max-width: 374px) {
+    :root {
+      font-size: 13.75px;
+    }
+  }
+
+  /* Short Mobile Landscape (e.g. 16:9 / 19.5:9 landscape phones) */
+  @media (max-height: 520px) and (orientation: landscape) {
+    :root {
+      font-size: 13.5px;
+    }
+  }
+
+  /* QHD / Ultrawide 21:9 & 4K Displays */
+  @media (min-width: 1920px) and (min-height: 900px) {
+    :root {
+      font-size: clamp(16px, 0.85rem + 0.28vw, 18px);
+    }
+  }
+
+  html {
+    font-family: var(--font-sans);
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    font-optical-sizing: auto;
   }
 
   body {
     background-color: #060913;
     color: #f1f5f9;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Samsung Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: 1.45;
+    letter-spacing: -0.011em;
     overflow-x: hidden;
     touch-action: pan-y pinch-zoom;
     overscroll-behavior-y: contain;
@@ -33,23 +73,157 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  h1, h2, h3, h4 {
-    letter-spacing: -0.035em;
-    font-weight: 750;
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.028em;
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
   }
 
-  code, pre, .font-mono {
-    font-family: "SF Mono", "Fira Code", Monaco, Menlo, Consolas, monospace;
-    letter-spacing: -0.015em;
+  p {
+    text-wrap: pretty;
   }
+
+  code, pre, kbd, .font-mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "zero" 1, "ss01" 1, "cv01" 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Fluid Typography Helpers for Multi-Resolution & Aspect-Ratio Harmony */
+.text-fluid-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.18rem, 1rem + 0.75vw, 1.65rem);
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+}
+
+.text-fluid-card-title {
+  font-family: var(--font-display);
+  font-size: clamp(0.92rem, 0.84rem + 0.32vw, 1.08rem);
+  line-height: 1.24;
+  letter-spacing: -0.02em;
+}
+
+.text-fluid-meta {
+  font-size: clamp(0.7rem, 0.66rem + 0.16vw, 0.8rem);
+  line-height: 1.35;
+}
+
+/* ============================================================================
+   120Hz EXPRESSIVE & BUBBLY ICON MICRO-ANIMATION ENGINE (Pure GPU Transform)
+   ============================================================================ */
+@keyframes icon-bubble-pop {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  40% {
+    transform: translate3d(0, -2.5px, 0) scale(1.22) rotate(-8deg);
+  }
+  75% {
+    transform: translate3d(0, 0.5px, 0) scale(0.95) rotate(5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.06) rotate(0deg);
+  }
+}
+
+@keyframes icon-sparkle-twinkle {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  35% {
+    transform: translate3d(0, -1.5px, 0) scale(1.16) rotate(12deg);
+  }
+  70% {
+    transform: translate3d(0, 1px, 0) scale(0.96) rotate(-8deg);
+  }
+}
+
+@keyframes icon-bolt-jolt {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  30% {
+    transform: translate3d(0, -2px, 0) scale(1.24) rotate(-14deg);
+  }
+  65% {
+    transform: translate3d(0, 0, 0) scale(1.08) rotate(10deg);
+  }
+}
+
+@keyframes icon-float-bob {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -2.5px, 0) scale(1.06);
+  }
+}
+
+.icon-bubbly {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.34s var(--ease-bubbly), color 0.2s ease;
+}
+
+.group:hover .icon-bubbly,
+button:hover .icon-bubbly {
+  animation: icon-bubble-pop 0.48s var(--ease-bubbly) forwards;
+}
+
+.icon-sparkle-live {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  animation: icon-sparkle-twinkle 3.2s var(--ease-fluid) infinite;
+}
+
+.icon-bolt-live {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.32s var(--ease-bubbly);
+}
+
+button:hover .icon-bolt-live,
+.group:hover .icon-bolt-live {
+  animation: icon-bolt-jolt 0.44s var(--ease-bubbly) forwards;
+}
+
+.icon-spin-bubbly {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.46s var(--ease-bubbly);
+}
+
+button:hover .icon-spin-bubbly,
+.group:hover .icon-spin-bubbly {
+  transform: translate3d(0, 0, 0) rotate(180deg) scale(1.15);
+}
+
+.icon-plus-bubbly {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.38s var(--ease-bubbly);
+}
+
+button:hover .icon-plus-bubbly,
+.group:hover .icon-plus-bubbly {
+  transform: translate3d(0, 0, 0) rotate(90deg) scale(1.2);
+}
+
+.icon-float-subtle {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  animation: icon-float-bob 3.6s var(--ease-fluid) infinite;
 }
 
 /* 120Hz GPU Layer Acceleration & High-FPS Optimizations */
 .gpu-layer {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  perspective: 1000px;
-  will-change: transform, opacity;
 }
 
 /* Rubber-Band Overscroll & Bouncy Scroll */
@@ -60,50 +234,68 @@
 }
 
 @keyframes rubber-bounce-top {
-  0% { transform: translateY(0) scaleY(1); }
-  35% { transform: translateY(14px) scaleY(1.06); }
-  65% { transform: translateY(-4px) scaleY(0.98); }
-  100% { transform: translateY(0) scaleY(1); }
+  0% { transform: translate3d(0, 0, 0) scaleY(1); }
+  35% { transform: translate3d(0, 12px, 0) scaleY(1.04); }
+  65% { transform: translate3d(0, -3px, 0) scaleY(0.985); }
+  100% { transform: translate3d(0, 0, 0) scaleY(1); }
 }
 
 @keyframes rubber-bounce-bottom {
-  0% { transform: translateY(0) scaleY(1); }
-  35% { transform: translateY(-14px) scaleY(1.06); }
-  65% { transform: translateY(4px) scaleY(0.98); }
-  100% { transform: translateY(0) scaleY(1); }
+  0% { transform: translate3d(0, 0, 0) scaleY(1); }
+  35% { transform: translate3d(0, -12px, 0) scaleY(1.04); }
+  65% { transform: translate3d(0, 3px, 0) scaleY(0.985); }
+  100% { transform: translate3d(0, 0, 0) scaleY(1); }
 }
 
 .bounce-top {
-  animation: rubber-bounce-top 0.42s var(--ease-elastic);
+  animation: rubber-bounce-top 0.38s var(--ease-bubbly);
 }
 
 .bounce-bottom {
-  animation: rubber-bounce-bottom 0.42s var(--ease-elastic);
+  animation: rubber-bounce-bottom 0.38s var(--ease-bubbly);
 }
 
-/* Apple VisionOS & One UI 7 Liquid Glass Material System */
+/* 120Hz Zero-Blur Ambient Aurora Drift (Pure translate3d + containment) */
 @keyframes liquid-aurora-drift {
   0% {
-    transform: translate3d(0%, 0%, 0) scale(1) rotate(0deg);
+    transform: translate3d(0%, 0%, 0) scale(1);
   }
   50% {
-    transform: translate3d(3%, -4%, 0) scale(1.06) rotate(4deg);
+    transform: translate3d(2.5%, -3%, 0) scale(1.04);
   }
   100% {
-    transform: translate3d(-2%, 3%, 0) scale(0.97) rotate(-3deg);
+    transform: translate3d(-2%, 2.5%, 0) scale(0.98);
   }
 }
 
 .liquid-aurora-orb {
-  animation: liquid-aurora-drift 18s ease-in-out infinite alternate;
-  will-change: transform;
+  animation: liquid-aurora-drift 22s var(--ease-fluid) infinite alternate;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  contain: layout style paint;
 }
 
-/* Tier 1 — Resting Canvas Cards */
+/* Tier 1 — Resting Canvas Cards (Zero filter transition thrashing) */
 .glass-liquid {
   background: rgba(11, 19, 36, 0.55);
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition:
+    transform 0.28s var(--ease-bubbly),
+    box-shadow 0.24s var(--ease-samsung),
+    border-color 0.2s var(--ease-samsung),
+    background-color 0.2s var(--ease-samsung);
+}
+
+.glass-liquid-subtle {
+  background: rgba(11, 19, 36, 0.55);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-top-color: rgba(255, 255, 255, 0.16);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
@@ -111,32 +303,14 @@
   backface-visibility: hidden;
   transition:
     transform 0.26s var(--ease-bubbly),
-    filter 0.22s var(--ease-samsung),
-    box-shadow 0.24s var(--ease-samsung),
-    border-color 0.22s var(--ease-samsung),
-    background 0.24s var(--ease-samsung);
-}
-
-.glass-liquid-subtle {
-  background: rgba(11, 19, 36, 0.55);
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-top-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  transition:
-    transform 0.22s var(--ease-bubbly),
-    filter 0.18s var(--ease-samsung),
     border-color 0.2s var(--ease-samsung);
 }
 
 /* Tier 2 — Floating Chrome (FloatingPillNav, Sticky Inputs, Header Capsules) */
 .glass-liquid-elevated {
   background: rgba(7, 12, 24, 0.9);
-  backdrop-filter: blur(64px) saturate(190%);
-  -webkit-backdrop-filter: blur(64px) saturate(190%);
+  backdrop-filter: blur(36px) saturate(185%);
+  -webkit-backdrop-filter: blur(36px) saturate(185%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-top-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
@@ -147,8 +321,8 @@
 /* Tier 3 — Modals, Bottom Sheets & Dropdown Menus */
 .glass-liquid-modal {
   background: rgba(9, 16, 32, 0.96);
-  backdrop-filter: blur(64px) saturate(190%);
-  -webkit-backdrop-filter: blur(64px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-top-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9);
@@ -165,54 +339,72 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-top-color: rgba(255, 255, 255, 0.26);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.24), 0 8px 20px -4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.24s var(--ease-bubbly), box-shadow 0.2s var(--ease-samsung), border-color 0.2s var(--ease-samsung);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.28s var(--ease-bubbly), box-shadow 0.2s var(--ease-samsung), border-color 0.2s var(--ease-samsung);
 }
 
 .samsung-card {
   border-radius: 1.75rem;
-  transition: transform 0.26s var(--ease-bubbly), filter 0.2s var(--ease-samsung), box-shadow 0.22s var(--ease-samsung);
-  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.28s var(--ease-bubbly), box-shadow 0.22s var(--ease-samsung), border-color 0.2s ease;
 }
 
 .samsung-card:hover {
-  transform: translateY(-2.5px) scale(1.01);
+  transform: translate3d(0, -3px, 0) scale(1.008);
 }
 
 .samsung-card-active:active {
-  transform: scale(0.96);
+  transform: translate3d(0, 1px, 0) scale(0.965);
+  transition-duration: 0.1s;
 }
 
-/* Elastic Bubbly Interaction Effects */
+/* Cohesive 120Hz Bubbly Button & Interactive Micro-Physics (No global will-change memory bloat) */
 button, [role="button"] {
   touch-action: manipulation;
-  will-change: transform;
+  backface-visibility: hidden;
+  transition:
+    transform 0.28s var(--ease-bubbly),
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.22s ease,
+    opacity 0.18s ease;
 }
 
 .bubble-tap {
-  transition: transform 0.24s var(--ease-bubbly), filter 0.18s ease, box-shadow 0.22s var(--ease-samsung);
-  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition:
+    transform 0.28s var(--ease-bubbly),
+    box-shadow 0.22s var(--ease-samsung),
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 }
 
-.bubble-tap:hover {
-  transform: translateY(-1.5px) scale(1.025);
+.bubble-tap:hover:not(:disabled) {
+  transform: translate3d(0, -2px, 0) scale(1.035);
 }
 
-.bubble-tap:active {
-  transform: scale(0.92) translateZ(0);
-  transition-duration: 0.08s;
+.bubble-tap:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0) scale(0.92);
+  transition-duration: 0.09s;
 }
 
 .bubble-pop {
-  transition: transform 0.28s var(--ease-bubbly), box-shadow 0.28s var(--ease-bubbly);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.3s var(--ease-bubbly), box-shadow 0.26s var(--ease-bubbly);
 }
 
-.bubble-pop:hover {
-  transform: translateY(-2.5px) scale(1.02);
+.bubble-pop:hover:not(:disabled) {
+  transform: translate3d(0, -2.5px, 0) scale(1.03);
 }
 
-.bubble-pop:active {
-  transform: scale(0.93) translateY(1px);
-  transition-duration: 0.08s;
+.bubble-pop:active:not(:disabled) {
+  transform: translate3d(0, 1px, 0) scale(0.925);
+  transition-duration: 0.09s;
 }
 
 /* Luminous Glows */
