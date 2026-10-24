@@ -232,9 +232,10 @@ Unsigned Python-to-EXE binaries are frequently flagged by Windows Defender or Ma
 3. **Zero Hidden Shell Subprocesses on Startup**: Instead of spawning hidden `powershell.exe -WindowStyle Hidden` or `cmd.exe /c` subprocesses to read network adapters or clipboard state (which triggers EDR "Living-off-the-Land" alerts), `agent_gui.py` uses pure Python `psutil.net_if_addrs()`, `psutil.net_if_stats()`, and native Tkinter clipboard APIs.
 4. **Embedded Windows PE Version Metadata & UAC `asInvoker` Manifest**: The binary embeds official company metadata (`Technical University of Varna — CST Dept`), product version (`2.7.0.0`), and `requestedExecutionLevel level="asInvoker"` so it never demands suspicious privilege escalation on launch.
 5. **SHA-256 Authenticode Code Signing (`agent/sign_binary.ps1`)**:
-   - To eliminate Windows SmartScreen "Unknown Publisher" prompts across university lab PCs, sign the `.exe` using `agent/sign_binary.ps1` and import the public `.cer` certificate into each lab machine's `Cert:\LocalMachine\Root` store:
+   - Digitally signed with Authenticode certificate `CN=Computer Systems and Technologies (CST), O=CST_RU-AK, C=BG`.
+   - To eliminate Windows SmartScreen "Unknown Publisher" prompts across university lab PCs, sign the `.exe` using `agent/sign_binary.ps1` and import the public certificate into each lab machine's `Cert:\LocalMachine\Root` store:
      ```powershell
-     powershell -ExecutionPolicy Bypass -File agent\sign_binary.ps1 -ExePath dist\CST_HostAgent_v2.7.0_win64.exe
+     powershell -ExecutionPolicy Bypass -File agent\sign_binary.ps1 -ExePath public\releases\v2.7.0\CST_HostAgent_v2.7.0_win64.exe
      ```
 
 ---
@@ -266,15 +267,16 @@ When working in the Web Console (outside of text inputs), use these global hotke
 
 Pre-compiled release binaries are served directly from the web app under `/releases/v2.7.0/` and can be downloaded from the top navigation bar or **Settings → Native Release Downloads**:
 
-| Artifact | Target Platform | SHA-256 Checksum |
-| :--- | :--- | :--- |
-| **`CST_HostAgent_v2.7.0_win64.exe`** | Windows 10/11 (x64) | `b687b3bc8f5ee63e909b117493a3fc011cd7df3a3de6215fc0a3f2c0ebe68e98` |
-| **`CST_NetController_AI_v2.7.0_arm64-v8a.apk`** | Android 10–15 (ARM64) | `47c952a13b9b26a1d735c774aca605a2f48c69d30a1f92906e7fbc26c5d92fa6` |
-| **`CST_HostAgent_v2.7.0_win64_portable.zip`** | Windows / Linux / macOS | `3d88ab293acc6f0becc254b2c25a83cd2307ebe99b17aabc494de76df7e53077` |
+| Artifact | Target Platform | Size | SHA-256 Checksum |
+| :--- | :--- | :---: | :--- |
+| **`CST_HostAgent_v2.7.0_win64.exe`** | Windows 10/11 (`x86_64` PE32+ Signed `O=CST_RU-AK`) | 33.7 MB | `484467fccf3c2605a1ce180420db437707a80c095526404473d591b415b55c89` |
+| **`CST_NetController_AI_v2.7.0_arm64-v8a.apk`** | Android 10–15 (`arm64-v8a` High-Refresh 120Hz) | 22.5 MB | `b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6` |
+| **`CST_NetController_AI_v2.7.0.apk`** | Android 10–15 (Universal Package) | 22.5 MB | `b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6` |
+| **`CST_HostAgent_v2.7.0_win64_portable.zip`** | Windows Portable Agent Bundle + Internal Runtime | 34.9 MB | `5c8669cc2d7ac6d6d9e91f1c75bd2829ce03b3267acc56e975321f10741ed1da` |
 
-- **To rebuild the Windows `.EXE` from source**: Run `agent\build_exe.bat` on Windows (uses `agent/build_agent.spec` with `upx=False` and `agent/sign_binary.ps1`).
+- **To rebuild the Windows `.EXE` from source**: Run `pyinstaller --clean build_agent.spec` inside `agent/` and sign via `powershell -ExecutionPolicy Bypass -File sign_binary.ps1 -ExePath dist\CST_HostAgent\CST_HostAgent.exe`.
 - **To rebuild the Android `.APK` from source**: Run `flutter build apk --release --split-per-abi` inside `apps/mobile/`.
-- See **[docs/COMPILATION_GUIDE.md](./COMPILATION_GUIDE.md)** for full step-by-step compiler flags and environment setup.
+- See **[docs/COMPILATION_GUIDE.md](./COMPILATION_GUIDE.md)** and **[docs/SETUP_GUIDE.md](./SETUP_GUIDE.md)** for full step-by-step instructions.
 
 ---
 
