@@ -167,9 +167,11 @@ class WindowsJobSupervisor:
 
             # JOBOBJECT_EXTENDED_LIMIT_INFORMATION setup
             # 0x2000 = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-            # 0x0100 = JOB_OBJECT_LIMIT_JOB_MEMORY
+            # 0x0200 = JOB_OBJECT_LIMIT_JOB_MEMORY
+            # 0x0100 = JOB_OBJECT_LIMIT_PROCESS_MEMORY
             job_object_limit_kill_on_job_close = 0x2000
-            job_object_limit_job_memory = 0x0100
+            job_object_limit_job_memory = 0x0200
+            job_object_limit_process_memory = 0x0100
 
             class IoCounters(ctypes.Structure):
                 _fields_ = [
@@ -206,9 +208,10 @@ class WindowsJobSupervisor:
 
             info = JobObjectExtendedLimitInformation()
             info.BasicLimitInformation.LimitFlags = (
-                job_object_limit_kill_on_job_close | job_object_limit_job_memory
+                job_object_limit_kill_on_job_close | job_object_limit_job_memory | job_object_limit_process_memory
             )
-            info.JobMemoryLimit = memory_limit_mb * 1024 * 1024  # Enforce hard memory limit
+            info.JobMemoryLimit = memory_limit_mb * 1024 * 1024  # Enforce hard job memory limit
+            info.ProcessMemoryLimit = memory_limit_mb * 1024 * 1024  # Enforce hard process memory limit
 
             res = self.kernel32.SetInformationJobObject(
                 self.job_handle,

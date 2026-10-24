@@ -1261,62 +1261,125 @@ app.post('/api/hosts/scan', async (_req: Request, res: Response) => {
   }
 });
 
+// Hardened Shell Command Security & AST Inspector Policy
+export interface CommandInspectionResult {
+  allowed: boolean;
+  blocked: boolean;
+  requiresConfirmation: boolean;
+  riskLevel: 'SAFE' | 'HIGH' | 'CRITICAL';
+  sanitizedCmd: string;
+  reason?: string;
+}
+
+export function inspectCommandSecurity(rawCmd: string): CommandInspectionResult {
+  if (!rawCmd || typeof rawCmd !== 'string') {
+    return {
+      allowed: false,
+      blocked: true,
+      requiresConfirmation: false,
+      riskLevel: 'CRITICAL',
+      sanitizedCmd: '',
+      reason: 'Command string is required and must be non-empty',
+    };
+  }
+
+  const trimmed = rawCmd.trim();
+  if (trimmed.length > 2048 || trimmed.includes('\0')) {
+    return {
+      allowed: false,
+      blocked: true,
+      requiresConfirmation: false,
+      riskLevel: 'CRITICAL',
+      sanitizedCmd: '',
+      reason: 'Command rejected: invalid length (>2048 chars) or null byte detected',
+    };
+  }
+
+  // Normalize Windows CMD caret (^), PowerShell backtick (`), and interstitial quotes before inspection
+  const deobfuscatedCmd = trimmed
+    .replace(/\^(.)/g, '$1')
+    .replace(/`([a-zA-Z0-9])/g, '$1')
+    .replace(/(?<=\w)["'](?=\w)/g, '');
+
+  const hasEvasionArtifacts = deobfuscatedCmd !== trimmed;
+
+  // Unconditionally block catastrophic / remote-code-execution / obfuscation vectors
+  const criticalBlockPatterns = [
+    /:\(\)\s*\{\s*:\|:&\s*\}\s*;?\s*:/, // Fork bomb
+    /\bmkfs(?:\.[a-z0-9]+)?\b/i, // Filesystem formatting
+    /\bdd\s+if=/i, // Raw block device overwrite
+    /\b(?:curl|wget)\b.*\|\s*(?:ba)?sh\b/i, // Remote script pipe execution
+    /\b(?:nc|ncat|netcat)\b.*-e\b/i, // Reverse shell
+    /\b(?:powershell|pwsh)(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\b/i, // Base64 encoded PowerShell
+    /\b(?:iex|invoke-expression)\b/i, // PowerShell dynamic eval
+    /\brm\s+-[rRfF]+\s+(?:\/|\*)\b/, // Root filesystem deletion
+    /%[a-zA-Z0-9_]+:~\d+,\d+%/, // Windows CMD environment variable substring slicing evasion
+    /\b(?:0x[0-9a-f]{8}|0[0-7]{10,})\b/i, // Hex/octal IP encoding evasion
+  ];
+
+  for (const pattern of criticalBlockPatterns) {
+    if (pattern.test(deobfuscatedCmd)) {
+      return {
+        allowed: false,
+        blocked: true,
+        requiresConfirmation: false,
+        riskLevel: 'CRITICAL',
+        sanitizedCmd: deobfuscatedCmd,
+        reason: 'Command permanently blocked by CST AST Security Firewall',
+      };
+    }
+  }
+
+  const isHighRisk =
+    hasEvasionArtifacts ||
+    /\b(?:rmdir|del|rm|format|diskpart|shutdown|reboot|Restart-Computer|Stop-Computer|reg\s+delete|bcdedit|vssadmin)\b/i.test(
+      deobfuscatedCmd
+    ) ||
+    /[;&|`$()]/.test(trimmed);
+
+  if (isHighRisk) {
+    return {
+      allowed: true,
+      blocked: false,
+      requiresConfirmation: true,
+      riskLevel: 'HIGH',
+      sanitizedCmd: deobfuscatedCmd,
+      reason: 'High-risk command requires Human-in-the-Loop approval',
+    };
+  }
+
+  return {
+    allowed: true,
+    blocked: false,
+    requiresConfirmation: false,
+    riskLevel: 'SAFE',
+    sanitizedCmd: deobfuscatedCmd,
+  };
+}
+
 // Real Command Execution Endpoint (Hardened with AST Firewall Policy v2026.10-REV5)
 app.post('/api/command/execute', async (req: Request, res: Response) => {
   try {
     const { command, hostId } = req.body;
-    if (!command || typeof command !== 'string') {
-      return res.status(400).json({ error: 'Command string is required' });
-    }
+    const inspection = inspectCommandSecurity(command);
 
-    const rawCmd = command.trim();
-    if (rawCmd.length > 2048 || rawCmd.includes('\0')) {
-      return res.status(400).json({ error: 'Command rejected: invalid length or null byte detected' });
-    }
-
-    // Normalize Windows CMD caret (^), PowerShell backtick (`), and interstitial quotes before inspection
-    const deobfuscatedCmd = rawCmd
-      .replace(/\^(.)/g, '$1')
-      .replace(/`([a-zA-Z0-9])/g, '$1')
-      .replace(/(?<=\w)["'](?=\w)/g, '');
-
-    // Unconditionally block catastrophic / remote-code-execution / obfuscation vectors
-    const criticalBlockPatterns = [
-      /:\(\)\s*\{\s*:\|:&\s*\}\s*;?\s*:/, // Fork bomb
-      /\bmkfs(?:\.[a-z0-9]+)?\b/i, // Filesystem formatting
-      /\bdd\s+if=/i, // Raw block device overwrite
-      /\b(?:curl|wget)\b.*\|\s*(?:ba)?sh\b/i, // Remote script pipe execution
-      /\b(?:nc|ncat|netcat)\b.*-e\b/i, // Reverse shell
-      /\b(?:powershell|pwsh)(?:\.exe)?\b.*\s-(?:e|en|enc|encodedcommand)\b/i, // Base64 encoded PowerShell
-      /\b(?:iex|invoke-expression)\b/i, // PowerShell dynamic eval
-      /\brm\s+-[rRfF]+\s+(?:\/|\*)\b/, // Root filesystem deletion
-      /%[a-zA-Z0-9_]+:~\d+,\d+%/, // Windows CMD environment variable substring slicing evasion
-      /\b(?:0x[0-9a-f]{8}|0[0-7]{10,})\b/i, // Hex/octal IP encoding evasion
-    ];
-
-    for (const pattern of criticalBlockPatterns) {
-      if (pattern.test(deobfuscatedCmd)) {
-        return res.status(403).json({
-          error: 'Command permanently blocked by CST AST Security Firewall',
-          blocked: true,
-          riskLevel: 'CRITICAL',
-        });
-      }
-    }
-
-    const isHighRisk =
-      /\b(?:rmdir|del|rm|format|diskpart|shutdown|reboot|Restart-Computer|Stop-Computer|reg\s+delete|bcdedit|vssadmin)\b/i.test(
-        deobfuscatedCmd
-      ) || /[;&|`$()]/.test(rawCmd);
-
-    if (isHighRisk && !req.body.confirmed) {
+    if (inspection.blocked) {
       return res.status(403).json({
-        error: 'High-risk command requires Human-in-the-Loop approval',
-        requiresConfirmation: true,
-        riskLevel: 'HIGH',
+        error: inspection.reason,
+        blocked: true,
+        riskLevel: inspection.riskLevel,
       });
     }
 
+    if (inspection.requiresConfirmation && !req.body.confirmed) {
+      return res.status(403).json({
+        error: inspection.reason,
+        requiresConfirmation: true,
+        riskLevel: inspection.riskLevel,
+      });
+    }
+
+    const rawCmd = inspection.sanitizedCmd;
     const startTime = Date.now();
     exec(rawCmd, { timeout: 15000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
       const durationMs = Date.now() - startTime;
@@ -1702,11 +1765,23 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
     }
     case 'shell_exec': {
       const rawCmd = String(action.command || 'whoami').trim();
-      const isHighRisk =
-        /\b(?:rmdir|del|rm|format|diskpart|shutdown|reboot|Restart-Computer|Stop-Computer|reg\s+delete|bcdedit|vssadmin)\b/i.test(
-          rawCmd
-        );
-      if (isHighRisk && pcDaemonState.requireHitlApproval) {
+      const inspection = inspectCommandSecurity(rawCmd);
+
+      if (inspection.blocked) {
+        addDaemonLog('SECURITY', `[AI-CONTROL] Permanently blocked critical command: "${rawCmd}"`);
+        return {
+          success: false,
+          actionType: 'shell_exec',
+          target,
+          opcode: '0x05 (SHELL_FIREWALL_BLOCK)',
+          summary: `Blocked by AST Security Firewall: "${rawCmd}"`,
+          output: inspection.reason || 'Command blocked by security policy.',
+          durationMs: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      if (inspection.requiresConfirmation && pcDaemonState.requireHitlApproval) {
         addDaemonLog('WARN', `[AI-CONTROL] High-risk command "${rawCmd}" held for HITL operator confirmation.`);
         return {
           success: false,
@@ -1720,20 +1795,21 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
         };
       }
 
+      const execTargetCmd = inspection.sanitizedCmd;
       const output = await new Promise<string>((resolve) => {
-        exec(rawCmd, { timeout: 8000, maxBuffer: 512 * 1024 }, (err, stdout, stderr) => {
+        exec(execTargetCmd, { timeout: 8000, maxBuffer: 512 * 1024 }, (err, stdout, stderr) => {
           const out = (stdout || stderr || (err ? err.message : 'Executed (exit code 0)')).trim();
           resolve(out.slice(0, 1200));
         });
       });
 
-      addDaemonLog('INFO', `[AI-CONTROL] Executed shell command "${rawCmd}" on ${target}`);
+      addDaemonLog('INFO', `[AI-CONTROL] Executed shell command "${execTargetCmd}" on ${target}`);
       return {
         success: true,
         actionType: 'shell_exec',
         target,
         opcode: '0x05 (SHELL_EXEC)',
-        summary: `Executed "${rawCmd}" on ${target}`,
+        summary: `Executed "${execTargetCmd}" on ${target}`,
         output,
         durationMs: Date.now() - startTime,
         timestamp: new Date().toISOString(),
