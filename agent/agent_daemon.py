@@ -33,6 +33,10 @@ from typing import Dict, List, Optional, Tuple, Any
 from multiprocessing import Process, Event, shared_memory
 from concurrent.futures import ThreadPoolExecutor
 
+_AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if _AGENT_DIR not in sys.path:
+    sys.path.insert(0, _AGENT_DIR)
+
 from crypto_vault import HostCryptoVault, scrub_memory
 
 # Logging Configuration
@@ -290,7 +294,10 @@ def screen_capture_worker_process(shm_name: str, stop_event: Event, ready_event:
     except Exception:
         synthetic_locked_frame = b"LOCKED"
 
-    from PIL import Image
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
     import io
     reusable_bio = io.BytesIO()
     frame_seq = 0
@@ -313,12 +320,14 @@ def screen_capture_worker_process(shm_name: str, stop_event: Event, ready_event:
                     last_raw_hash = curr_hash
                     if jpeg:
                         data = jpeg.encode(frame.bgra, quality=65)
-                    else:
+                    elif Image:
                         img = Image.frombytes("RGB", frame.size, frame.bgra, "raw", "BGRX")
                         reusable_bio.seek(0)
                         reusable_bio.truncate(0)
                         img.save(reusable_bio, format="JPEG", quality=60)
                         data = reusable_bio.getvalue()
+                    else:
+                        data = synthetic_locked_frame
             except Exception:
                 data = synthetic_locked_frame
         else:
@@ -515,27 +524,45 @@ class DaemonServer:
 
 def main():
     job_guard = WindowsJobObjectGuard()
-    daemon = DaemonServer()
+    ws_daemon = None
+    try:
+        from agent import HostAgentDaemon
+        ws_daemon = HostAgentDaemon(host="0.0.0.0", port=8765)
+    except Exception as e:
+        logger.warning(f"WebSocket daemon fallback notice: {e}")
+
+    daemon = DaemonServer(port=8766 if ws_daemon else 8765)
+
+    def _stop_all():
+        if ws_daemon:
+            ws_daemon.stop()
+        daemon.stop()
 
     if "--headless" not in sys.argv:
         try:
             from agent_gui import HostDaemonState, HostDaemonDesktopGUI, HAS_TKINTER
             if HAS_TKINTER:
-                gui_state = HostDaemonState(host=daemon.host, port=daemon.port)
+                gui_state = HostDaemonState(host="0.0.0.0", port=8765)
 
                 def _run_async_daemon():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
                     try:
-                        asyncio.run(daemon.run())
+                        if ws_daemon:
+                            loop.run_until_complete(ws_daemon.start())
+                        loop.run_until_complete(daemon.run())
                     except Exception as exc:
                         logger.error(f"Daemon thread error: {exc}")
+                    finally:
+                        loop.close()
 
                 daemon_thread = threading.Thread(target=_run_async_daemon, daemon=True, name="CST_DaemonReactor")
                 daemon_thread.start()
 
                 gui = HostDaemonDesktopGUI(
                     state=gui_state,
-                    on_disconnect_all=lambda: gui_state.add_log("ALERT", "Disconnected all active peers."),
-                    on_stop_daemon=daemon.stop,
+                    on_disconnect_all=ws_daemon.kill_all_tasks if ws_daemon else (lambda: gui_state.add_log("ALERT", "Disconnected all active peers.")),
+                    on_stop_daemon=_stop_all,
                 )
                 gui.run()
                 return
@@ -543,9 +570,13 @@ def main():
             logger.info(f"GUI mode fallback to console reactor: {e}")
 
     try:
-        asyncio.run(daemon.run())
+        async def _run_both():
+            if ws_daemon:
+                await ws_daemon.start()
+            await daemon.run()
+        asyncio.run(_run_both())
     except KeyboardInterrupt:
-        daemon.stop()
+        _stop_all()
 
 
 if __name__ == "__main__":

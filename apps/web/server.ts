@@ -58,6 +58,18 @@ app.use(
   })
 );
 
+// Fallback redirect to official GitHub Releases if binary artifact is not stored locally
+app.get('/releases/:version/:filename', (req: Request, res: Response) => {
+  const { version, filename } = req.params;
+  if (/^v\d+\.\d+\.\d+$/.test(version) && /\.(exe|apk|zip|txt|json)$/i.test(filename)) {
+    return res.redirect(
+      302,
+      `https://github.com/smehmedd/AI-NetController/releases/download/${version}/${filename}`
+    );
+  }
+  return res.status(404).json({ error: 'Release artifact not found' });
+});
+
 // High-Performance Sliding-Window API Rate Limiter (120 req/min per IP)
 const apiRateBuckets = new Map<string, { count: number; resetAt: number }>();
 const API_WINDOW_MS = 60_000;
@@ -1444,9 +1456,13 @@ export interface ParsedAiAction {
     | 'mouse_double_click'
     | 'mouse_scroll'
     | 'keyboard_type'
+    | 'type_text'
     | 'keyboard_hotkey'
+    | 'key_combo'
     | 'media_control'
+    | 'lock_pc'
     | 'shell_exec'
+    | 'terminal_command'
     | 'wol'
     | 'system_update'
     | 'daemon_control'
@@ -1738,6 +1754,7 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
         timestamp: new Date().toISOString(),
       };
     }
+    case 'type_text':
     case 'keyboard_type': {
       const text = String(action.text || '');
       const pressEnter = action.pressEnter !== false;
@@ -1755,9 +1772,13 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
         timestamp: new Date().toISOString(),
       };
     }
+    case 'key_combo':
     case 'keyboard_hotkey': {
-      const keys = Array.isArray(action.keys) ? action.keys : String(action.command || 'ctrl,c').split(',');
-      const combo = keys.map((k) => k.trim().toUpperCase()).join(' + ');
+      const rawKeys = (action as any).keys;
+      const keys = Array.isArray(rawKeys)
+        ? rawKeys
+        : String(rawKeys || action.command || 'ctrl,c').split(',');
+      const combo = keys.map((k: string) => k.trim().toUpperCase()).join(' + ');
       const msg = `Opcode 0x08 Win32 SendInput: Injected shortcut [${combo}] on ${target}`;
       addDaemonLog('INFO', `[AI-CONTROL] ${msg}`);
       return {
@@ -1771,8 +1792,9 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
         timestamp: new Date().toISOString(),
       };
     }
+    case 'lock_pc':
     case 'media_control': {
-      const cmd = String(action.command || 'play_pause').toLowerCase();
+      const cmd = action.type === 'lock_pc' ? 'lock_pc' : String(action.command || 'play_pause').toLowerCase();
       const msg = `Opcode 0x09 OS Media/Session Control: Executed [${cmd.toUpperCase()}] on ${target}`;
       addDaemonLog('INFO', `[AI-CONTROL] ${msg}`);
       return {
@@ -1786,6 +1808,7 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
         timestamp: new Date().toISOString(),
       };
     }
+    case 'terminal_command':
     case 'shell_exec': {
       const rawCmd = String(action.command || 'whoami').trim();
       const inspection = inspectCommandSecurity(rawCmd);
@@ -1970,6 +1993,47 @@ function generateSmartLocalFallbackReply(userText: string, targetHost: string): 
     return `### 🔄 AI System & Model Update Orchestrator\nI inspected the **CST Update Registry**:\n- **Pending Updates**: **${pending.length}** component(s) (${pending.map((p) => `${p.name} → \`${p.latestVersion}\``).join(', ') || 'All components are up to date'})\n- **Host Daemon**: \`${pcDaemonState.version}\` on \`${pcDaemonState.localIp}:${pcDaemonState.port}\`\n\nExecuting atomic update synchronization now:\n[ACTION:SYSTEM_UPDATE target=ALL]`;
   }
 
+  if (lower.includes('task manager') || lower.includes('диспечер') || lower.includes('задачи')) {
+    return `### 📊 Opening Task Manager (\`Ctrl+Shift+Esc\`)\nLaunching **Task Manager** on **${targetHost}** via hardware keystroke injection:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="ctrl,shift,esc"]`;
+  }
+
+  if (lower.includes('desktop') || lower.includes('minimize') || lower.includes('работен плот') || lower.includes('минимизирай')) {
+    return `### 🖥️ Show Desktop (\`Win+D\`)\nToggling **Show Desktop** on **${targetHost}**:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="win,d"]`;
+  }
+
+  if (lower.includes('explorer') || lower.includes('files') || lower.includes('folder') || lower.includes('файлов') || lower.includes('папка')) {
+    return `### 📁 Opening File Explorer (\`Win+E\`)\nLaunching **File Explorer** on **${targetHost}**:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="win,e"]`;
+  }
+
+  if (lower.includes('browser') || lower.includes('chrome') || lower.includes('google') || lower.includes('youtube') || lower.includes('браузър')) {
+    const urlMatch = /(https?:\/\/[^\s]+|[a-z0-9.-]+\.(?:com|org|net|bg|io)[^\s]*)/i.exec(userText);
+    const targetUrl = urlMatch ? (urlMatch[1].startsWith('http') ? urlMatch[1] : `https://${urlMatch[1]}`) : 'https://www.google.com';
+    return `### 🌐 Launching Web Browser\nOpening **${targetUrl}** on **${targetHost}**:\n[ACTION:SHELL_EXEC target=${targetHost} command="start ${targetUrl}"]`;
+  }
+
+  if (lower.includes('close window') || lower.includes('alt+f4') || lower.includes('alt f4') || lower.includes('затвори прозорец')) {
+    return `### ✕ Closing Active Window (\`Alt+F4\`)\nSending **Alt+F4** to close the active foreground window on **${targetHost}**:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="alt,f4"]`;
+  }
+
+  if (lower.includes('switch') || (lower.includes('alt') && lower.includes('tab')) || lower.includes('превключи прозорец')) {
+    return `### ⇄ Switching Active Window (\`Alt+Tab\`)\nSwitching active application window on **${targetHost}**:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="alt,tab"]`;
+  }
+
+  if (lower.includes('lock') || lower.includes('заключи')) {
+    return `### 🔒 Locking Workstation (\`Win+L\`)\nLocking **${targetHost}** session immediately:\n[ACTION:MEDIA_CONTROL target=${targetHost} command=lock_pc]`;
+  }
+
+  if (lower.includes('mute') || lower.includes('volume') || lower.includes('play') || lower.includes('pause') || lower.includes('звук') || lower.includes('пауза')) {
+    const mediaCmd = lower.includes('mute') || lower.includes('заглуши')
+      ? 'mute'
+      : lower.includes('up') || lower.includes('увеличи')
+      ? 'volume_up'
+      : lower.includes('down') || lower.includes('намали')
+      ? 'volume_down'
+      : 'play_pause';
+    return `### 🔊 Media & Audio Control (\`Opcode 0x09\`)\nExecuting **${mediaCmd.toUpperCase()}** on **${targetHost}**:\n[ACTION:MEDIA_CONTROL target=${targetHost} command=${mediaCmd}]`;
+  }
+
   if (lower.includes('double click') || lower.includes('двоен клик')) {
     const coords = /(\d{2,4})\s*[,x\s]\s*(\d{2,4})/.exec(userText);
     const x = coords ? Number(coords[1]) : 960;
@@ -1977,14 +2041,14 @@ function generateSmartLocalFallbackReply(userText: string, targetHost: string): 
     return `### 🖱️ Remote Mouse Double-Click (\`Opcode 0x08\`)\nDispatching hardware-accelerated Win32 \`SendInput\` double-click to **${targetHost}** at coordinates **(${x}, ${y})**:\n[ACTION:MOUSE_DOUBLE_CLICK target=${targetHost} x=${x} y=${y}]`;
   }
 
-  if (lower.includes('right click') || lower.includes('десен бутон') || lower.includes('десен клик')) {
+  if (lower.includes('right click') || lower.includes('десен бутон') || lower.includes('десен клик') || lower.includes('hold')) {
     const coords = /(\d{2,4})\s*[,x\s]\s*(\d{2,4})/.exec(userText);
     const x = coords ? Number(coords[1]) : 960;
     const y = coords ? Number(coords[2]) : 540;
     return `### 🖱️ Remote Right-Click (\`Opcode 0x08\`)\nDispatching right mouse click to **${targetHost}** at **(${x}, ${y})**:\n[ACTION:MOUSE_CLICK target=${targetHost} x=${x} y=${y} button=right]`;
   }
 
-  if (lower.includes('click') || lower.includes('клик')) {
+  if (lower.includes('click') || lower.includes('клик') || lower.includes('tap') || lower.includes('натисни')) {
     const coords = /(\d{2,4})\s*[,x\s]\s*(\d{2,4})/.exec(userText);
     const x = coords ? Number(coords[1]) : 960;
     const y = coords ? Number(coords[2]) : 540;
@@ -2003,13 +2067,13 @@ function generateSmartLocalFallbackReply(userText: string, targetHost: string): 
     return `### 🖱️ Remote Mouse Wheel Scroll (\`Opcode 0x08\`)\nScrolling mouse wheel on **${targetHost}** (\`dy=${dy}\`):\n[ACTION:MOUSE_SCROLL target=${targetHost} dy=${dy}]`;
   }
 
-  if (lower.includes('type ') || lower.includes('write ') || lower.includes('напиши ')) {
+  if (lower.includes('type ') || lower.includes('write ') || lower.includes('напиши ') || lower.includes('въведи ')) {
     const quoted = /["“]([^"”]+)["”]/.exec(userText);
-    const textToType = quoted ? quoted[1] : userText.replace(/^(?:please\s+)?(?:type|write|напиши)\s+/i, '').trim() || 'echo Ready';
+    const textToType = quoted ? quoted[1] : userText.replace(/^(?:please\s+)?(?:type|write|напиши|въведи)\s+/i, '').trim() || 'echo Ready';
     return `### ⌨️ Remote Keystroke Injection (\`Opcode 0x08\`)\nTyping text on **${targetHost}** via Unicode \`SendInput\`:\n[ACTION:KEYBOARD_TYPE target=${targetHost} text="${textToType.replace(/"/g, '')}" press_enter=true]`;
   }
 
-  if (lower.includes('task manager') || lower.includes('shortcut') || lower.includes('hotkey') || lower.includes('ctrl') || lower.includes('alt')) {
+  if (lower.includes('shortcut') || lower.includes('hotkey') || lower.includes('ctrl') || lower.includes('alt')) {
     const keys = lower.includes('alt') && lower.includes('tab') ? 'alt,tab' : 'ctrl,shift,esc';
     return `### ⌨️ Remote Keyboard Shortcut (\`Opcode 0x08\`)\nInjecting system shortcut **\`${keys.toUpperCase()}\`** on **${targetHost}**:\n[ACTION:KEYBOARD_HOTKEY target=${targetHost} keys="${keys}"]`;
   }
@@ -2027,7 +2091,7 @@ function generateSmartLocalFallbackReply(userText: string, targetHost: string): 
     return `### 🛡️ PC Host Daemon Security Control\nExecuting daemon control action **\`${cmd.toUpperCase()}\`** on \`${pcDaemonState.hostname}\`:\n[ACTION:DAEMON_CONTROL command=${cmd}]`;
   }
 
-  return `### 🤖 CST Fleet Commander AI — Direct PC Control Ready\nConnected to **${targetHost}** via \`CST/3.0-SECURE\` (Host Daemon \`${pcDaemonState.localIp}:${pcDaemonState.port}\`).\n\nI have queued a live system health & network diagnostic check, plus quick PC control actions below:\n[ACTION:SHELL_EXEC target=${targetHost} command="whoami && hostname"]\n[ACTION:DAEMON_CONTROL command=diagnostics]`;
+  return `### 🤖 CST Fleet Commander AI — Direct PC Control Executed\nExecuting your request on **${targetHost}** (\`${ userText.slice(0, 80) }\`):\n[ACTION:KEYBOARD_TYPE target=${targetHost} text="${userText.replace(/"/g, '').slice(0, 60)}" press_enter=true]`;
 }
 
 // Multi-turn Gemini & AI Chat Endpoint with Real PC Control & Update Execution

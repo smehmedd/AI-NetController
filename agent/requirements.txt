@@ -1,25 +1,24 @@
-# Core Network & Async WebSocket (Latest Stable)
-websockets>=15.0.1
-aiohttp>=3.11.16
+# Core Network & Async WebSocket
+websockets>=13.0
+aiohttp>=3.10.0
 
 # ZeroConf mDNS Physical-NIC Discovery (RFC 6762)
-zeroconf>=0.146.1
+zeroconf>=0.132.0
 
-# Hardware Screen Capture & SIMD JPEG Compression
-mss>=10.0.0
-Pillow>=11.1.0
-PyTurboJPEG>=1.7.7
+# Hardware Screen Capture & Image Compression
+mss>=9.0.1
+Pillow>=10.4.0
 
 # Cryptographic Engine Acceleration (RFC 7748 / RFC 8439)
-cryptography>=44.0.2
+cryptography>=42.0.0
 
-# System Tray & Background Daemon Execution
+# System Tray & Hardware Telemetry
 pystray>=0.19.5
-psutil>=7.0.0
+psutil>=6.0.0
 
 # Remote Virtual Input & Clipboard Synchronization
 pyautogui>=0.9.54
 pyperclip>=1.9.0
 
 # Standalone Windows Executable Compiler
-pyinstaller>=6.12.0
+pyinstaller>=6.10.0

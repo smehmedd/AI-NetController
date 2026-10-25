@@ -18,7 +18,7 @@ import zipfile
 from datetime import datetime, timezone
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-RELEASE_VERSION = "v2.7.0"
+RELEASE_VERSION = "v2.8.0"
 RELEASE_DIR = os.path.join(ROOT_DIR, "public", "releases", RELEASE_VERSION)
 
 

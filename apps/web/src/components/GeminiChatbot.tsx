@@ -729,13 +729,58 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
     const hostName = primaryHost.name || primaryHost.id;
     return [
       {
+        id: 'deck-hotkey',
+        icon: Zap,
+        label: bg ? 'Диспечер на задачи (Task Manager)' : 'Open Task Manager',
+        color: 'text-indigo-300 border-indigo-400/30 bg-indigo-500/10 hover:bg-indigo-500/20',
+        prompt: bg
+          ? `Изпрати клавишна комбинация ctrl,shift,esc за отваряне на Task Manager на ${hostName}`
+          : `Open Task Manager on ${hostName} using ctrl,shift,esc`,
+      },
+      {
+        id: 'deck-desktop',
+        icon: Monitor,
+        label: bg ? 'Покажи работния плот (Win+D)' : 'Show Desktop (Win+D)',
+        color: 'text-cyan-300 border-cyan-400/30 bg-cyan-500/10 hover:bg-cyan-500/20',
+        prompt: bg
+          ? `Покажи работния плот на ${hostName} чрез клавишна комбинация win,d`
+          : `Show desktop on ${hostName} using win,d`,
+      },
+      {
+        id: 'deck-explorer',
+        icon: Terminal,
+        label: bg ? 'Файлов мениджър (Win+E)' : 'Open File Explorer',
+        color: 'text-amber-300 border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20',
+        prompt: bg
+          ? `Отвори файловия мениджър на ${hostName} чрез win,e`
+          : `Open File Explorer on ${hostName} using win,e`,
+      },
+      {
+        id: 'deck-switch',
+        icon: RefreshCw,
+        label: bg ? 'Смени прозорец (Alt+Tab)' : 'Switch Window (Alt+Tab)',
+        color: 'text-sky-300 border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20',
+        prompt: bg
+          ? `Превключи активния прозорец на ${hostName} чрез alt,tab`
+          : `Switch active window on ${hostName} using alt,tab`,
+      },
+      {
         id: 'deck-click',
         icon: MousePointerClick,
-        label: bg ? 'Клик на PC (960, 540)' : 'Click PC (960, 540)',
+        label: bg ? 'Ляв клик (960, 540)' : 'Left Click (960, 540)',
         color: 'text-cyan-300 border-cyan-400/30 bg-cyan-500/10 hover:bg-cyan-500/20',
         prompt: bg
           ? `Кликни с левия бутон на мишката на координати 960, 540 на ${hostName}`
           : `Click the left mouse button at coordinates 960, 540 on ${hostName}`,
+      },
+      {
+        id: 'deck-right-click',
+        icon: MousePointerClick,
+        label: bg ? 'Десен клик (960, 540)' : 'Right Click (960, 540)',
+        color: 'text-purple-300 border-purple-400/30 bg-purple-500/10 hover:bg-purple-500/20',
+        prompt: bg
+          ? `Кликни с десния бутон на мишката на координати 960, 540 на ${hostName}`
+          : `Right click the mouse at coordinates 960, 540 on ${hostName}`,
       },
       {
         id: 'deck-type',
@@ -747,31 +792,13 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
           : `Type "ipconfig /all" on ${hostName} keyboard and press Enter`,
       },
       {
-        id: 'deck-hotkey',
-        icon: Zap,
-        label: bg ? 'Task Manager (Ctrl+Shift+Esc)' : 'Task Manager (Ctrl+Shift+Esc)',
-        color: 'text-indigo-300 border-indigo-400/30 bg-indigo-500/10 hover:bg-indigo-500/20',
-        prompt: bg
-          ? `Изпрати клавишна комбинация ctrl,shift,esc за отваряне на Task Manager на ${hostName}`
-          : `Send keyboard shortcut ctrl,shift,esc to open Task Manager on ${hostName}`,
-      },
-      {
         id: 'deck-update',
         icon: DownloadCloud,
-        label: bg ? 'AI & Системен Ъпдейт' : 'Run AI & System Update',
+        label: bg ? 'Системен Ъпдейт' : 'Run System Update',
         color: 'text-emerald-300 border-emerald-400/35 bg-emerald-500/12 hover:bg-emerald-500/25',
         prompt: bg
           ? 'Провери за налични обновления и обнови всички AI модели, хост демона и правилата на защитната стена'
           : 'Check for available updates and upgrade all AI models, the PC host daemon, and AST firewall rules now',
-      },
-      {
-        id: 'deck-screen',
-        icon: Monitor,
-        label: bg ? 'Снимка на Екрана' : 'Capture PC Screen',
-        color: 'text-amber-300 border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20',
-        prompt: bg
-          ? `Заснеми текущия екран на ${hostName} и провери състоянието на PC демона`
-          : `Capture the live screen frame from ${hostName} and run PC daemon diagnostics`,
       },
     ];
   }, [language, primaryHost]);

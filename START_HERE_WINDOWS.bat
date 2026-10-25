@@ -2,7 +2,7 @@
 title CST NetController AI — 1-Click PC & Phone Launcher
 color 0B
 echo ============================================================================
-echo   CST NetController AI v2.7.0-LTS — 1-Click PC ^& Phone Setup Launcher
+echo   CST NetController AI v2.8.0-LTS — 1-Click PC ^& Phone Setup Launcher
 echo ============================================================================
 echo.
 
@@ -12,11 +12,11 @@ echo [1/4] Checking Python environment for PC Host Daemon...
 where python >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     if exist "agent\requirements.txt" (
-        echo       Verifying Python packages ^(psutil, mss, Pillow, pystray^)...
-        python -m pip install -r agent\requirements.txt --quiet
+        echo       Installing Python packages ^(websockets, psutil, mss, Pillow, pyautogui, pystray^)...
+        python -m pip install -r agent\requirements.txt --quiet 2>nul
     )
 ) else (
-    echo [!] Python not found in PATH. Will use standalone CST_Agent_Daemon.exe if available.
+    echo [!] Python not found in PATH. Will use standalone CST_HostAgent.exe if available.
 )
 
 echo [2/4] Configuring Windows Private LAN Firewall rules ^(Ports 8765, 3000, UDP 9^)...
@@ -30,12 +30,10 @@ if %ERRORLEVEL% NEQ 0 (
 echo [3/4] Starting CST PC Host Daemon Desktop Control Center GUI...
 if exist "agent\dist\CST_HostAgent\CST_HostAgent.exe" (
     start "CST PC Daemon" "agent\dist\CST_HostAgent\CST_HostAgent.exe"
-) else if exist "agent\dist\CST_Agent_Daemon\CST_Agent_Daemon.exe" (
-    start "CST PC Daemon" "agent\dist\CST_Agent_Daemon\CST_Agent_Daemon.exe"
+) else if exist "agent\agent.py" (
+    start "CST PC Daemon" python "agent\agent.py"
 ) else if exist "agent\agent_daemon.py" (
     start "CST PC Daemon" python "agent\agent_daemon.py"
-) else if exist "agent\agent_gui.py" (
-    start "CST PC Daemon" python "agent\agent_gui.py"
 )
 
 echo [4/4] Starting Web ^& Phone Controller Server on Port 3000...

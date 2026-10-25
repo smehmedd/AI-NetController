@@ -173,7 +173,13 @@ def run_wol_magic_packet_stress() -> tuple[bool, float, int]:
 
 async def run_daemon_concurrency_stress() -> tuple[bool, float, int]:
     """Phase 5: Live Asynchronous Socket Concurrency & High-Frequency Burst."""
-    import websockets
+    try:
+        import websockets as ws_pkg
+    except ImportError:
+        ws_pkg = None
+
+    from test_e2e_loopback import PureWebSocketClient
+
     daemon = HostAgentDaemon(host="127.0.0.1", port=8777)
     daemon_task = asyncio.create_task(daemon.start())
     await asyncio.sleep(0.3)
@@ -185,10 +191,18 @@ async def run_daemon_concurrency_stress() -> tuple[bool, float, int]:
     async def simulate_client(client_id: int):
         nonlocal success_count
         try:
-            async with websockets.connect("ws://127.0.0.1:8777", close_timeout=1.0) as ws:
-                challenge = await asyncio.wait_for(ws.recv(), timeout=2.0)
-                if isinstance(challenge, bytes) and len(challenge) >= 12:
-                    success_count += 1
+            if ws_pkg is not None:
+                async with ws_pkg.connect("ws://127.0.0.1:8777", close_timeout=1.0) as ws:
+                    challenge = await asyncio.wait_for(ws.recv(), timeout=2.0)
+                    if isinstance(challenge, bytes) and len(challenge) >= 12:
+                        success_count += 1
+            else:
+                client = PureWebSocketClient(host="127.0.0.1", port=8777)
+                if await client.connect(timeout=2.0):
+                    challenge = await client.recv_binary(timeout=2.0)
+                    if challenge and len(challenge) >= 12:
+                        success_count += 1
+                await client.close()
         except Exception:
             pass
 
