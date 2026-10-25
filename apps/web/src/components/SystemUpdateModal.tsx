@@ -123,13 +123,13 @@ const INITIAL_COMPONENTS: UpdatableComponent[] = [
     category: 'core_system',
     engineType: 'host_daemon',
     currentVersion: 'v2.7.1',
-    latestVersion: 'v2.8.0-LTS',
+    latestVersion: 'v2.9.0-LTS',
     description: 'Native Desktop GUI Control Center, Binary WebSocket Server (0xC5,0x71), AV-Clean Authenticode Build',
     size: '18.2 MB',
     status: 'available',
     progress: 0,
     driftSeverity: 'moderate',
-    driftDescription: '1 minor release behind (v2.7.1 → v2.8.0-LTS)',
+    driftDescription: '1 minor release behind (v2.8.0 → v2.9.0-LTS)',
     compatibilityRequirement: 'Core supervisor. Required by DeepSeek-R1 v1.5 for reasoning stream.',
     minRequiredDaemonVersion: 'v2.4.0',
     lastCheckedAt: '2026-10-24 14:20:00',
@@ -289,7 +289,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
   const [updateLogs, setUpdateLogs] = useState<string[]>([
     '[INIT] System & AI Model Registry initialized.',
     '[INFO] Gemini 3.8 Flash Cloud Engine & Local LLM Runtime verified.',
-    '[INFO] CST Host Agent Daemon active on ws://127.0.0.1:8765 (v2.8.0-LTS).',
+    '[INFO] CST Host Agent Daemon active on ws://127.0.0.1:8765 (v2.9.0-LTS).',
     '[READY] Update Center primed for 1-click OTA updates or AI Drift Analysis.'
   ]);
 
@@ -359,7 +359,7 @@ export const SystemUpdateModal: React.FC<SystemUpdateModalProps> = ({
   // Dynamic Compatibility & Drift Assessment Engine
   const systemCompatibility = useMemo(() => {
     const daemonComp = components.find((c) => c.id === 'cst-host-agent');
-    const daemonVersion = daemonComp ? daemonComp.currentVersion : 'v2.8.0-LTS';
+    const daemonVersion = daemonComp ? daemonComp.currentVersion : 'v2.9.0-LTS';
     const isDaemonLatest = daemonComp?.status === 'up_to_date' || daemonComp?.status === 'completed';
 
     const aiModels = components.filter((c) => c.category === 'ai_model');

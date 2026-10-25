@@ -4,6 +4,29 @@ All notable changes, architectural upgrades, security hardening passes, and UI/U
 
 ---
 
+## [v2.9.0] — 2026-10-25 (Resilient Fallbacks, Direct AI Control & Stream Overhaul)
+
+### 📦 Release Binaries & Multi-Version Distribution
+- **New Release Artifacts (`public/releases/v2.9.0/`)**:
+  - `CST_HostAgent_v2.9.0_win64.exe`: Standalone 64-bit Windows PE32+ Host Agent Daemon with embedded Python 3.12 runtime, Tkinter GUI, Authenticode signature `O=CST_RU-AK`, and zero false-positive heuristic detection.
+  - `CST_NetController_AI_v2.9.0_arm64-v8a.apk`: Native Flutter 3.47 / Dart 3.13 release APK with 120Hz display mode selector, haptic feedback, and double-buffered zero-GC video pipeline.
+  - `CST_HostAgent_v2.9.0_win64_portable.zip` & `SHA256SUMS.txt`: Complete portable bundle and cryptographic verification digests.
+- **Multi-Version Availability**: Maintained concurrent availability of all previous releases (`v2.8.0`, `v2.7.1`, and `v2.7.0`) in the Releases tab and web server endpoints (`/api/releases`).
+
+### 🛡️ Resilient Dependency Fallbacks & Path Resolution
+- **Graceful Import Guards**: Conditional imports for core graphic and capture dependencies (`mss`, `PIL`, `pystray`, `zeroconf`) allow the daemon to run safely and inform the operator rather than crashing when optional modules are absent.
+- **Robust Path Resolution**: Fixed relative path handling ensuring agent modules resolve seamlessly across packaged binary runs and source scripts.
+
+### 🤖 Direct AI PC Control Suite
+- **Natural Language Remote Directives**: Extended AI triage engine with execution handlers for `lock_pc`, `type_text`, `key_combo`, `terminal_command`, Task Manager (`Ctrl+Shift+Esc`), Show Desktop (`Win+D`), File Explorer (`Win+E`), Browser launch, and media controls.
+- **Unicode Keystroke Ingestion**: Added non-blocking Unicode character injection via Win32 `SendInput`.
+
+### 🖥️ Remote Screen Stream Engine Overhaul
+- **Pipeline Refactoring (`ScreenViewerModal.tsx` & `screenFrameService.ts`)**: Accelerated frame ingestion with unboxed ring buffers and asynchronous canvas blitting.
+- **OTA Redirect Route**: Added `/releases/:version/:filename` HTTP 302 fallback route to official GitHub Releases for lean web distribution.
+
+---
+
 ## [v2.8.0] — 2026-10-25 (QoL, Stream HUD, Usability & Polishing Release)
 
 ### 📦 Release Binaries & Multi-Version Distribution

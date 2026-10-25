@@ -700,7 +700,7 @@ class HostAgentDaemon:
             draw.point((32, 32), fill=(138, 43, 226, 255))
 
             menu = pystray.Menu(
-                pystray.MenuItem("CST Host Agent: Online (v2.8.0-LTS)", lambda: None, enabled=False),
+                pystray.MenuItem("CST Host Agent: Online (v2.9.0-LTS)", lambda: None, enabled=False),
                 pystray.MenuItem(lambda text: f"Active Clients: {len(self.authenticated_clients)}", lambda: None, enabled=False),
                 pystray.MenuItem(f"Port: {self.port}", lambda: None, enabled=False),
                 pystray.Menu.SEPARATOR,

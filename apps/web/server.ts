@@ -167,7 +167,7 @@ function getGenAI() {
 
 // Role-specific System Instructions with Full PC Control, Daemon Security & System Update Capabilities
 const SYSTEM_INSTRUCTIONS: Record<string, string> = {
-  commander: `You are CST Fleet Commander AI, the autonomous fleet orchestrator, PC controller, and system update copilot for CST NetController AI v2.8.0-LTS.
+  commander: `You are CST Fleet Commander AI, the autonomous fleet orchestrator, PC controller, and system update copilot for CST NetController AI v2.9.0-LTS.
 You manage heterogeneous Windows and Linux hosts across local subnets and possess direct remote control over PC mouse, keyboard, media keys, shell commands, Wake-on-LAN, PC Daemon security profiles, and System/AI Model Updates.
 
 Your Executable Action Directives (include these exact tags whenever the user asks to perform an action or when an action is helpful):
@@ -215,7 +215,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'online',
     protocol: 'CST/3.0-SECURE',
-    version: '2.8.0',
+    version: '2.9.0',
     timestamp: new Date().toISOString(),
     hasApiKey: Boolean(process.env.GEMINI_API_KEY),
     models: DYNAMIC_MODELS,
@@ -225,11 +225,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Release Binaries (.EXE & .APK) & Patch Notes Endpoint
 app.get('/api/releases', (_req: Request, res: Response) => {
   try {
+    const v290Path = path.join(RELEASES_PUBLIC_DIR, 'v2.9.0', 'RELEASE_MANIFEST.json');
     const v280Path = path.join(RELEASES_PUBLIC_DIR, 'v2.8.0', 'RELEASE_MANIFEST.json');
     const v271Path = path.join(RELEASES_PUBLIC_DIR, 'v2.7.1', 'RELEASE_MANIFEST.json');
     const v270Path = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
     const patchNotesPath = path.join(ROOT_DIR, 'PATCH_NOTES.md');
-    const manifest = fs.existsSync(v280Path)
+    const manifest = fs.existsSync(v290Path)
+      ? JSON.parse(fs.readFileSync(v290Path, 'utf-8'))
+      : fs.existsSync(v280Path)
       ? JSON.parse(fs.readFileSync(v280Path, 'utf-8'))
       : fs.existsSync(v271Path)
       ? JSON.parse(fs.readFileSync(v271Path, 'utf-8'))
@@ -244,7 +247,7 @@ app.get('/api/releases', (_req: Request, res: Response) => {
       success: true,
       manifest,
       legacyManifest,
-      availableVersions: ['v2.8.0', 'v2.7.1', 'v2.7.0'],
+      availableVersions: ['v2.9.0', 'v2.8.0', 'v2.7.1', 'v2.7.0'],
       patchNotes,
     });
   } catch (err: any) {
@@ -263,7 +266,7 @@ app.post('/api/releases/rebuild', (_req: Request, res: Response) => {
         error: stderr || err.message,
       });
     }
-    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.8.0', 'RELEASE_MANIFEST.json');
+    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.9.0', 'RELEASE_MANIFEST.json');
     const fallbackPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.1', 'RELEASE_MANIFEST.json');
     const legacyPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
     const manifest = fs.existsSync(manifestPath)
@@ -448,7 +451,7 @@ interface BlacklistedDeviceEntry {
 }
 
 const pcDaemonState = {
-  version: '2.8.0-LTS',
+  version: '2.9.0-LTS',
   protocol: 'CST/3.0-SECURE',
   hostname: os.hostname() || 'CST-LAB-WS-01',
   osName: `${os.type()} ${os.release()} (${os.arch()})`,
@@ -480,7 +483,7 @@ const pcDaemonState = {
     sandboxJobObject: true,
   },
   logs: [
-    { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `CST Host Daemon GUI v2.8.0-LTS initialized on ${detectPrimaryLanIp()}:8765` },
+    { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: `CST Host Daemon GUI v2.9.0-LTS initialized on ${detectPrimaryLanIp()}:8765` },
     { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'SECURITY', message: 'AV-Safe Mode verified: Native Tkinter HWND window, UPX disabled, zero hidden PowerShell spawns.' },
     { time: new Date().toLocaleTimeString('en-GB', { hour12: false }), level: 'INFO', message: 'mDNS Service registered: _cst-agent._tcp.local. (RFC 6762)' },
   ] as DaemonLogEntry[],
@@ -851,11 +854,11 @@ app.get('/api/setup/info', (_req: Request, res: Response) => {
         pairingToken: snap.pairingToken,
         webOrigin,
         mobilePairUrl,
-        exeDownloadUrl: '/releases/v2.8.0/CST_HostAgent_v2.8.0_win64.exe',
-        apkDownloadUrl: '/releases/v2.8.0/CST_NetController_AI_v2.8.0_arm64-v8a.apk',
-        portableZipUrl: '/releases/v2.8.0/CST_HostAgent_v2.8.0_win64_portable.zip',
-        legacyExeDownloadUrl: '/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe',
-        legacyApkDownloadUrl: '/releases/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk',
+        exeDownloadUrl: '/releases/v2.9.0/CST_HostAgent_v2.9.0_win64.exe',
+        apkDownloadUrl: '/releases/v2.9.0/CST_NetController_AI_v2.9.0_arm64-v8a.apk',
+        portableZipUrl: '/releases/v2.9.0/CST_HostAgent_v2.9.0_win64_portable.zip',
+        legacyExeDownloadUrl: '/releases/v2.8.0/CST_HostAgent_v2.9.0_win64.exe',
+        legacyApkDownloadUrl: '/releases/v2.8.0/CST_NetController_AI_v2.8.0_arm64-v8a.apk',
         launcherDownloadUrl: '/api/setup/windows-launcher',
       },
     });
@@ -872,7 +875,7 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     'title CST NetController AI — 1-Click PC & Phone Setup',
     'color 0B',
     'echo ============================================================================',
-    'echo   CST NetController AI v2.8.0-LTS - Automatic PC ^& Phone Setup Wizard',
+    'echo   CST NetController AI v2.9.0-LTS - Automatic PC ^& Phone Setup Wizard',
     'echo ============================================================================',
     'echo.',
     `set CST_AGENT_SECRET=${snap.pairingToken}`,
@@ -887,7 +890,7 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     '        python -m pip install -r agent\\requirements.txt --quiet',
     '    )',
     ') else (',
-    '    echo [!] Python not found in PATH. Looking for standalone CST_HostAgent_v2.8.0_win64.exe...',
+    '    echo [!] Python not found in PATH. Looking for standalone CST_HostAgent_v2.9.0_win64.exe...',
     ')',
     '',
     'echo [2/4] Configuring Windows Private LAN Firewall rules (Ports 8765 ^& 3000)...',
@@ -899,14 +902,14 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     ')',
     '',
     'echo [3/4] Launching CST PC Host Daemon Desktop Control Center...',
-    'if exist "public\\releases\\v2.8.0\\CST_HostAgent_v2.8.0_win64.exe" (',
-    '    start "CST PC Daemon" "public\\releases\\v2.8.0\\CST_HostAgent_v2.8.0_win64.exe"',
+    'if exist "public\\releases\\v2.9.0\\CST_HostAgent_v2.9.0_win64.exe" (',
+    '    start "CST PC Daemon" "public\\releases\\v2.9.0\\CST_HostAgent_v2.9.0_win64.exe"',
     ') else if exist "public\\releases\\v2.7.1\\CST_HostAgent_v2.7.1_win64.exe" (',
     '    start "CST PC Daemon" "public\\releases\\v2.7.1\\CST_HostAgent_v2.7.1_win64.exe"',
     ') else if exist "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe" (',
     '    start "CST PC Daemon" "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe"',
-    ') else if exist "CST_HostAgent_v2.8.0_win64.exe" (',
-    '    start "CST PC Daemon" "CST_HostAgent_v2.8.0_win64.exe"',
+    ') else if exist "CST_HostAgent_v2.9.0_win64.exe" (',
+    '    start "CST PC Daemon" "CST_HostAgent_v2.9.0_win64.exe"',
     ') else if exist "CST_HostAgent_v2.7.1_win64.exe" (',
     '    start "CST PC Daemon" "CST_HostAgent_v2.7.1_win64.exe"',
     ') else if exist "CST_HostAgent_v2.7.0_win64.exe" (',
@@ -989,12 +992,12 @@ const systemUpdateRegistry: SystemUpdateComponentState[] = [
     id: 'cst-host-agent',
     name: 'CST Host Daemon (Python + Native Win32 GUI)',
     category: 'agent',
-    currentVersion: 'v2.7.1-LTS',
-    latestVersion: 'v2.8.0-LTS',
+    currentVersion: 'v2.8.0-LTS',
+    latestVersion: 'v2.9.0-LTS',
     status: 'available',
     size: '18.4 MB',
     lastChecked: 'Just now',
-    changelog: 'v2.8.0-LTS: Added stream diagnostic HUD, instant clipboard copy labels, 120 FPS frame selector, and full keyboard navigation suite.',
+    changelog: 'v2.9.0-LTS: Resilient dependency fallbacks, stream frame service overhaul, and direct AI PC control suite.',
   },
   {
     id: 'ast-security-rules',
@@ -1082,7 +1085,7 @@ app.get('/api/update/status', async (_req: Request, res: Response) => {
       nodeVersion,
       pythonVersion: pythonCheck,
       aiModels: DYNAMIC_MODELS.map((m) => m.id),
-      agentVersion: hostAgent?.currentVersion || 'v2.8.0-LTS',
+      agentVersion: hostAgent?.currentVersion || 'v2.9.0-LTS',
       components: systemUpdateRegistry,
       updatesAvailableCount: systemUpdateRegistry.filter((c) => c.status === 'available').length,
       status: 'ready',

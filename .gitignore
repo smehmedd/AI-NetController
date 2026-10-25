@@ -40,5 +40,8 @@ apps/mobile/android/key.properties
 /*.exe
 /*.apk
 package-lock.json
+public/releases/*/*.exe
+public/releases/*/*.zip
+public/releases/*/*.apk
 
 

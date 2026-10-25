@@ -1,6 +1,6 @@
 # CST NetController AI — 1-Click Binary Compilation & Deployment Guide
 
-**Version:** `v2.8.0-LTS` (Previous `v2.7.1-LTS` and `v2.7.0-LTS` preserved in releases)  
+**Version:** `v2.9.0-LTS` (Previous `v2.8.0-LTS`, `v2.7.1-LTS`, and `v2.7.0-LTS` preserved in releases)  
 **Protocol:** `CST/3.0-SECURE`  
 **Platform Targets:** Windows 10/11 x64 PE32+ (`.EXE`), Android 10–15 (`.APK`)
 
@@ -8,7 +8,7 @@ This guide details the procedure for producing the standalone native binaries (`
 
 ---
 
-## 1. Windows Host Agent Daemon (`CST_HostAgent_v2.8.0_win64.exe`)
+## 1. Windows Host Agent Daemon (`CST_HostAgent_v2.9.0_win64.exe`)
 
 ### Security & Antivirus False-Positive Hardening
 The compilation pipeline is specifically configured to pass Windows Defender and EDR heuristic analysis cleanly (`0/72` clean):
@@ -37,12 +37,12 @@ powershell -ExecutionPolicy Bypass -File sign_binary.ps1 -ExePath dist\CST_HostA
 ```
 
 Output:
-- Standalone Executable: `agent/dist/CST_HostAgent/CST_HostAgent.exe` (or `CST_HostAgent_v2.8.0_win64.exe`)
-- Portable ZIP: Packaged via `Compress-Archive` into `CST_HostAgent_v2.8.0_win64_portable.zip`.
+- Standalone Executable: `agent/dist/CST_HostAgent/CST_HostAgent.exe` (or `CST_HostAgent_v2.9.0_win64.exe`)
+- Portable ZIP: Packaged via `Compress-Archive` into `CST_HostAgent_v2.9.0_win64_portable.zip`.
 
 ---
 
-## 2. Android Mobile Application (`CST_NetController_AI_v2.8.0_arm64-v8a.apk`)
+## 2. Android Mobile Application (`CST_NetController_AI_v2.9.0_arm64-v8a.apk`)
 
 ### 120Hz Zero-Jitter Display Pipeline
 The Android client is compiled with:
@@ -72,7 +72,7 @@ Output files in `apps/mobile/build/app/outputs/flutter-apk/`:
 ---
 
 ## 3. Physical LAN Verification Checklist
-1. Launch `CST_HostAgent_v2.8.0_win64.exe` (or `v2.7.1` / `v2.7.0`) on target Windows PC. Confirm the Control Center window displays the local IP and pairing key.
+1. Launch `CST_HostAgent_v2.9.0_win64.exe` (or `v2.7.1` / `v2.7.0`) on target Windows PC. Confirm the Control Center window displays the local IP and pairing key.
 2. Connect Android phone to the same Wi-Fi subnet.
 3. Open the installed CST Mobile app:
    - mDNS will discover the Windows PC host automatically within ~500ms.

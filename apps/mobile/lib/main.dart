@@ -665,7 +665,7 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
         ),
         _buildSettingsTile(
           icon: Icons.verified_rounded,
-          title: 'CST Mobile Controller (v2.8.0-LTS)',
+          title: 'CST Mobile Controller (v2.9.0-LTS)',
           subtitle:
               'Impeller 120Hz Hardware Engine • CST/3.0-SECURE Protocol',
           trailing: const Text('BUILD 29',
