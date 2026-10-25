@@ -280,7 +280,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'online' | 'sleeping' | 'servers'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'online' | 'sleeping' | 'servers' | 'quarantined'>('all');
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [sortMode, setSortMode] = useState<FleetSortMode>(() => {
     try {
@@ -524,6 +524,8 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
       if (activeFilter === 'sleeping') return !h.isOnline;
       if (activeFilter === 'servers')
         return h.deviceType === 'server' || h.id.includes('SERVER') || h.id.includes('SRV');
+      if (activeFilter === 'quarantined')
+        return quarantinedHosts.includes(h.id);
       return true;
     });
 
@@ -853,6 +855,11 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               placeholder={t('fleet_search_placeholder')}
               className="flex-1 min-w-0 bg-transparent border-none outline-none text-xs sm:text-sm text-white placeholder-white/40"
             />
+            {filteredHosts.length !== hosts.length && (
+              <span className="text-[10px] font-mono text-cyan-300/80 px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/30 shrink-0 tabular-nums">
+                {filteredHosts.length}/{hosts.length}
+              </span>
+            )}
             {searchQuery ? (
               <button
                 type="button"
@@ -863,18 +870,32 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 <X className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHapticFeedback('light');
-                  toggleOmnibar();
-                }}
-                className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-[10px] font-mono text-cyan-300/90 border border-white/10 transition cursor-pointer shrink-0"
-                title={t('fleet_spotlight_tooltip')}
-                aria-label={t('fleet_spotlight_aria')}
-              >
-                ⌘K
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('light');
+                    toggleOmnibar();
+                  }}
+                  className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-[10px] font-mono text-cyan-300/90 border border-white/10 transition cursor-pointer"
+                  title={t('fleet_spotlight_tooltip')}
+                  aria-label={t('fleet_spotlight_aria')}
+                >
+                  ⌘K
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('light');
+                    openModal('shortcuts');
+                  }}
+                  className="px-1.5 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-[10px] font-mono text-white/50 hover:text-white border border-white/10 transition cursor-pointer"
+                  title={language === 'bg' ? 'Бързи Клавиши [?]' : 'Keyboard Shortcuts [?]'}
+                  aria-label="Shortcuts"
+                >
+                  ?
+                </button>
+              </div>
             )}
           </div>
 
@@ -942,13 +963,16 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
 
         {/* 3. HORIZONTAL FILTER PILLS + EXPAND/COLLAPSE ALL + COMPACT SORT DROPDOWN PILL */}
         <div className="flex items-center justify-between gap-2">
-          {/* Filter Pills (All, Online, Sleeping, Servers) */}
+          {/* Filter Pills (All, Online, Sleeping, Servers, Quarantined) */}
           <div className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0 transform-gpu">
             {[
               { id: 'all', label: t('filter_all'), count: hosts.length },
               { id: 'online', label: t('filter_online'), count: onlineCount },
               { id: 'sleeping', label: t('filter_sleeping'), count: offlineCount },
               { id: 'servers', label: t('filter_servers'), count: null },
+              ...(quarantinedHosts.length > 0
+                ? [{ id: 'quarantined', label: language === 'bg' ? 'Карантина' : 'Quarantine', count: quarantinedHosts.length }]
+                : []),
             ].map((chip) => {
               const isActive = activeFilter === chip.id;
               return (

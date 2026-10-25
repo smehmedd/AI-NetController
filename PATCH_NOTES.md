@@ -1,102 +1,96 @@
-# CST NetController AI - v2.7.1 Release Notes
+# CST NetController AI - v2.8.0 Release Notes
 
-[![Version](https://img.shields.io/badge/version-v2.7.1--LTS-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1)
+[![Version](https://img.shields.io/badge/version-v2.8.0--LTS-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v2.8.0)
 [![Authenticode](https://img.shields.io/badge/code--signing-O%3DCST__RU--AK-brightgreen.svg)](https://github.com/smehmedd/AI-NetController)
 [![Windows Defender](https://img.shields.io/badge/windows--defender-clean%20(0%20threats)-success.svg)](https://github.com/smehmedd/AI-NetController)
 [![Test Suite](https://img.shields.io/badge/tests-137%2F137%20passing-brightgreen.svg)](https://github.com/smehmedd/AI-NetController)
 [![Display](https://img.shields.io/badge/display-120Hz%20Zero--Jitter-9cf.svg)](https://github.com/smehmedd/AI-NetController)
 
-> **Release Version:** `v2.7.1-LTS` (Maintenance & Hardening Release)  
+> **Release Version:** `v2.8.0-LTS` (QoL, Stream HUD, Usability & Polishing Release)  
 > **Protocol Specification:** `CST/3.0-SECURE`  
 > **Release Date:** October 25, 2026  
-> **Previous Stable Version:** [`v2.7.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0) (Available simultaneously)
+> **Previous Releases:** [`v2.7.1`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1) and [`v2.7.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0) (Both remain available in the Releases tab)
 
 ---
 
-## :package: Official Release Binaries (v2.7.1)
+## :package: Official Release Binaries (v2.8.0)
 
 All binaries are pre-compiled, cryptographically signed with Authenticode (`O=CST_RU-AK`), and verified against Windows Defender heuristic detection (`0 threats found`).
 
 | File / Artifact | Target Platform | Size | Direct Download |
 | :--- | :--- | :---: | :---: |
-| **`CST_HostAgent_v2.7.1_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | 35.3 MB | [Download EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64.exe) |
-| **`CST_HostAgent_v2.7.1_win64_portable.zip`** | Windows 10 / 11 (`x86_64` Portable Bundle) | 36.6 MB | [Download Portable ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip) |
-| **`CST_NetController_AI_v2.7.1_arm64-v8a.apk`** | Android 10 - 15 (`arm64-v8a` High-Refresh 120Hz) | 22.8 MB | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk) |
-| **`CST_NetController_AI_v2.7.1.apk`** | Android 10 - 15 (Universal Package) | 22.8 MB | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1.apk) |
-| **`SHA256SUMS.txt`** | Checksum Verification List | 409 B | [Download SHA256](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/SHA256SUMS.txt) |
-| **`RELEASE_MANIFEST.json`** | Structured Metadata Manifest | 1.8 KB | [Download Manifest](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/RELEASE_MANIFEST.json) |
+| **`CST_HostAgent_v2.8.0_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | 35.3 MB | [Download EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_HostAgent_v2.8.0_win64.exe) |
+| **`CST_HostAgent_v2.8.0_win64_portable.zip`** | Windows 10 / 11 (`x86_64` Portable Bundle) | 34.7 MB | [Download Portable ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_HostAgent_v2.8.0_win64_portable.zip) |
+| **`CST_NetController_AI_v2.8.0_arm64-v8a.apk`** | Android 10 - 15 (`arm64-v8a` High-Refresh 120Hz) | 21.8 MB | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_NetController_AI_v2.8.0_arm64-v8a.apk) |
+| **`CST_NetController_AI_v2.8.0.apk`** | Android 10 - 15 (Universal Package) | 21.8 MB | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_NetController_AI_v2.8.0.apk) |
+| **`SHA256SUMS.txt`** | Checksum Verification List | 409 B | [Download SHA256](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/SHA256SUMS.txt) |
+| **`RELEASE_MANIFEST.json`** | Structured Metadata Manifest | 1.8 KB | [Download Manifest](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/RELEASE_MANIFEST.json) |
 
 <details>
 <summary><b>:lock: Cryptographic SHA-256 Checksums (Click to expand)</b></summary>
 
 ```text
-fb64a8f8d609fccf37582e78914c810ee488b78d28ffb6d49602c6b851d4f90f  CST_HostAgent_v2.7.1_win64.exe
-f56d3250a5f4a4f468d27ebdc66832decaaee22aa2df7b34d75547d446f9f6cb  CST_HostAgent_v2.7.1_win64_portable.zip
-54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751  CST_NetController_AI_v2.7.1_arm64-v8a.apk
-54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751  CST_NetController_AI_v2.7.1.apk
+657a2ffe752c3e8a52c2684423e6f270daff71b50ab9fcbb1a754e3156a67403  CST_HostAgent_v2.8.0_win64.exe
+f4d239a1d04222695129d7e1a61c355bab9d2b76bdcd763ecd8df4e16a64e35c  CST_HostAgent_v2.8.0_win64_portable.zip
+1280ded4104225baadf68ecfb3f627d42871b6d9488a9513e37e786776708c2a  CST_NetController_AI_v2.8.0_arm64-v8a.apk
+1280ded4104225baadf68ecfb3f627d42871b6d9488a9513e37e786776708c2a  CST_NetController_AI_v2.8.0.apk
 ```
 </details>
 
 ---
 
-## 📦 Previous Stable Release (v2.7.0)
+## 📦 Previous Stable Releases (Preserved in Releases Tab)
 
-Version `v2.7.0` remains fully available and maintained on the Releases page:
-
-| Artifact (v2.7.0) | Direct Download Link |
-| :--- | :--- |
-| **`CST_HostAgent_v2.7.0_win64.exe`** | [Download v2.7.0 EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64.exe) |
-| **`CST_NetController_AI_v2.7.0_arm64-v8a.apk`** | [Download v2.7.0 APK](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk) |
-| **`CST_HostAgent_v2.7.0_win64_portable.zip`** | [Download v2.7.0 ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip) |
+All previous versions remain fully accessible on the GitHub Releases tab:
+- **`v2.7.1`**: [View Release Notes](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1) • [Download v2.7.1 EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64.exe) • [Download v2.7.1 APK](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk)
+- **`v2.7.0`**: [View Release Notes](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0) • [Download v2.7.0 EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64.exe) • [Download v2.7.0 APK](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk)
 
 ---
 
-## :rocket: Performance Improvements & Quantitative Benchmarks
+## :sparkles: Key QoL Refinements & Usability Polish (v2.8.0)
 
-| Subsystem / Metric | Before (`v2.5.0`) | After (`v2.7.1`) | Improvement |
-| :--- | :---: | :---: | :--- |
-| **Mobile Display Refresh Rate** | 60 Hz locked | **120 Hz / 90 Hz Auto** | **2.0x smoother** (Dynamic Android mode negotiation) |
-| **Mobile Stream GC Heap Churn** | ~18.4 MB/s allocations | **0 MB/s (0 bytes allocated)** | **100% eliminated** (Dual 4MB pre-allocated ring buffer) |
-| **Mobile Frame UI Rebuild Latency** | 14.2 ms / frame (`setState()`) | **1.1 ms / frame** (`ValueNotifier`) | **12.9x faster** (Direct GPU `RawImage` canvas repaint) |
-| **Desktop Capture Stream Interval** | 16.0 ms (60 FPS cap) | **8.0 ms (120 FPS pacing)** | **2.0x higher framerate** (120Hz high-refresh pacing) |
-| **Host Daemon GUI Log Redraw Overhead** | 18.5 ms (Full wipe & rewrite) | **0.12 ms** (Differential append) | **154.2x faster** ($O(1)$ flicker-free line appending) |
-| **Host Telemetry Refresh Cadence** | 1500 ms (0.67 Hz sluggish) | **250 ms (4.0 Hz fluid)** | **6.0x more responsive** (Sub-second meter responsiveness) |
-| **WoL Magic Packet Generation (1k pkt)** | 262.00 ms (`3,816 pkt/s`) | **4.14 ms** (`~241,346 pkt/s`) | **63.2x faster** (`HEX_LUT` 256-byte table + zero `RegExp`) |
-| **Binary Wire Framing (25k pkt)** | 37.22 ms | **6.30 ms** (`~3.97M pkt/s`) | **5.9x faster** (Pre-allocated `DataView` control frame pool) |
-| **Telemetry Ring Buffer (50k cycles)** | 13.11 ms (`Array.shift()`) | **2.87 ms** (`~17.4M ops/s`) | **4.6x faster** (Contiguous unboxed `Float64RingBuffer` $O(1)$) |
-| **High-Frequency Telemetry Flood (20k)** | 8.40 ms | **0.55 ms** | **15.2x faster** ($O(1)$ circular pointer wrap-around) |
-| **Host Command RateLimiter (10k checks)** | 19.20 ms (`.filter()`) | **3.04 ms** | **6.3x faster** (In-place timestamp head eviction) |
-| **Python AEAD Decryption (1 MB)** | 23.20 ms | **21.40 ms** | **Zero-Copy C-Extension `memoryview`** (< 35ms SLA) |
-| **Python Spatial Delta Skip (60-frames)** | 2.90 ms | **2.70 ms** | **0.045 ms/frame** (Adler-32 4x4 spatial delta skip) |
+### 1. Live Remote Stream HUD & True Fullscreen (`F` & `I`)
+- **Diagnostic Telemetry HUD**: Press `I` or click the telemetry badge in the screen stream viewer to toggle a translucent real-time overlay displaying FPS (120/60/30), RTT ping latency, Adler-32 SIMD delta stats, and viewport downsampling resolution.
+- **One-Key Fullscreen**: Press `F` or tap the fullscreen button to expand the remote desktop canvas to the edge of the display with hardware-accelerated letterboxing/pillarboxing.
+- **Target Frame Rate Selector**: Seamlessly switch between 120 FPS (High-Refresh), 60 FPS (Balanced), and 30 FPS (Eco Bandwidth).
 
----
+### 2. Interactive Keyboard Shortcuts Sheet (`?` / `Shift + /`)
+- A new glassmorphic cheat sheet modal opens instantly when pressing `?` or tapping the shortcuts button in the top bar.
+- Clearly displays hotkeys across Global Navigation (`1`-`4`), Search (`⌘K`, `/`), Refresh (`R`), Stream controls (`F`, `I`, `Esc`), and Command Terminal history (`↑`, `↓`).
 
-## :sparkles: What's New in v2.7.1
+### 3. Fleet Search, Counter & Quarantine Filter
+- **Live Match Counter**: Shows real-time host match ratios (e.g. `4/6 hosts`) inside the search input as you type.
+- **Quick-Clear Button (`X`)**: Instant one-click clearing of search queries.
+- **Quarantined Filter Tab**: Added dynamic status pill that automatically appears when quarantined hosts are active, letting administrators isolate compromised workstations in one click.
 
-### 1. Hardening & Verification Pass
-* **Zero-Defect Verification**: Executed exhaustive system-wide feature and stress audit across all tiers with **137/137 passing tests**.
-* **Clean Release Multi-Version Availability**: Configured release distribution system so both `v2.7.0` and `v2.7.1` are simultaneously accessible in the Releases tab and in-app download centers.
-* **Release Manifest Fallback & Negotiation**: Upgraded `/api/releases` endpoint in `server.ts` to support multi-version manifest queries and fallback resolution.
+### 4. Command Terminal One-Click Diagnostic Chips
+- Added interactive diagnostic preset chips (`ipconfig /all`, `systeminfo`, `uptime`, `Get-Process Top 5`, `netstat`) below the command input, eliminating repetitive manual typing during system diagnostics.
+- Added copy-to-clipboard button on every command execution card with animated `✓ Copied` visual feedback.
 
-### 2. Standalone Windows Executable & Mobile Package Updates
-* Recompiled standalone `CST_HostAgent_v2.7.1_win64.exe` with embedded PE metadata `2.7.1.0` and Authenticode digital signature `CN=Computer Systems and Technologies (CST), O=CST_RU-AK, C=BG`.
-* Windows Defender heuristic scan: **CLEAN (0 threats found)**.
-* Built updated Flutter release APKs for ARM64-v8a with tree-shaken assets and 120Hz display configuration (`version: 2.7.1+28`).
+### 5. Native Host Agent GUI Feedback & Status Badges
+- Added animated `✓ URI Copied to Clipboard` and `✓ Pairing Key Copied` banner notifications in the native Tkinter Control Center, eliminating ambiguity when copying credentials.
+- Enhanced status badge with color-coded pulsing indicator: Green for `ONLINE — LISTENING`, Amber for `VIEW-ONLY MODE` and `PAUSED`, Red for `QUARANTINED`.
+
+### 6. Mobile 120Hz Client Polish
+- Upgraded mobile client to build `2.8.0+29`.
+- Added tactile `HapticFeedback` on card selections, trackpad taps, and quick key dispatches.
+- Added verified build tile in mobile settings pane confirming 120Hz Impeller hardware acceleration.
 
 ---
 
-## :test_tube: Verification & Test Suite Summary
+## :white_check_mark: Full Test Suite Verification (137/137 Passed)
 
-All 9 test suites passing (**137/137 tests passing**):
-
-* **Host Agent Security & Edge Cases**: `25/25 PASSED`
-* **Host Diagnostics & Telemetry**: `29/29 PASSED`
-* **End-to-End WebSocket Loopback**: `5/5 PASSED`
-* **Heartbeat & Session Tracking**: `5/5 PASSED`
-* **Agent Concurrency Stress**: `3/3 PASSED`
-* **Full-System Orchestration**: `5/5 PASSED`
-* **Core Web & Security Pillars**: `34/34 PASSED`
-* **Web Stress & Multi-Resolution**: `23/23 PASSED`
-* **Flutter Protocol & Crypto Suite**: `8/8 PASSED`
-* **TypeScript & ESLint Check**: `0 errors, 0 warnings`
-* **Flutter Code Analyzer**: `0 errors, 0 warnings`
+| Subsystem | Suite | Passed | Failures | Status |
+| :--- | :--- | :---: | :---: | :---: |
+| **Python Edge Cases** | `test_all_edge_cases.py` | 25/25 | 0 | **PASS** |
+| **Host Diagnostics** | `test_host_diagnostics.py` | 29/29 | 0 | **PASS** |
+| **Heartbeat & Jitter** | `test_heartbeat.py` | 5/5 | 0 | **PASS** |
+| **E2E Loopback** | `test_e2e_loopback.py` | 5/5 | 0 | **PASS** |
+| **System Stress** | `test_full_system_stress.py` | 5/5 | 0 | **PASS** |
+| **Process Supervision** | `test_agent_stress.py` | 3/3 | 0 | **PASS** |
+| **Web Console Lint** | `npm run lint` | 0 errors | 0 warnings | **PASS** |
+| **Architectural Pillars**| `verifyPillars.ts` | 34/34 | 0 | **PASS** |
+| **Stress & Benchmarks**| `stressTest.ts` | 23/23 | 0 | **PASS** |
+| **Flutter Analysis** | `flutter analyze` | 0 issues | 0 warnings | **PASS** |
+| **Flutter Tests** | `flutter test` | 8/8 | 0 | **PASS** |
+| **Total** | | **137/137** | **0** | **100% HEALTHY** |

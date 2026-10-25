@@ -1,6 +1,6 @@
 # CST NetController AI — Comprehensive Setup & Deployment Guide
 
-**Version:** `v2.7.1-LTS`  
+**Version:** `v2.8.0-LTS`  
 **Protocol:** `CST/3.0-SECURE`  
 **Target Environments:** Windows 10/11 (Host Agent), Android 10–15 (Mobile Client), Linux / macOS (Web Console & Headless Agent)
 
@@ -59,7 +59,7 @@ CST NetController AI operates on an autonomous **Zero-Trust Local Area Network (
 ### Method A: Standalone Executable (Zero-Install)
 The standalone executable bundle requires **no Python installation**, no external compilers, and no admin privileges to run.
 
-1. Download **[`CST_HostAgent_v2.7.1_win64.exe`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64.exe)**.
+1. Download **[`CST_HostAgent_v2.8.0_win64.exe`](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_HostAgent_v2.8.0_win64.exe)**.
 2. Place it in a dedicated directory (e.g. `C:\Tools\CST_HostAgent\`).
 3. Double-click the file to launch.
 4. The **CST Host Agent — Control Center** dark-slate window will appear on the desktop and register an icon in the Windows Notification Area (System Tray).
@@ -96,12 +96,12 @@ To ensure the Host Agent starts automatically when Windows boots:
 
 #### Option 1: User Startup Folder
 1. Press `Win + R`, type `shell:startup`, and press Enter.
-2. Create a shortcut to `CST_HostAgent_v2.7.1_win64.exe` inside this folder.
+2. Create a shortcut to `CST_HostAgent_v2.8.0_win64.exe` inside this folder.
 
 #### Option 2: Windows Task Scheduler (Runs at Boot without Login)
 Run PowerShell as Administrator:
 ```powershell
-$action = New-ScheduledTaskAction -Execute "C:\Tools\CST_HostAgent\CST_HostAgent_v2.7.1_win64.exe" -Argument "--headless"
+$action = New-ScheduledTaskAction -Execute "C:\Tools\CST_HostAgent\CST_HostAgent_v2.8.0_win64.exe" -Argument "--headless"
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 Register-ScheduledTask -TaskName "CST_HostAgent_Daemon" -Action $action -Trigger $trigger -Principal $principal
@@ -152,7 +152,7 @@ For remote wake to function reliably when the workstation is powered down, all f
 ### Windows SmartScreen & Authenticode Certificate Trust
 The binary is signed with Authenticode certificate `O=CST_RU-AK`. To import this certificate into the Windows Root Certificate Authority store on managed domain/lab machines, run:
 ```powershell
-powershell -ExecutionPolicy Bypass -File agent\sign_binary.ps1 -ExePath public\releases\v2.7.1\CST_HostAgent_v2.7.1_win64.exe
+powershell -ExecutionPolicy Bypass -File agent\sign_binary.ps1 -ExePath public\releases\v2.8.0\CST_HostAgent_v2.8.0_win64.exe
 ```
 
 ---
@@ -279,7 +279,7 @@ pm2 startup
 ## 5. Android Mobile Client Setup
 
 ### Installing the Pre-Compiled APK
-1. Download **[`CST_NetController_AI_v2.7.1_arm64-v8a.apk`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk)** on your smartphone (or previous release [`v2.7.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0)).
+1. Download **[`CST_NetController_AI_v2.8.0_arm64-v8a.apk`](https://github.com/smehmedd/AI-NetController/releases/download/v2.8.0/CST_NetController_AI_v2.8.0_arm64-v8a.apk)** on your smartphone (or previous releases [`v2.7.1`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1) / [`v2.7.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0)).
 2. Open the downloaded file. When prompted, permit your browser to install unknown applications.
 3. Tap **Install** and open **CST NetController**.
 
@@ -318,7 +318,7 @@ Commands executed through the Web Console or Mobile Controller pass through the 
 
 | Problem / Symptom | Probable Cause | Diagnostic & Resolution Steps |
 | :--- | :--- | :--- |
-| **PC shows "Offline" in Web Console** | Host Agent daemon not running or blocked by firewall. | Launch `CST_HostAgent_v2.7.1_win64.exe` (or `v2.7.0`) on PC. Run `Test-NetConnection -ComputerName <ip> -Port 8765` from another machine to verify port. |
+| **PC shows "Offline" in Web Console** | Host Agent daemon not running or blocked by firewall. | Launch `CST_HostAgent_v2.8.0_win64.exe` (or `v2.7.1` / `v2.7.0`) on PC. Run `Test-NetConnection -ComputerName <ip> -Port 8765` from another machine to verify port. |
 | **Wake-on-LAN packet sends (`200 OK`) but PC stays off** | BIOS `Power on PCI-E` disabled, or Windows Fast Startup enabled. | 1. Disable Windows Fast Startup (`HiberbootEnabled = 0`).<br>2. Enable `Power On By PCI-E` in BIOS.<br>3. Verify wired Ethernet is connected. |
 | **Remote mouse/keyboard clicks do not register** | View-Only Mode is enabled. | In the PC Daemon GUI, uncheck **View-Only Mode (Block Remote Mouse/Keyboard)**. |
 | **Mobile app does not discover PC** | mDNS multicast blocked by Wi-Fi AP client isolation. | Check Wi-Fi router settings: disable **AP Client Isolation** or connect mobile device to the same VLAN. Alternatively, enter PC IP manually. |

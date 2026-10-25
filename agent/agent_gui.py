@@ -53,7 +53,7 @@ class HostDaemonState:
     """
     def __init__(self, host: str = "0.0.0.0", port: int = 8765):
         self.lock = threading.Lock()
-        self.version = "2.7.1-LTS"
+        self.version = "2.8.0-LTS"
         self.protocol = "CST/3.0-SECURE"
         self.hostname = socket.gethostname()
         self.os_name = f"{platform.system()} {platform.release()}"
@@ -1078,7 +1078,17 @@ class HostDaemonDesktopGUI:
         self.root.clipboard_clear()
         self.root.clipboard_append(uri)
         self.state.add_log("INFO", f"Copied WebSocket URI to clipboard: {uri}")
+        self.status_badge.configure(text="✓ URI COPIED TO CLIPBOARD", bg="#065f46", fg="#6ee7b7")
+        self.root.after(2200, self._restore_status_badge)
         self._refresh_ui()
+
+    def _restore_status_badge(self) -> None:
+        if self.state.is_paused:
+            self.status_badge.configure(text="⏸ PAUSED — STANDBY", bg="#78350f", fg="#fde68a")
+        elif self.state.view_only_mode:
+            self.status_badge.configure(text="🔒 VIEW-ONLY MODE", bg="#854d0e", fg="#fef08a")
+        else:
+            self.status_badge.configure(text="● ONLINE — LISTENING", bg="#064e3b", fg="#6ee7b7")
 
     def _open_phone_qr_setup(self) -> None:
         pair_url = (
@@ -1104,6 +1114,8 @@ class HostDaemonDesktopGUI:
         else:
             self.token_lbl.configure(text=f"PIN: {self.state.pairing_pin} • ••••••••")
         self.state.add_log("INFO", "Pairing key copied to system clipboard.")
+        self.status_badge.configure(text="✓ PAIRING KEY COPIED", bg="#065f46", fg="#6ee7b7")
+        self.root.after(2200, self._restore_status_badge)
         self._refresh_ui()
 
     def _rotate_token(self) -> None:

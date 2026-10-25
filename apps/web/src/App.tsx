@@ -225,7 +225,11 @@ export default function App() {
         triggerHapticFeedback('medium');
         fleet.scanMdns();
         triggerToast(language === 'bg' ? 'mDNS сканирането на флота стартира...' : 'mDNS fleet scan triggered...');
-      } else if (e.key === '/' && !isOmnibarOpen) {
+      } else if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault();
+        triggerHapticFeedback('light');
+        useUIStore.getState().openModal('shortcuts');
+      } else if (e.key === '/' && !isOmnibarOpen && !e.shiftKey) {
         e.preventDefault();
         triggerHapticFeedback('light');
         setOmnibarOpen(true);

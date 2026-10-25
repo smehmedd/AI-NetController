@@ -11,6 +11,7 @@ import { HostDetailsModal } from './HostDetailsModal';
 import { AddHostModal } from './AddHostModal';
 import { PcDaemonGuiModal } from './PcDaemonGuiModal';
 import { QuickSetupModal } from './QuickSetupModal';
+import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { useTranslation } from '../i18n/useTranslation';
 
 // Props passed from Root Hook state
@@ -167,6 +168,11 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
             props.onConnectWs(hostData.wsUri);
           }
         }}
+      />
+
+      <KeyboardShortcutsModal
+        isOpen={activeModal === 'shortcuts'}
+        onClose={closeModal}
       />
     </>
   );

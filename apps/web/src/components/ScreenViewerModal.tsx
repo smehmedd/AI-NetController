@@ -12,6 +12,10 @@ import {
   ZoomOut,
   Keyboard,
   Check,
+  Maximize2,
+  Minimize2,
+  Activity,
+  Gauge,
 } from 'lucide-react';
 import { HostDevice } from '../types';
 import { generateMockScreenCanvas } from '../services/screenFrameService';
@@ -52,6 +56,9 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 }) => {
   const { language } = useTranslation();
   const [isTrackpadOpen, setIsTrackpadOpen] = useState(false);
+  const [showDiagnosticHud, setShowDiagnosticHud] = useState(false);
+  const [streamFps, setStreamFps] = useState<120 | 60 | 30>(120);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
   const [aspectPreset, setAspectPreset] = useState<ScreenAspectPreset>('fit');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -60,10 +67,30 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
   const storeScreenBase64 = useScreenStore((s) => s.screenBase64);
 
   const activeFrame = screenBase64 || storeScreenBase64 || screenshotBase64;
   const displayImage = activeFrame || (device ? generateMockScreenCanvas(device) : '');
+
+  const toggleFullscreen = () => {
+    triggerHapticFeedback('light');
+    if (!document.fullscreenElement) {
+      modalContainerRef.current?.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   useEffect(() => {
     if (!isOpen || !stageRef.current) return;
@@ -82,7 +109,16 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key.toLowerCase() === 'i' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        triggerHapticFeedback('light');
+        setShowDiagnosticHud((prev) => !prev);
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -161,11 +197,14 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
       {isOpen && device && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-4 bg-black/75 backdrop-blur-md select-none">
           <motion.div
+            ref={modalContainerRef}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2 }}
-            className="landscape-compact-modal bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] rounded-2xl sm:rounded-3xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[94dvh] transform-gpu will-change-transform"
+            className={`landscape-compact-modal bg-[#091020]/96 backdrop-blur-3xl border border-white/15 border-t-white/25 shadow-[0_24px_64px_rgba(0,0,0,0.9)] rounded-2xl sm:rounded-3xl w-full max-w-6xl overflow-hidden flex flex-col transform-gpu will-change-transform ${
+              isFullscreen ? 'h-full max-h-screen rounded-none' : 'max-h-[94dvh]'
+            }`}
           >
             {/* Header Bar */}
             <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-white/[0.02] border-b border-white/[0.08] shrink-0 gap-2 flex-wrap">
@@ -183,12 +222,33 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[10px] sm:text-[11px] text-slate-400 font-mono truncate tabular-nums">
-                    SIMD Delta Pipeline • 60 FPS • {screenRect.resolutionLabel}
+                    SIMD Delta Pipeline • {streamFps} FPS Target • {screenRect.resolutionLabel}
                   </p>
                 </div>
               </div>
 
-              {/* Aspect Ratio Preset Pills (Desktop/Tablet inline, scrollable on mobile) */}
+              {/* FPS Mode Selector */}
+              <div className="hidden sm:flex items-center gap-1 bg-black/45 border border-white/10 rounded-full p-1">
+                {([120, 60, 30] as const).map((fps) => (
+                  <button
+                    key={fps}
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('selection');
+                      setStreamFps(fps);
+                    }}
+                    className={`px-2 py-1 rounded-full text-[10px] font-mono font-semibold transition cursor-pointer ${
+                      streamFps === fps
+                        ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shadow-[0_0_8px_rgba(56,189,248,0.25)]'
+                        : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    {fps} FPS
+                  </button>
+                ))}
+              </div>
+
+              {/* Aspect Ratio Preset Pills */}
               <div className="flex items-center gap-1 bg-black/45 border border-white/10 rounded-full p-1 overflow-x-auto scrollbar-none">
                 {ASPECT_PRESETS.map((preset) => {
                   const active = aspectPreset === preset.id;
@@ -242,6 +302,37 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     <ZoomIn className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
+                {/* HUD Toggle [I] */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('light');
+                    setShowDiagnosticHud((prev) => !prev);
+                  }}
+                  className={`p-2 rounded-xl text-xs border transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer ${
+                    showDiagnosticHud
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 shadow-[0_0_10px_rgba(52,211,153,0.3)]'
+                      : 'bg-[#070f1e] text-slate-300 border-white/10 hover:text-white'
+                  }`}
+                  title={language === 'bg' ? 'Диагностичен HUD [I]' : 'Toggle Diagnostics HUD [I]'}
+                >
+                  <Activity className="w-4 h-4" />
+                </button>
+
+                {/* Fullscreen Toggle [F] */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className={`p-2 rounded-xl text-xs border transition min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer ${
+                    isFullscreen
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                      : 'bg-[#070f1e] text-slate-300 border-white/10 hover:text-white'
+                  }`}
+                  title={language === 'bg' ? 'Цял екран [F]' : 'Toggle Fullscreen [F]'}
+                >
+                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
 
                 <button
                   onClick={handleRefreshTrigger}
@@ -305,6 +396,20 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                 }}
                 className="relative rounded-xl overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.85)] bg-black cursor-crosshair transition-all duration-150 shrink-0"
               >
+                {/* Diagnostics HUD Overlay */}
+                {showDiagnosticHud && (
+                  <div className="absolute top-3 left-3 z-30 p-2.5 rounded-xl bg-black/85 backdrop-blur-md border border-cyan-400/35 text-white font-mono text-[10.5px] space-y-1 shadow-[0_8px_24px_rgba(0,0,0,0.8)] pointer-events-none select-none">
+                    <div className="text-cyan-300 font-bold flex items-center gap-1.5 pb-1 border-b border-white/10">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>CST/3.0 STREAM HUD</span>
+                    </div>
+                    <div>FPS: <span className="text-emerald-400 font-semibold">{streamFps} FPS</span></div>
+                    <div>RTT Ping: <span className="text-cyan-300 font-semibold">{device.ping ?? 8} ms</span></div>
+                    <div>Delta Codec: <span className="text-slate-300">Adler-32 4x4 Grid</span></div>
+                    <div>Resolution: <span className="text-slate-300">{screenRect.resolutionLabel}</span></div>
+                    <div>Zoom: <span className="text-slate-300">{Math.round(zoomLevel * 100)}%</span></div>
+                  </div>
+                )}
                 <img
                   src={displayImage}
                   alt="Remote Desktop Screen"

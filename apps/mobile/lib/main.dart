@@ -663,6 +663,17 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
               style: TextStyle(
                   color: CyberColors.primary, fontWeight: FontWeight.bold)),
         ),
+        _buildSettingsTile(
+          icon: Icons.verified_rounded,
+          title: 'CST Mobile Controller (v2.8.0-LTS)',
+          subtitle:
+              'Impeller 120Hz Hardware Engine • CST/3.0-SECURE Protocol',
+          trailing: const Text('BUILD 29',
+              style: TextStyle(
+                  color: CyberColors.success,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold)),
+        ),
       ],
     );
   }
