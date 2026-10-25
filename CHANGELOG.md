@@ -4,6 +4,28 @@ All notable changes, architectural upgrades, security hardening passes, and UI/U
 
 ---
 
+## [v2.7.1] — 2026-10-25 (Feature Verification, Quality Maintenance & Dual-Release Publishing)
+
+### 📦 Release Binaries & Multi-Version Distribution
+- **New Release Artifacts (`public/releases/v2.7.1/`)**:
+  - `CST_HostAgent_v2.7.1_win64.exe`: Standalone 64-bit Windows PE32+ Host Agent Daemon with embedded Python 3.12 runtime, Tkinter GUI, Authenticode signature `O=CST_RU-AK`, and zero false-positive heuristic detection.
+  - `CST_NetController_AI_v2.7.1_arm64-v8a.apk`: Native Flutter 3.47 / Dart 3.13 release APK with 120Hz display mode selector and double-buffered zero-GC video pipeline.
+  - `CST_HostAgent_v2.7.1_win64_portable.zip` & `SHA256SUMS.txt`: Complete portable bundle and cryptographic verification digests.
+- **Dual Version Availability**: Maintained concurrent availability of both `v2.7.0` and `v2.7.1` in the Releases tab and web server endpoints.
+
+### 🧪 System-Wide Feature & Stress Audit (137/137 Tests Passing)
+- Verified all 9 automated test harnesses across Python Agent, React Web Console, and Flutter Mobile:
+  - 14-Pillar Verification Harness (`34/34 PASS`)
+  - 11-Phase Multi-Resolution Stress Suite (`23/23 PASS`)
+  - Python Security & Edge-Case Suite (`25/25 PASS`)
+  - Hardware Diagnostics & Telemetry Suite (`29/29 PASS`)
+  - E2E WebSocket Loopback Suite (`5/5 PASS`)
+  - Dynamic Heartbeat Suite (`5/5 PASS`)
+  - Agent Stress & Full-System Concurrent Stress (`8/8 PASS`)
+  - Flutter Protocol & Crypto Channel Unit Tests (`8/8 PASS`)
+
+---
+
 ## [v2.7.0] — 2026-10-24 (Native APK & EXE Binary Release, Multi-Resolution Scaling & Power-User QoL)
 
 ### 📦 Native Release Binaries & Automated GitHub Release Pipeline

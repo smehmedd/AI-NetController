@@ -168,7 +168,7 @@ const FALLBACK_DAEMON_STATE: DaemonStateSnapshot = {
     {
       time: '14:18:00',
       level: 'INFO',
-      message: 'CST Host Daemon GUI v2.7.0-LTS initialized on 192.168.1.104:8765',
+      message: 'CST Host Daemon GUI v2.7.1-LTS initialized on 192.168.1.104:8765',
     },
     {
       time: '14:18:02',
@@ -478,8 +478,8 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
 
           <div className="flex items-center gap-2 shrink-0">
             <a
-              href="/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe"
-              download="CST_HostAgent_v2.7.0_win64.exe"
+              href="/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe"
+              download="CST_HostAgent_v2.7.1_win64.exe"
               onClick={() => triggerHapticFeedback('medium')}
               className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(34,211,238,0.3)] transition"
             >

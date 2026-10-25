@@ -1,6 +1,6 @@
 # CST NetController AI — Autonomous LAN PC Fleet Manager & Remote Engine
 
-[![Release](https://img.shields.io/badge/release-v2.7.0--LTS-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0)
+[![Release](https://img.shields.io/badge/release-v2.7.1--LTS-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Authenticode](https://img.shields.io/badge/code--signing-O%3DCST__RU--AK-brightgreen.svg)](https://github.com/smehmedd/AI-NetController)
 [![Windows Defender](https://img.shields.io/badge/windows--defender-clean%20(0%20threats)-success.svg)](https://github.com/smehmedd/AI-NetController)
@@ -100,20 +100,20 @@ CST NetController AI is designed as a polyglot monorepo operating on a **Zero-Tr
 
 ---
 
-## 📦 Official Pre-Compiled Binaries (`v2.7.0`)
+## 📦 Official Pre-Compiled Binaries (`v2.7.1`)
 
-Pre-compiled, cryptographically signed, and scan-verified binaries are ready for production deployment:
+Pre-compiled, cryptographically signed, and scan-verified binaries for production deployment:
 
 | Binary File | Target Platform | File Size | SHA-256 Digest | Direct Download Link |
 | :--- | :--- | :---: | :--- | :---: |
-| **`CST_HostAgent_v2.7.0_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | 33.7 MB | `484467fccf3c2605a1ce180420db437707a80c095526404473d591b415b55c89` | [Download EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64.exe) |
-| **`CST_HostAgent_v2.7.0_win64_portable.zip`** | Windows 10 / 11 (Portable ZIP Bundle) | 34.9 MB | `5c8669cc2d7ac6d6d9e91f1c75bd2829ce03b3267acc56e975321f10741ed1da` | [Download Portable ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip) |
-| **`CST_NetController_AI_v2.7.0_arm64-v8a.apk`** | Android 10 – 15 (`arm64-v8a` High-Refresh) | 22.5 MB | `b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6` | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk) |
-| **`CST_NetController_AI_v2.7.0.apk`** | Android 10 – 15 (Universal Package) | 22.5 MB | `b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6` | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_NetController_AI_v2.7.0.apk) |
-| **`SHA256SUMS.txt`** | Checksum Verification List | 409 B | — | [Download SHA256](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/SHA256SUMS.txt) |
-| **`RELEASE_MANIFEST.json`** | Release Metadata Manifest | 1.8 KB | — | [Download Manifest](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/RELEASE_MANIFEST.json) |
+| **`CST_HostAgent_v2.7.1_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | 33.7 MB | `fb64a8f8d609fccf37582e78914c810ee488b78d28ffb6d49602c6b851d4f90f` | [Download EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64.exe) |
+| **`CST_HostAgent_v2.7.1_win64_portable.zip`** | Windows 10 / 11 (Portable ZIP Bundle) | 34.9 MB | `f56d3250a5f4a4f468d27ebdc66832decaaee22aa2df7b34d75547d446f9f6cb` | [Download Portable ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip) |
+| **`CST_NetController_AI_v2.7.1_arm64-v8a.apk`** | Android 10 – 15 (`arm64-v8a` High-Refresh) | 21.8 MB | `54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751` | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk) |
+| **`CST_NetController_AI_v2.7.1.apk`** | Android 10 – 15 (Universal Package) | 21.8 MB | `54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751` | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1.apk) |
+| **`SHA256SUMS.txt`** | Checksum Verification List | 409 B | — | [Download SHA256](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/SHA256SUMS.txt) |
+| **`RELEASE_MANIFEST.json`** | Release Metadata Manifest | 1.8 KB | — | [Download Manifest](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/RELEASE_MANIFEST.json) |
 
-All official releases are tracked on the [GitHub Releases Page](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0).
+> **Previous Stable Release (v2.7.0):** Available on the [v2.7.0 Release Page](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0). Both versions are maintained simultaneously. All official releases are tracked on the [GitHub Releases Page](https://github.com/smehmedd/AI-NetController/releases).
 
 ---
 
@@ -146,13 +146,13 @@ Measured on standard enterprise hardware (Windows 11 x64, Intel i7-13700K, 32GB 
 This option requires **zero programming runtimes** (no Node.js, Python, or Flutter needed).
 
 1. **On Target Managed Windows PCs**:
-   - Download [`CST_HostAgent_v2.7.0_win64.exe`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_HostAgent_v2.7.0_win64.exe).
+   - Download [`CST_HostAgent_v2.7.1_win64.exe`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_HostAgent_v2.7.1_win64.exe).
    - Double-click to run. The **CST Host Agent — Control Center** GUI window will appear.
    - Note the **Pairing Token** (e.g. `CST-XXXX-XXXX`) and local IP address displayed on the screen.
    - *(Optional)* Add a shortcut to Windows Startup (`shell:startup`) for automated boot.
 
 2. **On Mobile Phones (Android)**:
-   - Download [`CST_NetController_AI_v2.7.0_arm64-v8a.apk`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk).
+   - Download [`CST_NetController_AI_v2.7.1_arm64-v8a.apk`](https://github.com/smehmedd/AI-NetController/releases/download/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk).
    - Install the APK on your device (enable *Install unknown apps* if prompted).
    - Ensure the mobile device is connected to the same Wi-Fi subnet. The app will auto-discover the host via mDNS in <500ms.
 

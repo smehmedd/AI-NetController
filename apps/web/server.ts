@@ -213,10 +213,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Release Binaries (.EXE & .APK) & Patch Notes Endpoint
 app.get('/api/releases', (_req: Request, res: Response) => {
   try {
-    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
+    const v271Path = path.join(RELEASES_PUBLIC_DIR, 'v2.7.1', 'RELEASE_MANIFEST.json');
+    const v270Path = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
     const patchNotesPath = path.join(ROOT_DIR, 'PATCH_NOTES.md');
-    const manifest = fs.existsSync(manifestPath)
-      ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+    const manifest = fs.existsSync(v271Path)
+      ? JSON.parse(fs.readFileSync(v271Path, 'utf-8'))
+      : (fs.existsSync(v270Path) ? JSON.parse(fs.readFileSync(v270Path, 'utf-8')) : null);
+    const legacyManifest = fs.existsSync(v270Path)
+      ? JSON.parse(fs.readFileSync(v270Path, 'utf-8'))
       : null;
     const patchNotes = fs.existsSync(patchNotesPath)
       ? fs.readFileSync(patchNotesPath, 'utf-8')
@@ -224,6 +228,8 @@ app.get('/api/releases', (_req: Request, res: Response) => {
     return res.json({
       success: true,
       manifest,
+      legacyManifest,
+      availableVersions: ['v2.7.1', 'v2.7.0'],
       patchNotes,
     });
   } catch (err: any) {
@@ -242,10 +248,11 @@ app.post('/api/releases/rebuild', (_req: Request, res: Response) => {
         error: stderr || err.message,
       });
     }
-    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
+    const manifestPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.1', 'RELEASE_MANIFEST.json');
+    const fallbackPath = path.join(RELEASES_PUBLIC_DIR, 'v2.7.0', 'RELEASE_MANIFEST.json');
     const manifest = fs.existsSync(manifestPath)
       ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
-      : null;
+      : (fs.existsSync(fallbackPath) ? JSON.parse(fs.readFileSync(fallbackPath, 'utf-8')) : null);
     return res.json({
       success: true,
       output: stdout.trim(),
@@ -826,9 +833,11 @@ app.get('/api/setup/info', (_req: Request, res: Response) => {
         pairingToken: snap.pairingToken,
         webOrigin,
         mobilePairUrl,
-        exeDownloadUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe',
-        apkDownloadUrl: '/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk',
-        portableZipUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip',
+        exeDownloadUrl: '/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe',
+        apkDownloadUrl: '/releases/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk',
+        portableZipUrl: '/releases/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip',
+        legacyExeDownloadUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe',
+        legacyApkDownloadUrl: '/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk',
         launcherDownloadUrl: '/api/setup/windows-launcher',
       },
     });
@@ -845,7 +854,7 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     'title CST NetController AI — 1-Click PC & Phone Setup',
     'color 0B',
     'echo ============================================================================',
-    'echo   CST NetController AI v2.7.0-LTS — Automatic PC ^& Phone Setup Wizard',
+    'echo   CST NetController AI v2.7.1-LTS - Automatic PC ^& Phone Setup Wizard',
     'echo ============================================================================',
     'echo.',
     `set CST_AGENT_SECRET=${snap.pairingToken}`,
@@ -860,7 +869,7 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     '        python -m pip install -r agent\\requirements.txt --quiet',
     '    )',
     ') else (',
-    '    echo [!] Python not found in PATH. Looking for standalone CST_HostAgent_v2.7.0_win64.exe...',
+    '    echo [!] Python not found in PATH. Looking for standalone CST_HostAgent_v2.7.1_win64.exe...',
     ')',
     '',
     'echo [2/4] Configuring Windows Private LAN Firewall rules (Ports 8765 ^& 3000)...',
@@ -872,8 +881,12 @@ app.get('/api/setup/windows-launcher', (_req: Request, res: Response) => {
     ')',
     '',
     'echo [3/4] Launching CST PC Host Daemon Desktop Control Center...',
-    'if exist "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe" (',
+    'if exist "public\\releases\\v2.7.1\\CST_HostAgent_v2.7.1_win64.exe" (',
+    '    start "CST PC Daemon" "public\\releases\\v2.7.1\\CST_HostAgent_v2.7.1_win64.exe"',
+    ') else if exist "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe" (',
     '    start "CST PC Daemon" "public\\releases\\v2.7.0\\CST_HostAgent_v2.7.0_win64.exe"',
+    ') else if exist "CST_HostAgent_v2.7.1_win64.exe" (',
+    '    start "CST PC Daemon" "CST_HostAgent_v2.7.1_win64.exe"',
     ') else if exist "CST_HostAgent_v2.7.0_win64.exe" (',
     '    start "CST PC Daemon" "CST_HostAgent_v2.7.0_win64.exe"',
     ') else if exist "agent\\dist\\CST_Agent_Daemon\\CST_Agent_Daemon.exe" (',

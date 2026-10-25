@@ -1,0 +1,45 @@
+{
+  "version": "v2.7.1",
+  "tag": "v2.7.1",
+  "releaseName": "CST NetController AI v2.7.1 — Quality & Hardening Maintenance Release",
+  "publishedAt": "2026-10-25T13:25:00.000000+00:00",
+  "protocol": "CST/3.0-SECURE",
+  "artifacts": [
+    {
+      "filename": "CST_HostAgent_v2.7.1_win64.exe",
+      "kind": "exe",
+      "platform": "Windows 10/11 x64 (Standalone Host Agent .EXE)",
+      "sizeBytes": 35330608,
+      "sizeFormatted": "33.7 MB",
+      "sha256": "fb64a8f8d609fccf37582e78914c810ee488b78d28ffb6d49602c6b851d4f90f",
+      "downloadUrl": "/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe"
+    },
+    {
+      "filename": "CST_NetController_AI_v2.7.1_arm64-v8a.apk",
+      "kind": "apk",
+      "platform": "Android 10–15 arm64-v8a (120Hz Mobile Controller .APK)",
+      "sizeBytes": 22817627,
+      "sizeFormatted": "21.8 MB",
+      "sha256": "54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751",
+      "downloadUrl": "/releases/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk"
+    },
+    {
+      "filename": "CST_NetController_AI_v2.7.1.apk",
+      "kind": "apk",
+      "platform": "Android 10–15 Universal (120Hz Mobile Controller .APK)",
+      "sizeBytes": 22817627,
+      "sizeFormatted": "21.8 MB",
+      "sha256": "54dcabd909c03bb282c9fa28f2c8c95a2378491c49c30ac9b157399016b89751",
+      "downloadUrl": "/releases/v2.7.1/CST_NetController_AI_v2.7.1.apk"
+    },
+    {
+      "filename": "CST_HostAgent_v2.7.1_win64_portable.zip",
+      "kind": "zip",
+      "platform": "Windows Portable Agent Bundle + Internal Runtime (.ZIP)",
+      "sizeBytes": 36558735,
+      "sizeFormatted": "34.9 MB",
+      "sha256": "f56d3250a5f4a4f468d27ebdc66832decaaee22aa2df7b34d75547d446f9f6cb",
+      "downloadUrl": "/releases/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip"
+    }
+  ]
+}

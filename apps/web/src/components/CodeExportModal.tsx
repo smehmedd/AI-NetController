@@ -141,19 +141,19 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({ isOpen, onClos
     }
   };
 
-  const ghReleaseCommands = `# 1. Tag and push v2.7.0 (triggers .github/workflows/release.yml automatically)
+  const ghReleaseCommands = `# 1. Tag and push v2.7.1 (triggers .github/workflows/release.yml automatically)
 git add .
-git commit -m "release: CST NetController AI v2.7.0 (APK + EXE + Patch Notes)"
-git tag -a v2.7.0 -m "CST NetController AI v2.7.0-LTS"
+git commit -m "release: CST NetController AI v2.7.1 (APK + EXE + Patch Notes)"
+git tag -a v2.7.1 -m "CST NetController AI v2.7.1-LTS"
 git push origin main --tags
 
 # 2. Or publish pre-built binaries directly with GitHub CLI (gh):
-gh release create v2.7.0 \\
-  public/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe \\
-  public/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk \\
-  public/releases/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip \\
-  public/releases/v2.7.0/SHA256SUMS.txt \\
-  --title "CST NetController AI v2.7.0 — Native APK & EXE Release" \\
+gh release create v2.7.1 \\
+  public/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe \\
+  public/releases/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk \\
+  public/releases/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip \\
+  public/releases/v2.7.1/SHA256SUMS.txt \\
+  --title "CST NetController AI v2.7.1 — Quality & Hardening Release" \\
   --notes-file PATCH_NOTES.md`;
 
   const handleCopyGhCommands = () => {
@@ -189,7 +189,7 @@ gh release create v2.7.0 \\
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'cst_netcontroller_ai_v2.7.0_source_and_builders.zip';
+      a.download = 'cst_netcontroller_ai_v2.7.1_source_and_builders.zip';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -201,31 +201,31 @@ gh release create v2.7.0 \\
 
   const artifacts: ReleaseArtifact[] = manifest?.artifacts || [
     {
-      filename: 'CST_HostAgent_v2.7.0_win64.exe',
+      filename: 'CST_HostAgent_v2.7.1_win64.exe',
       kind: 'exe',
       platform: 'Windows 10/11 x64 (Standalone Host Agent .EXE)',
-      sizeBytes: 49664,
-      sizeFormatted: '48.5 KB',
-      sha256: '6ed77f452c9bbd9cbb072252e0148322f0ea63f20db50ea70b43d08252567672',
-      downloadUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64.exe',
+      sizeBytes: 35330392,
+      sizeFormatted: '33.7 MB',
+      sha256: '484467fccf3c2605a1ce180420db437707a80c095526404473d591b415b55c89',
+      downloadUrl: '/releases/v2.7.1/CST_HostAgent_v2.7.1_win64.exe',
     },
     {
-      filename: 'CST_NetController_AI_v2.7.0_arm64-v8a.apk',
+      filename: 'CST_NetController_AI_v2.7.1_arm64-v8a.apk',
       kind: 'apk',
-      platform: 'Android 10–15 arm64-v8a (Mobile Controller .APK)',
-      sizeBytes: 131481,
-      sizeFormatted: '128.4 KB',
-      sha256: 'c3007d8b35a2454f39c4df2908887ef42ab0a39431083622f14f2c0652eda690',
-      downloadUrl: '/releases/v2.7.0/CST_NetController_AI_v2.7.0_arm64-v8a.apk',
+      platform: 'Android 10–15 arm64-v8a (120Hz Mobile Controller .APK)',
+      sizeBytes: 23585852,
+      sizeFormatted: '22.5 MB',
+      sha256: 'b0be786f11ef95b46322bf9da8b93e4664fb8504e525fd682da8be310e95abb6',
+      downloadUrl: '/releases/v2.7.1/CST_NetController_AI_v2.7.1_arm64-v8a.apk',
     },
     {
-      filename: 'CST_HostAgent_v2.7.0_win64_portable.zip',
+      filename: 'CST_HostAgent_v2.7.1_win64_portable.zip',
       kind: 'zip',
-      platform: 'Windows Portable Agent Bundle + PyInstaller Spec (.ZIP)',
-      sizeBytes: 100352,
-      sizeFormatted: '98.0 KB',
-      sha256: '0b7137f2700b5d012ee5dc07487e54510ffc002555726d93953ecbe4be5096cd',
-      downloadUrl: '/releases/v2.7.0/CST_HostAgent_v2.7.0_win64_portable.zip',
+      platform: 'Windows Portable Agent Bundle + Internal Runtime (.ZIP)',
+      sizeBytes: 36558150,
+      sizeFormatted: '34.9 MB',
+      sha256: '5c8669cc2d7ac6d6d9e91f1c75bd2829ce03b3267acc56e975321f10741ed1da',
+      downloadUrl: '/releases/v2.7.1/CST_HostAgent_v2.7.1_win64_portable.zip',
     },
   ];
 
@@ -244,7 +244,7 @@ gh release create v2.7.0 \\
                   {isBg ? 'БИНАРНИ РЕЛИЙЗИ (.APK / .EXE) И ИЗХОДЕН КОД' : 'RELEASE BINARIES (.APK / .EXE) & SOURCE ARCHIVE'}
                 </h2>
                 <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] font-mono font-semibold shrink-0">
-                  v2.7.0-LTS
+                  v2.7.1-LTS
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono truncate">
@@ -296,7 +296,7 @@ gh release create v2.7.0 \\
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{isBg ? '🚀 v2.7.0 .APK & .EXE Релийз' : '🚀 v2.7.0 .APK & .EXE Releases'}</span>
+            <span>{isBg ? '🚀 v2.7.1 .APK & .EXE Релийз' : '🚀 v2.7.1 .APK & .EXE Releases'}</span>
           </button>
 
           <button
@@ -393,8 +393,8 @@ gh release create v2.7.0 \\
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>
                     {isBg
-                      ? 'Официални компилирани бинарни пакети (v2.7.0-LTS)'
-                      : 'Official Packaged Release Binaries (v2.7.0-LTS)'}
+                      ? 'Официални компилирани бинарни пакети (v2.7.1-LTS)'
+                      : 'Official Packaged Release Binaries (v2.7.1-LTS)'}
                   </span>
                 </h3>
                 <p className="text-xs text-slate-400 font-mono">
@@ -416,7 +416,7 @@ gh release create v2.7.0 \\
                   <span>{isBg ? 'Отвори PC Демон GUI' : 'Open PC Daemon GUI'}</span>
                 </button>
                 <a
-                  href="/releases/v2.7.0/SHA256SUMS.txt"
+                  href="/releases/v2.7.1/SHA256SUMS.txt"
                   download="SHA256SUMS.txt"
                   className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-mono text-cyan-300 flex items-center gap-1.5 transition"
                 >
@@ -522,7 +522,7 @@ gh release create v2.7.0 \\
               <div className="rounded-2xl bg-[#0b1324]/70 border border-white/10 p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold text-emerald-300 uppercase">
-                    📄 PATCH_NOTES.md (v2.7.0-LTS)
+                    📄 PATCH_NOTES.md (v2.7.1-LTS)
                   </span>
                 </div>
                 <pre className="p-3.5 rounded-xl bg-black/60 border border-white/10 font-mono text-[11px] text-slate-300 max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
@@ -600,8 +600,8 @@ gh release create v2.7.0 \\
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>
               {isBg
-                ? 'v2.7.0-LTS Бинарни пакети готови (.APK & .EXE) • UTF-8'
-                : 'v2.7.0-LTS Binaries Ready (.APK & .EXE) • UTF-8'}
+                ? 'v2.7.1-LTS Бинарни пакети готови (.APK & .EXE) • UTF-8'
+                : 'v2.7.1-LTS Binaries Ready (.APK & .EXE) • UTF-8'}
             </span>
           </div>
           <span>CST/3.0-SECURE</span>
