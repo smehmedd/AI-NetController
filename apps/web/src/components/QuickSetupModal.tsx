@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/useTranslation';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { copyToClipboard } from '../utils/clipboard';
 import { SPRING_BUBBLY, SPRING_POP, MODAL_BUBBLE_VARIANTS } from '../utils/springPhysics';
 
 interface SetupInfo {
@@ -153,7 +154,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
 
   const handleCopy = (text: string, label: string) => {
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(text);
+    copyToClipboard(text);
     setCopiedField(label);
     setTimeout(() => setCopiedField(null), 2000);
   };

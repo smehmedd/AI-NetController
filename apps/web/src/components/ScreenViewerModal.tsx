@@ -545,12 +545,15 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   }, [isOpen, isFullscreen, onClose]);
 
   const handleCapture = () => {
+    if (!device || !frameUrl) return;
+    const safeName = (device.name || device.id || 'host').replace(/\s+/g, '_');
+    const capturedFrame = frameUrl;
     triggerHapticFeedback('medium');
     setLocalCapturing(true);
     setTimeout(() => {
       const a = document.createElement('a');
-      a.href = frameUrl;
-      a.download = `capture_${device.name.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+      a.href = capturedFrame;
+      a.download = `capture_${safeName}_${Date.now()}.jpg`;
       a.click();
       setLocalCapturing(false);
       triggerHapticFeedback('medium');

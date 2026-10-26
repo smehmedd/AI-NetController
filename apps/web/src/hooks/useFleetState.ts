@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { HostDevice, WolSchedule, WolPacketPayload, LatencyDataPoint } from '../types';
+import { HostDevice, WolSchedule, WolPacketPayload, LatencyDataPoint, WolPacketTriggerSource } from '../types';
 import { INITIAL_HOSTS, generate30sLatencyHistory } from '../data/mockHosts';
-import { loadWolSchedules, saveWolSchedules, generateMagicPacket } from '../services/wolService';
+import { loadWolSchedules, saveWolSchedules, generateMagicPacket, resolveScheduleTargets } from '../services/wolService';
 import { logStore } from '../store/logStore';
+import { wolHistoryStore } from '../store/wolHistoryStore';
 import { triggerHapticFeedback } from '../services/hapticService';
 
 const STORAGE_KEY = 'cst_netcontroller_hosts';
@@ -171,53 +172,147 @@ export function useFleetState() {
     }
   }, []);
 
-  const sendWolPacket = useCallback(async (payload: WolPacketPayload, deviceId: string) => {
-    triggerHapticFeedback('heavy');
-    logStore.addLog('WOL_ENGINE', deviceId, 'packet', `Изпратен Magic Packet (102 байта) към ${payload.mac}`);
+  const sendWolPacket = useCallback(
+    async (
+      payload: WolPacketPayload,
+      deviceId: string,
+      source: WolPacketTriggerSource = 'manual',
+      customDeviceName?: string
+    ) => {
+      triggerHapticFeedback('heavy');
+      const matchedHost = hosts.find((h) => h.id === deviceId || h.mac?.toUpperCase() === payload.mac?.toUpperCase());
+      const resolvedDeviceName =
+        customDeviceName ||
+        matchedHost?.name ||
+        (deviceId && deviceId !== 'CUSTOM' && deviceId !== 'CUSTOM-MAC'
+          ? deviceId
+          : `Custom NIC (${payload.mac})`);
+      const bcast = payload.broadcastIp || '255.255.255.255';
+      const port = payload.port || 9;
+      const bytesCount = payload.bytesCount || 102;
+      const cleanMac = String(payload.mac || '').replace(/[^a-fA-F0-9]/g, '');
 
-    try {
-      await fetch('/api/wol', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mac: payload.mac,
-          broadcastIp: payload.broadcastIp || '255.255.255.255',
-          port: payload.port || 9,
-        }),
-      });
-    } catch (err) {
-      console.error('Real WoL dispatch error:', err);
-    }
+      logStore.addLog(
+        'WOL_ENGINE',
+        deviceId,
+        'packet',
+        `Изпратен Magic Packet (${bytesCount} байта) към ${resolvedDeviceName} (${payload.mac})`
+      );
 
-    // Optimistic wake transition with initialized latency telemetry
-    setHosts((prev) =>
-      prev.map((h) =>
-        h.id === deviceId
-          ? {
-              ...h,
-              isOnline: true,
-              cpuUsage: 14,
-              ramUsage: 36,
-              ping: 12,
-              latencyHistory: generate30sLatencyHistory(12, 2.5),
-            }
-          : h
-      )
-    );
-  }, []);
+      const startTime = Date.now();
+      let dispatchSucceeded = true;
+      let failureMessage = '';
 
-  const triggerSchedule = useCallback((scheduleId: string) => {
-    const sched = wolSchedules.find((s) => s.id === scheduleId);
-    if (!sched) return;
-    hosts.forEach((h) => {
-      try {
-        const p = generateMagicPacket(h.mac, sched.broadcastIp, sched.port);
-        sendWolPacket(p, h.id);
-      } catch (err) {
-        console.error(err);
+      if (cleanMac.length !== 12) {
+        dispatchSucceeded = false;
+        failureMessage = 'Invalid MAC address (expected 12 hex characters)';
+      } else {
+        try {
+          const res = await fetch('/api/wol', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mac: payload.mac,
+              broadcastIp: bcast,
+              port,
+            }),
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            dispatchSucceeded = false;
+            failureMessage = errData.error || `HTTP ${res.status} UDP socket rejection`;
+          }
+        } catch (err: any) {
+          console.error('Real WoL dispatch error:', err);
+          dispatchSucceeded = false;
+          failureMessage = err?.message || 'UDP broadcast socket unreachable';
+        }
       }
-    });
-  }, [hosts, sendWolPacket, wolSchedules]);
+
+      const latencyMs = Math.max(1, Date.now() - startTime);
+
+      if (dispatchSucceeded) {
+        wolHistoryStore.addEntry({
+          deviceId: matchedHost?.id || deviceId || 'CUSTOM-MAC',
+          deviceName: resolvedDeviceName,
+          mac: payload.mac,
+          broadcastIp: bcast,
+          port,
+          bytesCount,
+          status: 'success',
+          source,
+          latencyMs,
+          details: `UDP ${bytesCount}-byte Magic Packet broadcast delivered to ${bcast}:${port} (${latencyMs}ms).`,
+          detailsBg: `Изпратен ${bytesCount}-байтов UDP Magic Packet към ${bcast}:${port} (${latencyMs}ms).`,
+        });
+
+        // Optimistic wake transition with initialized latency telemetry
+        setHosts((prev) =>
+          prev.map((h) =>
+            h.id === deviceId || h.mac?.toUpperCase() === payload.mac?.toUpperCase()
+              ? {
+                  ...h,
+                  isOnline: true,
+                  cpuUsage: 14,
+                  ramUsage: 36,
+                  ping: 12,
+                  latencyHistory: generate30sLatencyHistory(12, 2.5),
+                }
+              : h
+          )
+        );
+      } else {
+        wolHistoryStore.addEntry({
+          deviceId: matchedHost?.id || deviceId || 'CUSTOM-MAC',
+          deviceName: resolvedDeviceName,
+          mac: payload.mac,
+          broadcastIp: bcast,
+          port,
+          bytesCount,
+          status: 'failed',
+          source,
+          latencyMs,
+          details: `Dispatch failed on ${bcast}:${port} — ${failureMessage}`,
+          detailsBg: `Неуспешно изпращане към ${bcast}:${port} — ${failureMessage}`,
+        });
+        logStore.addLog(
+          'WOL_ENGINE',
+          deviceId,
+          'error',
+          `Грешка при изпращане на Magic Packet към ${resolvedDeviceName}: ${failureMessage}`
+        );
+      }
+    },
+    [hosts]
+  );
+
+  const triggerSchedule = useCallback(
+    (scheduleId: string) => {
+      const sched = wolSchedules.find((s) => s.id === scheduleId);
+      if (!sched) return;
+      const targets = resolveScheduleTargets(sched, hosts);
+      targets.forEach((t) => {
+        try {
+          const p = generateMagicPacket(t.mac, sched.broadcastIp, sched.port);
+          sendWolPacket(p, t.id, 'schedule', t.name);
+        } catch (err: any) {
+          wolHistoryStore.addEntry({
+            deviceId: t.id,
+            deviceName: t.name,
+            mac: t.mac,
+            broadcastIp: sched.broadcastIp,
+            port: sched.port,
+            bytesCount: 102,
+            status: 'failed',
+            source: 'schedule',
+            details: `Schedule "${sched.name}" failed: ${err?.message || 'Invalid target MAC address'}`,
+            detailsBg: `Графикът „${sched.name}“ се провали: ${err?.message || 'Невалиден MAC адрес'}`,
+          });
+        }
+      });
+    },
+    [hosts, sendWolPacket, wolSchedules]
+  );
 
   const updateHostInstructions = useCallback((hostId: string, type: 'persistent' | 'session', instructions: string[]) => {
     setHosts((prev) =>

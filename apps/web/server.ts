@@ -1866,22 +1866,58 @@ async function executePcControlAction(action: Partial<ParsedAiAction> & { type: 
     }
     case 'wol': {
       const cleanMac = String(action.mac || '00:2B:67:89:AB:CD').replace(/[^a-fA-F0-9]/g, '');
-      if (cleanMac.length === 12) {
-        const macBytes = Buffer.from(cleanMac, 'hex');
-        const magicPacket = Buffer.alloc(102);
-        magicPacket.fill(0xff, 0, 6);
-        for (let i = 0; i < 16; i++) {
-          macBytes.copy(magicPacket, 6 + i * 6);
-        }
-        await new Promise<void>((resolve) => {
-          const client = dgram.createSocket('udp4');
-          client.once('listening', () => client.setBroadcast(true));
-          client.send(magicPacket, 0, magicPacket.length, 9, '255.255.255.255', () => {
-            client.close();
-            resolve();
-          });
-        });
+      if (cleanMac.length !== 12) {
+        addDaemonLog('WARN', `[AI-CONTROL] Rejected invalid MAC "${action.mac}" for WoL target ${target}`);
+        return {
+          success: false,
+          actionType: 'wol',
+          target,
+          opcode: 'UDP:9 (MAGIC_PACKET)',
+          summary: `Invalid MAC address for ${target}`,
+          output: 'Invalid MAC address format (expected 12 hex characters)',
+          durationMs: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        };
       }
+
+      const macBytes = Buffer.from(cleanMac, 'hex');
+      const magicPacket = Buffer.alloc(102);
+      magicPacket.fill(0xff, 0, 6);
+      for (let i = 0; i < 16; i++) {
+        macBytes.copy(magicPacket, 6 + i * 6);
+      }
+
+      await new Promise<void>((resolve) => {
+        const client = dgram.createSocket('udp4');
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          try {
+            client.close();
+          } catch {}
+          resolve();
+        };
+        const safetyTimer = setTimeout(finish, 1500);
+        client.on('error', (err) => {
+          clearTimeout(safetyTimer);
+          console.warn('[AI-CONTROL] UDP WoL socket warning:', err.message);
+          finish();
+        });
+        client.bind(0, () => {
+          try {
+            client.setBroadcast(true);
+            client.send(magicPacket, 0, magicPacket.length, 9, '255.255.255.255', () => {
+              clearTimeout(safetyTimer);
+              finish();
+            });
+          } catch {
+            clearTimeout(safetyTimer);
+            finish();
+          }
+        });
+      });
+
       addDaemonLog('INFO', `[AI-CONTROL] Dispatched 102-byte UDP Port 9 Magic Packet to wake ${target}`);
       return {
         success: true,

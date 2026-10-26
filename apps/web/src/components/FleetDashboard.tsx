@@ -29,6 +29,7 @@ import { useUIStore } from '../store/uiStore';
 import { HostCard } from './HostCard';
 import { LanguageToggle } from './ui/LanguageToggle';
 import { generateMagicPacket } from '../services/wolService';
+import { copyToClipboard } from '../utils/clipboard';
 import { useTranslation, Language } from '../i18n/useTranslation';
 import { SPRING_BUBBLY, SPRING_POP, POPOVER_BUBBLE_VARIANTS } from '../utils/springPhysics';
 
@@ -391,7 +392,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
       })),
     };
     const jsonString = JSON.stringify(exportPayload, null, 2);
-    navigator.clipboard?.writeText(jsonString);
+    copyToClipboard(jsonString);
     try {
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);

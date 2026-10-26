@@ -24,8 +24,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticFeedback } from '../services/hapticService';
-import { WolSchedule } from '../types';
+import { HostDevice, WolPacketPayload, WolPacketTriggerSource, WolSchedule } from '../types';
 import { WolEnergyCalculator } from './WolEnergyCalculator';
+import { WolHistoryLogViewer } from './WolHistoryLogViewer';
 import { useTranslation } from '../i18n/useTranslation';
 import { LanguageToggle } from './ui/LanguageToggle';
 import { useUIStore } from '../store/uiStore';
@@ -46,6 +47,13 @@ interface SettingsScreenProps {
   activeWolSchedulesCount?: number;
   wolSchedules?: WolSchedule[];
   hostsCount?: number;
+  hosts?: HostDevice[];
+  onSendWolPacket?: (
+    payload: WolPacketPayload,
+    deviceId: string,
+    source?: WolPacketTriggerSource,
+    customDeviceName?: string
+  ) => void;
 }
 
 const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
@@ -57,7 +65,9 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
   onOpenWolScheduler,
   activeWolSchedulesCount,
   wolSchedules,
-  hostsCount
+  hostsCount,
+  hosts,
+  onSendWolPacket,
 }) => {
   const { t, language } = useTranslation();
 
@@ -539,7 +549,10 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
           </div>
         </div>
 
-        {/* SECTION 2: ENERGY CALCULATOR */}
+        {/* SECTION 2: WAKE-ON-LAN PACKET HISTORY LOG VIEWER */}
+        <WolHistoryLogViewer hosts={hosts} onSendWolPacket={onSendWolPacket} />
+
+        {/* SECTION 2B: ENERGY CALCULATOR */}
         <WolEnergyCalculator wolSchedules={wolSchedules} defaultHostCount={hostsCount || 15} />
       </div>
 

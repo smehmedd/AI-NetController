@@ -469,6 +469,8 @@ export default function App() {
                     activeWolSchedulesCount={fleet.activeWolSchedulesCount}
                     wolSchedules={fleet.wolSchedules}
                     hostsCount={fleet.hosts.length}
+                    hosts={fleet.hosts}
+                    onSendWolPacket={fleet.sendWolPacket}
                   />
                 </React.Suspense>
               </motion.div>

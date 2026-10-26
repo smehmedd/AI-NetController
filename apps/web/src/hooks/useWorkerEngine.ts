@@ -7,6 +7,7 @@ import {
 } from '../types';
 import { logStore } from '../store/logStore';
 import { useScreenStore } from '../store/screenStore';
+import { useUIStore } from '../store/uiStore';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { generateMockScreenCanvas } from '../services/screenFrameService';
 import {
@@ -244,14 +245,23 @@ export function useWorkerEngine({
 
   const sendCommand = useCallback(
     (cmd: ClientCommandMessage) => {
+      const isBg = useUIStore.getState().language === 'bg';
+
       // 1. Quarantined Host Gate
       if (quarantinedHosts.includes(cmd.target_id) && !cmd.prompt.toLowerCase().includes('status')) {
         triggerHapticFeedback('warning');
         setSecurityAlert({
-          title: 'Хост под Карантина',
-          reason: `Хост ${cmd.target_id} е изолиран от сигурността. Команди са забранени до отмяна на карантината.`,
+          title: isBg ? 'Хост под Карантина' : 'Host Under Quarantine',
+          reason: isBg
+            ? `Хост ${cmd.target_id} е изолиран от сигурността. Команди са забранени до отмяна на карантината.`
+            : `Host ${cmd.target_id} is isolated by security policy. Commands are blocked until quarantine is lifted.`,
         });
-        logStore.addLog('MOBILE_CLIENT', cmd.target_id, 'warn', 'Командата е отказана: Хостът е под активна карантина.');
+        logStore.addLog(
+          'MOBILE_CLIENT',
+          cmd.target_id,
+          'warn',
+          isBg ? 'Командата е отказана: Хостът е под активна карантина.' : 'Command denied: Host is under active quarantine.'
+        );
         return;
       }
 
@@ -259,10 +269,17 @@ export function useWorkerEngine({
       if (hostCircuitBreaker.isTripped(cmd.target_id)) {
         triggerHapticFeedback('warning');
         setSecurityAlert({
-          title: 'Прекъсвачът е Активиран',
-          reason: `Хост ${cmd.target_id} натрупа поредица от грешки. Нулирайте прекъсвача, преди да изпращате нови команди.`,
+          title: isBg ? 'Прекъсвачът е Активиран' : 'Circuit Breaker Tripped',
+          reason: isBg
+            ? `Хост ${cmd.target_id} натрупа поредица от грешки. Нулирайте прекъсвача, преди да изпращате нови команди.`
+            : `Host ${cmd.target_id} accumulated consecutive faults. Reset the circuit breaker before sending new commands.`,
         });
-        logStore.addLog('MOBILE_CLIENT', cmd.target_id, 'warn', 'Командата е блокирана от прекъсвача за безопасност.');
+        logStore.addLog(
+          'MOBILE_CLIENT',
+          cmd.target_id,
+          'warn',
+          isBg ? 'Командата е блокирана от прекъсвача за безопасност.' : 'Command blocked by safety circuit breaker.'
+        );
         return;
       }
 
@@ -270,11 +287,19 @@ export function useWorkerEngine({
       const rateCheck = commandRateLimiter.checkLimit(cmd.target_id);
       if (!rateCheck.allowed) {
         triggerHapticFeedback('warning');
+        const waitSec = Math.ceil(rateCheck.resetMs / 1000);
         setSecurityAlert({
-          title: 'Ограничение на Честотата',
-          reason: `Изчакайте ${Math.ceil(rateCheck.resetMs / 1000)}s преди следваща команда към този хост.`,
+          title: isBg ? 'Ограничение на Честотата' : 'Rate Limit Exceeded',
+          reason: isBg
+            ? `Изчакайте ${waitSec}s преди следваща команда към този хост.`
+            : `Please wait ${waitSec}s before sending another command to this host.`,
         });
-        logStore.addLog('MOBILE_CLIENT', cmd.target_id, 'warn', 'Ограничение на честотата: твърде много команди за кратък период.');
+        logStore.addLog(
+          'MOBILE_CLIENT',
+          cmd.target_id,
+          'warn',
+          isBg ? 'Ограничение на честотата: твърде много команди за кратък период.' : 'Rate limit exceeded: too many commands in a short window.'
+        );
         return;
       }
 
@@ -283,16 +308,30 @@ export function useWorkerEngine({
       if (!verdict.isAllowed) {
         triggerHapticFeedback('warning');
         setSecurityAlert({
-          title: 'Командата е Блокирана от Защитата',
-          reason: verdict.reason || 'Засечена е забранена злонамерена сигнатура.',
+          title: isBg ? 'Командата е Блокирана от Защитата' : 'Command Blocked by Security Gate',
+          reason:
+            verdict.reason ||
+            (isBg ? 'Засечена е забранена злонамерена сигнатура.' : 'Detected prohibited malicious signature.'),
         });
-        logStore.addLog('MOBILE_CLIENT', cmd.target_id, 'error', `Блокирана потенциално опасна команда: "${cmd.prompt}" (${verdict.reason})`);
+        logStore.addLog(
+          'MOBILE_CLIENT',
+          cmd.target_id,
+          'error',
+          isBg
+            ? `Блокирана потенциално опасна команда: "${cmd.prompt}" (${verdict.reason})`
+            : `Blocked potentially dangerous command: "${cmd.prompt}" (${verdict.reason})`
+        );
         return;
       }
 
       setIsSendingCommand(true);
       triggerHapticFeedback('medium');
-      logStore.addLog('MOBILE_CLIENT', cmd.target_id, 'info', `Команда: "${cmd.prompt}" [Риск: ${verdict.riskLevel}]`);
+      logStore.addLog(
+        'MOBILE_CLIENT',
+        cmd.target_id,
+        'info',
+        isBg ? `Команда: "${cmd.prompt}" [Риск: ${verdict.riskLevel}]` : `Command: "${cmd.prompt}" [Risk: ${verdict.riskLevel}]`
+      );
 
       // 5. Critical Destructive Command: Automatically trigger HITL gate if needed
       if (verdict.requiresHoldConfirmation && !isConnected) {
@@ -302,9 +341,9 @@ export function useWorkerEngine({
           command_id: `cmd_sec_${Date.now()}`,
           risk_level: verdict.riskLevel,
           proposed_command: cmd.prompt,
-          explanation: `Изисква потвърждение: ${verdict.reason}`,
+          explanation: isBg ? `Изисква потвърждение: ${verdict.reason}` : `Confirmation required: ${verdict.reason}`,
           target_id: cmd.target_id,
-          timestamp: new Date().toLocaleTimeString('bg-BG', { hour12: false }),
+          timestamp: new Date().toLocaleTimeString(isBg ? 'bg-BG' : 'en-GB', { hour12: false }),
         });
         return;
       }

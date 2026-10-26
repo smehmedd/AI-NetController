@@ -8,6 +8,7 @@ import { generateMagicPacket, resolveScheduleTargets, DEFAULT_WOL_SCHEDULES } fr
 import { INITIAL_HOSTS } from '../data/mockHosts';
 import { QUICK_ACTIONS, DESTRUCTIVE_ACTIONS } from '../constants/commandPresets';
 import { logStore } from '../store/logStore';
+import { wolHistoryStore } from '../store/wolHistoryStore';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -239,6 +240,55 @@ console.log('================================================================\n'
   assert(nonce2.sequence > nonce1.sequence, 'Pillar 20 (Sequence Tracking)', 'Monotonic packet sequence counter incremented');
 }
 
+// Pillar 21: Wake-on-LAN Packet History Store & Telemetry Verification
+{
+  wolHistoryStore.resetToDefaults();
+  const initialEntries = wolHistoryStore.getEntries();
+  assert(initialEntries.length >= 5, 'Pillar 21 (WoL History Seed)', `Seeded with ${initialEntries.length} initial WoL packet log entries`);
+
+  const successEntry = wolHistoryStore.addEntry({
+    deviceId: 'CST-LAB-PC-1',
+    deviceName: 'Lab Workstation 01',
+    mac: '00:2b:67:89:ab:cd',
+    broadcastIp: '192.168.1.255',
+    port: 9,
+    bytesCount: 102,
+    status: 'success',
+    source: 'manual',
+    latencyMs: 6,
+    details: 'Verification test successful magic packet',
+    detailsBg: 'Тестов успешен Magic Packet',
+  });
+  assert(successEntry.mac === '00:2B:67:89:AB:CD', 'Pillar 21 (WoL History Normalization)', 'Normalized lowercase MAC to uppercase standard');
+
+  const failedEntry = wolHistoryStore.addEntry({
+    deviceId: 'CST-SRV-09',
+    deviceName: 'Offline Backup Node',
+    mac: 'AA:BB:CC:DD:EE:FF',
+    broadcastIp: '192.168.1.255',
+    port: 9,
+    bytesCount: 102,
+    status: 'failed',
+    source: 'schedule',
+    latencyMs: 14,
+    details: 'Verification test failed magic packet',
+    detailsBg: 'Тестов неуспешен Magic Packet',
+  });
+  assert(failedEntry.status === 'failed', 'Pillar 21 (WoL Failure Tracking)', 'Recorded failed WoL packet attempt with timestamp and device name');
+
+  const stats = wolHistoryStore.getStats();
+  assert(
+    stats.total === initialEntries.length + 2 && stats.successCount >= 1 && stats.failedCount >= 1 && stats.successRate > 0,
+    'Pillar 21 (WoL History Telemetry Stats)',
+    `Computed accurate aggregate stats (total=${stats.total}, success=${stats.successCount}, failed=${stats.failedCount}, rate=${stats.successRate}%)`
+  );
+
+  wolHistoryStore.clearHistory();
+  assert(wolHistoryStore.getEntries().length === 0, 'Pillar 21 (WoL History Clear)', 'Cleared WoL packet history cleanly');
+  wolHistoryStore.resetToDefaults();
+  assert(wolHistoryStore.getEntries().length >= 5, 'Pillar 21 (WoL History Restore)', 'Restored default WoL history entries');
+}
+
 console.log('\n================================================================');
 console.log(`  VERIFICATION RESULTS: ${passedTests}/${totalTests} PASSED (${failedTests} FAILED)`);
 console.log('================================================================\n');
@@ -246,6 +296,6 @@ console.log('================================================================\n'
 if (failedTests > 0) {
   process.exit(1);
 } else {
-  console.log('🎉 ALL 14 CORE ARCHITECTURAL PILLARS FULLY VERIFIED!\n');
+  console.log('🎉 ALL CORE ARCHITECTURAL PILLARS FULLY VERIFIED!\n');
   process.exit(0);
 }

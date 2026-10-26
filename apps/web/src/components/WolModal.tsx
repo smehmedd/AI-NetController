@@ -34,6 +34,7 @@ import { HostDevice, Weekday, WolPacketPayload, WolSchedule, WolScheduleTargetTy
 import { useTranslation } from '../i18n/useTranslation';
 import { SPRING_BUBBLY, SPRING_POP } from '../utils/springPhysics';
 import { copyToClipboard } from '../utils/clipboard';
+import { wolHistoryStore } from '../store/wolHistoryStore';
 
 interface WolModalProps {
   device: HostDevice | null;
@@ -188,8 +189,20 @@ export const WolModal: React.FC<WolModalProps> = ({
         try {
           const p = generateMagicPacket(t.mac, schedule.broadcastIp, schedule.port);
           onSendPacket(p, t.id);
-        } catch (e) {
+        } catch (e: any) {
           console.error(`Failed to send packet to target ${t.name}:`, e);
+          wolHistoryStore.addEntry({
+            deviceId: t.id,
+            deviceName: t.name,
+            mac: t.mac,
+            broadcastIp: schedule.broadcastIp,
+            port: schedule.port,
+            bytesCount: 102,
+            status: 'failed',
+            source: 'schedule',
+            details: `Schedule "${schedule.name}" failed: ${e?.message || 'Invalid target MAC address'}`,
+            detailsBg: `Графикът „${schedule.name}“ се провали: ${e?.message || 'Невалиден MAC адрес'}`,
+          });
         }
       });
     }

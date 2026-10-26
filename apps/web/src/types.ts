@@ -42,6 +42,27 @@ export interface WolPacketPayload {
   timestamp: string;
 }
 
+export type WolPacketLogStatus = 'success' | 'failed';
+
+export type WolPacketTriggerSource = 'manual' | 'schedule' | 'batch' | 'ai';
+
+export interface WolPacketLogEntry {
+  id: string;
+  timestamp: string;
+  createdAt: number;
+  deviceId: string;
+  deviceName: string;
+  mac: string;
+  broadcastIp: string;
+  port: number;
+  bytesCount: number;
+  status: WolPacketLogStatus;
+  source: WolPacketTriggerSource;
+  latencyMs?: number;
+  details: string;
+  detailsBg: string;
+}
+
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export type WolScheduleTargetType =
