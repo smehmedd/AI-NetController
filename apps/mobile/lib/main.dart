@@ -12,6 +12,7 @@ import 'fluid_theme.dart';
 import 'adaptive_layout_builder.dart';
 import 'responsive_device_card.dart';
 import 'viewport_stream_widget.dart';
+import 'onboarding_sheet.dart';
 
 // =====================================================================
 // STATE MODELS & RIVERPOD STATE MANAGERS
@@ -241,6 +242,12 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
       selectedIndex: _currentTabIndex,
       onIndexChanged: (idx) => setState(() => _currentTabIndex = idx),
       actions: [
+        IconButton(
+          tooltip: 'App Tour & Onboarding',
+          icon: const Icon(Icons.explore_outlined,
+              color: CyberColors.primary, size: 20),
+          onPressed: () => AdaptiveOnboardingSheet.show(context),
+        ),
         IconButton(
           tooltip: 'Test HITL Security Gate',
           icon: const Icon(Icons.shield_outlined,

@@ -20,6 +20,7 @@ import {
   Monitor,
   ShieldCheck,
   QrCode,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticFeedback } from '../services/hapticService';
@@ -666,6 +667,38 @@ const SettingsScreenComponent: React.FC<SettingsScreenProps> = ({
               <div className="flex items-center space-x-2 shrink-0">
                 <span className="hidden sm:inline-block text-[10px] font-mono text-emerald-300">
                   {language === 'bg' ? 'Авто-Сдвояване' : 'Auto-Pair'}
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </motion.div>
+
+            {/* Interactive Onboarding Tour */}
+            <motion.div
+              whileTap={{ scale: 0.985 }}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                useUIStore.getState().openModal('onboarding');
+              }}
+              className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.035] transition group"
+            >
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-2xl bg-violet-500/15 text-violet-300 flex items-center justify-center border border-violet-400/30 shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.2)]">
+                  <Sparkles className="w-4 h-4 icon-bubbly" />
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-display text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+                    {language === 'bg' ? 'Интерактивна Обиколка (Onboarding)' : 'Interactive App Tour & Onboarding'}
+                  </span>
+                  <span className="text-fluid-meta text-slate-400 truncate">
+                    {language === 'bg'
+                      ? 'Повторете 5-степенния наръчник за възможностите, сигурността и сдвояването'
+                      : 'Replay the 5-step guided walkthrough on features, security & pairing'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 shrink-0">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-violet-300 bg-violet-500/12 border border-violet-400/25 px-2 py-0.5 rounded-full">
+                  <span>{language === 'bg' ? 'Обиколка' : '5 Steps'}</span>
                 </span>
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </div>

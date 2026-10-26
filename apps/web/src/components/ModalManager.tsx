@@ -12,6 +12,7 @@ import { AddHostModal } from './AddHostModal';
 import { PcDaemonGuiModal } from './PcDaemonGuiModal';
 import { QuickSetupModal } from './QuickSetupModal';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { OnboardingModal } from './OnboardingModal';
 import { useTranslation } from '../i18n/useTranslation';
 
 // Props passed from Root Hook state
@@ -173,6 +174,12 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
       <KeyboardShortcutsModal
         isOpen={activeModal === 'shortcuts'}
         onClose={closeModal}
+      />
+
+      <OnboardingModal
+        isOpen={activeModal === 'onboarding'}
+        onClose={closeModal}
+        onOpenQuickSetup={() => useUIStore.getState().openModal('quickSetup')}
       />
     </>
   );

@@ -96,6 +96,7 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
 
     if (!q || isActionMode) {
       const systemActions = [
+        { label: language === 'bg' ? 'Обиколка на приложението & Първи стъпки' : 'App Tour & Onboarding Walkthrough', icon: Sparkles, action: () => openModal('onboarding') },
         { label: t('omni_action_rescan'), icon: Search, action: onRescanMdns },
         { label: t('omni_action_ws'), icon: TerminalSquare, action: () => openModal('wsConfig') },
         { label: t('omni_action_wol'), icon: Zap, action: () => openModal('wol', { tab: 'schedules' }) },

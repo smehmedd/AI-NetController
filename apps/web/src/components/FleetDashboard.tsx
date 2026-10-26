@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Monitor,
   QrCode,
+  Sparkles,
 } from 'lucide-react';
 import { HostDevice, WolPacketPayload } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -253,6 +254,14 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
       if (saved === 'grid' || saved === 'topology') return saved;
     } catch {}
     return 'grid';
+  });
+
+  const [showOnboardingBanner, setShowOnboardingBanner] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('cst_onboarding_banner_dismissed');
+    } catch {
+      return true;
+    }
   });
 
   useEffect(() => {
@@ -678,6 +687,64 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </motion.div>
         )}
 
+        {/* Onboarding Quick Guide Banner */}
+        {showOnboardingBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-violet-950/40 via-cyan-950/30 to-[#070c18] border border-violet-500/30 shadow-[0_8px_24px_rgba(139,92,246,0.12)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-violet-500/20 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white tracking-tight">
+                    {language === 'bg' ? 'Добре дошли в CST NetController AI' : 'Welcome to CST NetController AI'}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-violet-500/20 text-violet-300">
+                    {language === 'bg' ? 'Първи стъпки' : 'Quick Start'}
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-white/60 truncate sm:whitespace-normal">
+                  {language === 'bg'
+                    ? 'Започнете с интерактивната обиколка, свържете вашия PC демон или сканирайте QR код.'
+                    : 'Explore the 5-step interactive tour, pair your local PC daemon, or scan phone QR.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHapticFeedback('light');
+                  openModal('onboarding');
+                }}
+                className="px-3 py-1.5 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/40 text-violet-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+                <span>{language === 'bg' ? 'Старт на Обиколката' : 'Start Tour'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOnboardingBanner(false);
+                  try {
+                    localStorage.setItem('cst_onboarding_banner_dismissed', 'true');
+                  } catch {}
+                }}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition cursor-pointer"
+                title={language === 'bg' ? 'Скрий' : 'Dismiss'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* 1. HEADER ROW: Title + Inline Non-Wrapping Status Pill + Health Pill on Left | Wake All + Cards/Map + EN/BG on Right */}
         <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
@@ -729,6 +796,29 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
                 </span>
               </motion.button>
             )}
+
+            {/* [ ✨ App Tour ] Guided Onboarding Walkthrough */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05, y: -1.5 }}
+              whileTap={{ scale: 0.92 }}
+              transition={SPRING_POP}
+              onClick={() => {
+                triggerHapticFeedback('light');
+                openModal('onboarding');
+              }}
+              className="group min-h-[44px] px-3 rounded-full bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/40 text-violet-300 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[0_0_16px_rgba(168,85,247,0.18)] transition transform-gpu"
+              title={
+                language === 'bg'
+                  ? 'Интерактивна обиколка на възможностите на системата'
+                  : 'Interactive App Tour & Onboarding Walkthrough'
+              }
+            >
+              <Sparkles className="w-3.5 h-3.5 text-violet-400 icon-bubbly" />
+              <span className="hidden sm:inline font-display">
+                {language === 'bg' ? 'Обиколка' : 'Tour'}
+              </span>
+            </motion.button>
 
             {/* [ 📱 Quick Setup (Phone + PC) ] 1-Click Setup & QR Pairing Wizard */}
             <motion.button

@@ -186,6 +186,21 @@ export default function App() {
       } else if (setupFlag === '1' || setupFlag === 'true') {
         openModal('quickSetup');
         window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        const tourFlag = params.get('tour') || params.get('onboarding');
+        if (tourFlag === '1' || tourFlag === 'true') {
+          openModal('onboarding');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          // Auto-prompt first-time users with interactive onboarding walkthrough
+          const hasCompletedOnboarding = localStorage.getItem('cst_onboarding_completed');
+          if (!hasCompletedOnboarding) {
+            const timer = setTimeout(() => {
+              openModal('onboarding');
+            }, 600);
+            return () => clearTimeout(timer);
+          }
+        }
       }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
