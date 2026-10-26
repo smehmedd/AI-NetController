@@ -37,7 +37,7 @@ with open(patch_notes_path, "r", encoding="utf-8") as f:
     notes_body = f.read()
 
 target_tag = "v2.9.0"
-target_name = "CST NetController AI v2.9.0 — Resilient Fallbacks, Direct AI Control & Stream Overhaul"
+target_name = "CST NetController AI v2.9.0 — Interactive Onboarding, Performance Overhaul & Zero-Trust Resilience"
 
 existing_release = next((r for r in releases if r["tag_name"] == target_tag), None)
 
