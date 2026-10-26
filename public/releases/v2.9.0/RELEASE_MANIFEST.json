@@ -2,7 +2,7 @@
   "version": "v2.9.0",
   "tag": "v2.9.0-LTS",
   "releaseName": "CST NetController AI v2.9.0 \u2014 Resilient Fallbacks, Direct AI Control & Stream Overhaul",
-  "publishedAt": "2026-10-25T13:15:18.290226+00:00",
+  "publishedAt": "2026-10-26T20:17:41.532269+00:00",
   "protocol": "CST/3.0-SECURE",
   "artifacts": [
     {
@@ -18,9 +18,9 @@
       "filename": "CST_HostAgent_v2.9.0_win64_portable.zip",
       "kind": "zip",
       "platform": "Windows Portable Agent Bundle + Internal Runtime (.ZIP)",
-      "sizeBytes": 36720056,
+      "sizeBytes": 36720291,
       "sizeFormatted": "35.0 MB",
-      "sha256": "6cefa35ebbcdf30ccea589c4cf710f1e91748ebecaac0b709150b97c1febd935",
+      "sha256": "ef0c21dd241e0dfea30c7ad7c0efab3b44a38b4b3618e8d34fd43edbc0535c95",
       "downloadUrl": "/releases/v2.9.0/CST_HostAgent_v2.9.0_win64_portable.zip"
     },
     {
