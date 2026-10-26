@@ -352,10 +352,15 @@ class AdaptiveScreenPipeline:
             raw_shot = sct.grab(monitor)
             raw_mv = memoryview(raw_shot.raw)
 
-            # Fast Adler-32 and 8x8 Spatial Grid Delta Hash check (Zero-Allocation MemoryView Slicing)
-            current_hash = zlib.adler32(raw_mv[::2048])
+
+            # Fast Adler-32 and 8x8 Spatial Grid Delta Hash check (C-contiguous buffer)
+            current_hash = zlib.adler32(bytes(raw_mv[::2048]))
             is_static = (current_hash == self.last_frame_hash)
             self.last_frame_hash = current_hash
+
+            # Short-circuit idle static frames without recomputing 64-block CRC32 grid
+            if is_static and self.consecutive_static > 3:
+                return None, True
 
             # Compute 8x8 block grid CRC32 hashes for spatial delta detection
             w_shot, h_shot = raw_shot.width, raw_shot.height

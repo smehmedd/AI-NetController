@@ -315,7 +315,7 @@ def screen_capture_worker_process(shm_name: str, stop_event: Event, ready_event:
                 frame = sct.grab(mon)
                 raw_mv = memoryview(frame.raw)
                 import zlib
-                curr_hash = zlib.adler32(raw_mv[::2048])
+                curr_hash = zlib.adler32(bytes(raw_mv[::2048]))
                 if curr_hash != last_raw_hash or frame_seq == 0:
                     last_raw_hash = curr_hash
                     if jpeg:

@@ -107,6 +107,41 @@ class PurePythonX25519:
         return shared_int.to_bytes(32, 'little')
 
 
+class FastX25519:
+    """
+    Hardware-accelerated X25519 ECDH engine utilizing OpenSSL C-assembly when
+    cryptography is installed, falling back cleanly to PurePythonX25519.
+    """
+    @staticmethod
+    def generate_private_key() -> bytes:
+        if HAS_CRYPTOGRAPHY_LIB:
+            try:
+                return x25519.X25519PrivateKey.generate().private_bytes_raw()
+            except Exception:
+                pass
+        return PurePythonX25519.generate_private_key()
+
+    @staticmethod
+    def public_key_from_private(private_key: bytes) -> bytes:
+        if HAS_CRYPTOGRAPHY_LIB:
+            try:
+                return x25519.X25519PrivateKey.from_private_bytes(private_key).public_key().public_bytes_raw()
+            except Exception:
+                pass
+        return PurePythonX25519.public_key_from_private(private_key)
+
+    @staticmethod
+    def compute_shared_secret(private_key: bytes, peer_public_key: bytes) -> bytes:
+        if HAS_CRYPTOGRAPHY_LIB:
+            try:
+                priv = x25519.X25519PrivateKey.from_private_bytes(private_key)
+                pub = x25519.X25519PublicKey.from_public_bytes(peer_public_key)
+                return priv.exchange(pub)
+            except Exception:
+                pass
+        return PurePythonX25519.compute_shared_secret(private_key, peer_public_key)
+
+
 # =====================================================================
 # RFC 5869 HKDF-SHA256 (EXTRACT & EXPAND)
 # =====================================================================

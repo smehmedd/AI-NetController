@@ -88,7 +88,7 @@ export function generateMockScreenCanvas(
 
       <!-- Process Rows -->
       <rect x="234" y="254" width="810" height="38" rx="6" fill="#0c1930" stroke="#00F0FF" stroke-width="0.8" />
-      <text x="250" y="278" fill="#00F0FF" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="bold">cst_host_daemon.exe (CST Agent v2.8)</text>
+      <text x="250" y="278" fill="#00F0FF" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="bold">cst_host_daemon.exe (CST Agent v2.9)</text>
       <text x="560" y="278" fill="#CBD5E1" font-family="'JetBrains Mono', monospace" font-size="12">4120</text>
       <text x="660" y="278" fill="#00FFA3" font-family="'JetBrains Mono', monospace" font-size="12">Running</text>
       <text x="790" y="278" fill="#00F0FF" font-family="'JetBrains Mono', monospace" font-size="12">4.2%</text>
@@ -142,7 +142,7 @@ export function generateMockScreenCanvas(
       <text x="244" y="210" fill="#94A3B8" font-family="'JetBrains Mono', monospace" font-size="12">14 items • Python 3.12</text>
 
       <rect x="484" y="140" width="240" height="110" rx="12" fill="#0f1c34" stroke="#38BDF8" stroke-width="1" />
-      <text x="504" y="180" fill="#FBBF24" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="bold">📁 releases_v2.8</text>
+      <text x="504" y="180" fill="#FBBF24" font-family="'JetBrains Mono', monospace" font-size="16" font-weight="bold">📁 releases_v2.9</text>
       <text x="504" y="210" fill="#94A3B8" font-family="'JetBrains Mono', monospace" font-size="12">CST_Daemon.exe • APK</text>
 
       <rect x="744" y="140" width="290" height="110" rx="12" fill="#0f1c34" stroke="#10B981" stroke-width="1" />
