@@ -70,6 +70,25 @@ class SlidingWindowReplayProtector:
         self.bitmap: int = 0
         self.initialized = False
 
+    def check(self, seq: int) -> bool:
+        """Validates sequence without updating window state (prevents DoS before MAC auth)."""
+        if seq <= 0:
+            return False
+        if not self.initialized:
+            return True
+        diff = seq - self.max_seq
+        if diff > 0:
+            return True
+        abs_diff = -diff
+        if abs_diff >= self.window_size:
+            return False
+        bit_mask = 1 << abs_diff
+        return (self.bitmap & bit_mask) == 0
+
+    def update(self, seq: int):
+        """Commits verified sequence number into window state after successful decryption."""
+        self.validate_and_update(seq)
+
     def validate_and_update(self, seq: int) -> bool:
         """
         Validates sequence number against sliding window.
@@ -436,10 +455,11 @@ class HostCryptoVault:
 
         _, seq = struct.unpack(">IQ", nonce)
 
-        # Sliding window replay check
-        if not self.replay_guard.validate_and_update(seq):
+        # 1. Sliding window check without mutating state
+        if not self.replay_guard.check(seq):
             return None
 
+        # 2. Authenticate MAC and decrypt payload
         try:
             if self._recv_cipher is not None:
                 plaintext = self._recv_cipher.decrypt(nonce, ciphertext_and_tag, aad)
@@ -447,6 +467,8 @@ class HostCryptoVault:
                 plaintext = FallbackChaCha20Poly1305.decrypt(bytes(self.k_recv), nonce, ciphertext_and_tag, aad)
             if plaintext is None:
                 return None
+            # 3. Commit into window state only after MAC verification succeeds
+            self.replay_guard.update(seq)
             return plaintext, seq
         except Exception:
             return None

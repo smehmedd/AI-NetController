@@ -1,5 +1,5 @@
 """
-CST NetController AI — Native Desktop GUI for PC Host Daemon (v2.7.1-LTS)
+CST NetController AI — Native Desktop GUI for PC Host Daemon (v2.9.0-LTS)
 ================================================================================
 Provides a clean, transparent, user-facing desktop control panel built on Python's
 standard library (tkinter / ttk) with zero third-party native GUI DLLs.
@@ -84,7 +84,7 @@ class HostDaemonState:
         self.ram_used_gb: float = 0.0
         self.ram_total_gb: float = 16.0
         self.disk_percent: float = 0.0
-        self.capture_fps: int = 60
+        self.capture_fps: int = 120
         self.commands_executed: int = 0
         self.frames_broadcast: int = 0
 
@@ -237,8 +237,13 @@ class HostDaemonState:
                 ram_pct = float(vm.percent)
                 ram_used = round(vm.used / (1024 ** 3), 2)
                 ram_total = round(vm.total / (1024 ** 3), 2)
-                du = psutil.disk_usage(os.path.abspath(os.sep))
-                disk_pct = float(du.percent)
+                # Query disk usage only every 5 seconds to prevent GUI stutter on slow/sleeping disks
+                now = time.time()
+                if not hasattr(self, '_last_disk_time') or (now - self._last_disk_time) > 5.0:
+                    du = psutil.disk_usage(os.path.abspath(os.sep))
+                    self._cached_disk_pct = float(du.percent)
+                    self._last_disk_time = now
+                disk_pct = getattr(self, '_cached_disk_pct', 41.0)
             except Exception:
                 pass
 
@@ -251,7 +256,7 @@ class HostDaemonState:
             if not self.is_running or self.is_paused:
                 self.capture_fps = 0
             elif len(self.connected_clients) > 0:
-                self.capture_fps = 60
+                self.capture_fps = 120
             else:
                 self.capture_fps = 2
 
@@ -383,7 +388,10 @@ class HostDaemonDesktopGUI:
         if platform.system() == "Windows":
             try:
                 import ctypes
-                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+                try:
+                    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+                except Exception:
+                    ctypes.windll.user32.SetProcessDPIAware()
             except Exception:
                 pass
 
@@ -634,7 +642,7 @@ class HostDaemonDesktopGUI:
         disk_row.pack(fill=tk.X, pady=(2, 0))
         self.disk_lbl = tk.Label(disk_row, text="Disk: 0.0%", bg="#0b1324", fg="#94a3b8", font=("Consolas", 9))
         self.disk_lbl.pack(side=tk.LEFT)
-        self.fps_lbl = tk.Label(disk_row, text="Capture Pipeline: 60 FPS", bg="#0b1324", fg="#34d399", font=("Consolas", 9))
+        self.fps_lbl = tk.Label(disk_row, text="Capture Pipeline: 120 FPS", bg="#0b1324", fg="#34d399", font=("Consolas", 9))
         self.fps_lbl.pack(side=tk.RIGHT)
 
         # 3. Quick Controls & Security Toggles Bar

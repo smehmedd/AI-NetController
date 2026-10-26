@@ -101,15 +101,15 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
       ),
       margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CyberColors.background.withOpacity(0.94),
+        color: CyberColors.background.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: CyberColors.primary.withOpacity(0.35),
+          color: CyberColors.primary.withValues(alpha: 0.35),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: CyberColors.primary.withOpacity(0.18),
+            color: CyberColors.primary.withValues(alpha: 0.18),
             blurRadius: 36,
             spreadRadius: 2,
           ),
@@ -129,7 +129,7 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                   width: 44,
                   height: 4.5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -156,14 +156,14 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                             height: 80,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: stepColor.withOpacity(0.12),
+                              color: stepColor.withValues(alpha: 0.12),
                               border: Border.all(
-                                color: stepColor.withOpacity(0.4),
+                                color: stepColor.withValues(alpha: 0.4),
                                 width: 1.5,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: stepColor.withOpacity(0.25),
+                                  color: stepColor.withValues(alpha: 0.25),
                                   blurRadius: 24,
                                 ),
                               ],
@@ -181,10 +181,10 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: stepColor.withOpacity(0.15),
+                              color: stepColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: stepColor.withOpacity(0.3),
+                                color: stepColor.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Text(
@@ -229,7 +229,7 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                             step['description'],
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.68),
+                              color: Colors.white.withValues(alpha: 0.68),
                               fontSize: 13,
                               height: 1.45,
                             ),
@@ -254,7 +254,7 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                         child: Text(
                           'Назад',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -265,7 +265,7 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                         child: Text(
                           'Пропусни',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                           ),
                         ),
                       ),
@@ -282,12 +282,12 @@ class _AdaptiveOnboardingSheetState extends State<AdaptiveOnboardingSheet> {
                           decoration: BoxDecoration(
                             color: active
                                 ? CyberColors.primary
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(3),
                             boxShadow: active
                                 ? [
                                     BoxShadow(
-                                      color: CyberColors.primary.withOpacity(0.6),
+                                      color: CyberColors.primary.withValues(alpha: 0.6),
                                       blurRadius: 6,
                                     ),
                                   ]

@@ -15,7 +15,10 @@ import os
 # Include parent directory in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from agent import parse_header, pack_packet, MAGIC, HEADER_SIZE, MAX_PAYLOAD_SIZE, OP_PING, OP_FRAME, OP_SHELL, OP_AUTH
+try:
+    from agent import parse_header, pack_packet, MAGIC, HEADER_SIZE, MAX_PAYLOAD_SIZE, OP_PING, OP_FRAME, OP_SHELL, OP_AUTH
+except ImportError:
+    from agent.agent import parse_header, pack_packet, MAGIC, HEADER_SIZE, MAX_PAYLOAD_SIZE, OP_PING, OP_FRAME, OP_SHELL, OP_AUTH
 from command_ast_firewall import CommandASTFirewall
 
 class TestAgentStressSuite(unittest.TestCase):

@@ -39,6 +39,7 @@ import {
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
 import { SPRING_BUBBLY, SPRING_POP } from '../utils/springPhysics';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface ConnectedPeer {
   id: string;
@@ -330,21 +331,21 @@ export const PcDaemonGuiModal: React.FC<PcDaemonGuiModalProps> = ({
 
   const handleCopyUri = () => {
     triggerHapticFeedback('light');
-    navigator.clipboard.writeText(daemon.wsUri);
+    copyToClipboard(daemon.wsUri);
     setCopiedUri(true);
     setTimeout(() => setCopiedUri(false), 1800);
   };
 
   const handleCopyToken = () => {
     triggerHapticFeedback('light');
-    navigator.clipboard.writeText(daemon.pairingToken);
+    copyToClipboard(daemon.pairingToken);
     setCopiedToken(true);
     setTimeout(() => setCopiedToken(false), 1800);
   };
 
   const handleCopyPin = () => {
     triggerHapticFeedback('light');
-    navigator.clipboard.writeText(daemon.pairingPin || '482910');
+    copyToClipboard(daemon.pairingPin || '482910');
     setCopiedPin(true);
     setTimeout(() => setCopiedPin(false), 1800);
   };

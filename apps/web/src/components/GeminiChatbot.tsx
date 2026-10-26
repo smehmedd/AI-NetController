@@ -26,6 +26,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { copyToClipboard } from '../utils/clipboard';
 import { HostDevice, WolSchedule } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
 import { useUIStore } from '../store/uiStore';
@@ -718,7 +719,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 
   const handleCopy = (id: string, text: string) => {
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(text);
+    copyToClipboard(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1800);
   };

@@ -1279,7 +1279,7 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               },
             },
           }}
-          className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3.5 items-start px-0.5"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-3.5 items-start px-0.5"
         >
           <AnimatePresence mode="popLayout">
             {filteredHosts.map((host) => (

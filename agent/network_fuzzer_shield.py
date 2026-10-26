@@ -273,13 +273,19 @@ class NetworkFuzzerShield:
             buf = self._reorder_buffer.setdefault(client_id, [])
             buf.append(raw_packet)
             if len(buf) >= 2:
-                # Swap order of buffered packets
+                # Swap order of buffered packets: return p2 now, keep p1 for next delivery
                 p1 = buf.pop(0)
                 p2 = buf.pop(0)
-                # Return inverted
-                asyncio.create_task(self._delayed_release(client_id, p1))
+                buf.insert(0, p1)
                 return p2
             return None
+
+        # Deliver any buffered reordered packet before incoming packet
+        buf = self._reorder_buffer.get(client_id)
+        if buf and len(buf) > 0:
+            delayed = buf.pop(0)
+            buf.append(raw_packet)
+            return delayed
 
         return raw_packet
 

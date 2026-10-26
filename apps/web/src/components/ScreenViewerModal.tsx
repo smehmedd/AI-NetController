@@ -520,7 +520,29 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
     return () => clearInterval(interval);
   }, [isOpen, device, isDeviceOnline, isPaused]);
 
-  if (!isOpen || !device) return null;
+  // Clean up long-press hold timer on unmount
+  useEffect(() => {
+    return () => {
+      clearHoldTimer();
+    };
+  }, []);
+
+  // Escape key handler: exits fullscreen mode or closes modal cleanly
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isFullscreen, onClose]);
 
   const handleCapture = () => {
     triggerHapticFeedback('medium');
@@ -748,7 +770,8 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
 
   return (
     <AnimatePresence>
-      <motion.div
+      {isOpen && device ? (
+        <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -1373,6 +1396,7 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
           </div>
         </motion.div>
       </motion.div>
+      ) : null}
     </AnimatePresence>
   );
 };

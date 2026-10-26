@@ -24,6 +24,7 @@ import { ENTERPRISE_SNIPPETS } from '../data/enterpriseSnippets';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
 import { useUIStore } from '../store/uiStore';
+import { copyToClipboard } from '../utils/clipboard';
 
 const ALL_SNIPPETS = [...ENTERPRISE_SNIPPETS, ...CODE_SNIPPETS];
 
@@ -120,7 +121,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({ isOpen, onClos
 
   const handleCopy = () => {
     triggerHapticFeedback('light');
-    navigator.clipboard.writeText(currentFile.code);
+    copyToClipboard(currentFile.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -158,7 +159,7 @@ gh release create v2.9.0 \\
 
   const handleCopyGhCommands = () => {
     triggerHapticFeedback('light');
-    navigator.clipboard.writeText(ghReleaseCommands);
+    copyToClipboard(ghReleaseCommands);
     setCopiedGhCmd(true);
     setTimeout(() => setCopiedGhCmd(false), 2000);
   };
@@ -468,7 +469,7 @@ gh release create v2.9.0 \\
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText(art.sha256);
+                          copyToClipboard(art.sha256);
                           setCopiedSha(art.filename);
                           setTimeout(() => setCopiedSha(null), 1800);
                         }}

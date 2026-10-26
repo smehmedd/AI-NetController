@@ -33,6 +33,7 @@ import { triggerHapticFeedback } from '../services/hapticService';
 import { HostDevice, Weekday, WolPacketPayload, WolSchedule, WolScheduleTargetType } from '../types';
 import { useTranslation } from '../i18n/useTranslation';
 import { SPRING_BUBBLY, SPRING_POP } from '../utils/springPhysics';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface WolModalProps {
   device: HostDevice | null;
@@ -138,7 +139,7 @@ export const WolModal: React.FC<WolModalProps> = ({
 
   const handleCopyHex = () => {
     if (packet) {
-      navigator.clipboard.writeText(packet.rawHex);
+      copyToClipboard(packet.rawHex);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

@@ -21,6 +21,7 @@ import {
 import { triggerHapticFeedback } from '../services/hapticService';
 import { getBatteryConfig } from './HostCard';
 import { useTranslation } from '../i18n/useTranslation';
+import { copyToClipboard as copySafe } from '../utils/clipboard';
 
 interface HostDetailsModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export const HostDetailsModal: React.FC<HostDetailsModalProps> = ({
 
   const copyToClipboard = (text: string) => {
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(text);
+    copySafe(text);
   };
 
   return (

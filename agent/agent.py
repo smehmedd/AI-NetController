@@ -398,7 +398,7 @@ class AdaptiveScreenPipeline:
                 encoded = self.turbo.encode(
                     raw_shot.raw,
                     quality=self.jpeg_quality,
-                    pixel_format=2,  # TJPF_BGRX
+                    pixel_format=3,  # TJPF_BGRX (constant 3 is BGRX in turbojpeg)
                 )
                 return encoded, False
             elif Image:
@@ -748,11 +748,13 @@ class HostAgentDaemon:
         """Manages lifecycle of connected Flutter or Web clients."""
         self.clients.add(ws)
         client_ip = ws.remote_address[0] if ws.remote_address else "unknown"
-        logger.info(f"Client connected from {client_ip}")
+        client_port = ws.remote_address[1] if ws.remote_address and len(ws.remote_address) > 1 else id(ws)
+        client_id = f"{client_ip}:{client_port}"
+        logger.info(f"Client connected from {client_id}")
 
-        # Register with SRE Chaos Shield and arm 3000ms watchdog
+        # Register with SRE Chaos Shield and arm 3000ms watchdog (keyed by unique client session)
         if self.chaos_shield:
-            self.chaos_shield.register_client(client_ip, lambda: asyncio.create_task(ws.close(code=1008)))
+            self.chaos_shield.register_client(client_id, lambda: asyncio.create_task(ws.close(code=1008)))
 
         # Send an immediate cryptographic authentication challenge
         nonce = secrets.token_bytes(16)
@@ -893,7 +895,7 @@ class HostAgentDaemon:
                 logger.error(f"Error handling client {client_ip}: {e}")
         finally:
             if self.chaos_shield:
-                await self.chaos_shield.cleanup_and_scrub(client_ip)
+                await self.chaos_shield.cleanup_and_scrub(client_id)
             self.clients.discard(ws)
             self.authenticated_clients.discard(ws)
             self.active_nonces.pop(ws, None)
@@ -1399,7 +1401,11 @@ def main():
             logger.info(f"Desktop GUI fallback to console mode: {e}")
 
     try:
-        asyncio.run(daemon.start())
+        async def _run_headless():
+            await daemon.start()
+            while daemon.is_running:
+                await asyncio.sleep(1.0)
+        asyncio.run(_run_headless())
     except (KeyboardInterrupt, SystemExit):
         daemon.stop()
         logger.info("Agent daemon terminated.")

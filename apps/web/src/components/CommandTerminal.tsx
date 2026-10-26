@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { HostDevice, AgentExecutionResponse } from '../types';
 import { GlassContainer } from './ui/GlassContainer';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { copyToClipboard } from '../utils/clipboard';
 import { useTranslation } from '../i18n/useTranslation';
 import { SPRING_BUBBLY, SPRING_POP } from '../utils/springPhysics';
 
@@ -182,6 +183,11 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+      e.preventDefault();
+      handleClearConsole();
+      return;
+    }
     if (e.key === 'ArrowUp' && commandHistory.length > 0) {
       e.preventDefault();
       const nextIdx =
@@ -205,7 +211,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
 
   const handleCopyOutput = (id: string, text: string) => {
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(text);
+    copyToClipboard(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1600);
   };

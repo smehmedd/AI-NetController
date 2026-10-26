@@ -218,7 +218,6 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
   }
 
   void _openStreamScreen(HostState host) {
-    WakelockPlus.enable();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -783,10 +782,27 @@ class _MainAdaptiveScreenState extends ConsumerState<MainAdaptiveScreen> {
 // =====================================================================
 // FULLSCREEN SCREEN STREAM PAGE (HARDENED & FLUID)
 // =====================================================================
-class FullscreenStreamPage extends StatelessWidget {
+class FullscreenStreamPage extends StatefulWidget {
   final HostState host;
 
   const FullscreenStreamPage({super.key, required this.host});
+
+  @override
+  State<FullscreenStreamPage> createState() => _FullscreenStreamPageState();
+}
+
+class _FullscreenStreamPageState extends State<FullscreenStreamPage> {
+  @override
+  void initState() {
+    super.initState();
+    WakelockPlus.enable();
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -799,8 +815,8 @@ class FullscreenStreamPage extends StatelessWidget {
           children: [
             Positioned.fill(
               child: ViewportStreamWidget(
-                hostIp: host.ip,
-                hostName: host.name,
+                hostIp: widget.host.ip,
+                hostName: widget.host.name,
                 isInline: false,
               ),
             ),

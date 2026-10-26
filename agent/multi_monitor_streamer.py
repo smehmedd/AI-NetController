@@ -145,7 +145,7 @@ class MultiMonitorStreamer:
                 jpeg_bytes = _TURBO_JPEG_INSTANCE.encode(
                     raw_sct_img.raw,
                     quality=quality,
-                    pixel_format=1,  # TJPF_BGRX / BGRA
+                    pixel_format=3,  # TJPF_BGRX (constant 3 for 4-byte BGRA/BGRX)
                     jpeg_subsample=TJSAMP_420
                 )
                 return jpeg_bytes, width, height

@@ -43,6 +43,7 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
   selectedTarget,
   onSelectHost,
   onSendCommand,
+  onSendWolDirect,
   onRescanMdns,
 }) => {
   const isOpen = useUIStore((s) => s.isOmnibarOpen);
@@ -91,6 +92,18 @@ export const CommandOmnibar: React.FC<CommandOmnibarProps> = ({
           icon: Monitor,
           onTrigger: () => executeAction(() => onSelectHost(h.id)),
         });
+
+        if (!h.isOnline && onSendWolDirect) {
+          items.push({
+            id: `wol-${h.id}`,
+            kind: 'action',
+            title: isBg ? `Събуди ${h.name} чрез WoL` : `Wake ${h.name} via WoL`,
+            subtitle: `${h.mac} · Magic Packet`,
+            badge: 'WOL',
+            icon: Zap,
+            onTrigger: () => executeAction(() => onSendWolDirect(h)),
+          });
+        }
       });
     }
 

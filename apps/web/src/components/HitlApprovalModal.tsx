@@ -4,6 +4,7 @@ import { ShieldAlert, Copy, Check, X } from 'lucide-react';
 import { ApprovalRequiredEvent } from '../types';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface HitlApprovalModalProps {
   event: ApprovalRequiredEvent | null;
@@ -26,7 +27,7 @@ export const HitlApprovalModal: React.FC<HitlApprovalModalProps> = ({
   const handleCopy = () => {
     if (!event) return;
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(event.proposed_command);
+    copyToClipboard(event.proposed_command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

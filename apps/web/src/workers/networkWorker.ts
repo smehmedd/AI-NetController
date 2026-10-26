@@ -271,7 +271,7 @@ function establishConnection(url: string, token: string = currentToken) {
     socket = ws;
     let hadSocketError = false;
 
-    // Fast connection watchdog (1200ms timeout)
+    // Connection watchdog (3500ms timeout prevents hanging sockets on latent Wi-Fi)
     connectionWatchdog = setTimeout(() => {
       if (ws.readyState === WebSocket.CONNECTING) {
         try {
@@ -282,7 +282,7 @@ function establishConnection(url: string, token: string = currentToken) {
         self.postMessage({ type: 'STATUS', status: 'timeout' });
         scheduleReconnect();
       }
-    }, 1200);
+    }, 3500);
 
     ws.onopen = () => {
       clearConnectionWatchdog();

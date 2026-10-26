@@ -452,6 +452,8 @@ class HostCryptoSession:
         rx_counter, _ = struct.unpack('!QI', nonce)
         if rx_counter <= self._rx_last_nonce_counter:
             raise ValueError(f"Replay attack detected! Received counter {rx_counter} <= {self._rx_last_nonce_counter}")
-        self._rx_last_nonce_counter = rx_counter
 
-        return self.cipher.decrypt(nonce, ciphertext_tag, aad=header_aad)
+        # Decrypt & verify MAC before committing counter state
+        plaintext = self.cipher.decrypt(nonce, ciphertext_tag, aad=header_aad)
+        self._rx_last_nonce_counter = rx_counter
+        return plaintext

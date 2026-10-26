@@ -29,7 +29,10 @@ if AGENT_DIR not in sys.path:
 from crypto_vault import SlidingWindowReplayProtector
 from crypto_handshake import PurePythonX25519, AuthenticatedCipher, derive_session_key
 from command_ast_firewall import CommandASTFirewall
-from agent import HostAgentDaemon
+try:
+    from agent import HostAgentDaemon
+except ImportError:
+    from agent.agent import HostAgentDaemon
 
 
 def run_anti_replay_stress() -> tuple[bool, float, int]:

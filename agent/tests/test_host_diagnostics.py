@@ -1,3 +1,4 @@
+import unittest
 #!/usr/bin/env python3
 """
 ================================================================================
@@ -88,7 +89,7 @@ except ImportError:
 # ==============================================================================
 # TC-01: DIRECTED WAKE-ON-LAN SPECIFICATION VERIFICATION
 # ==============================================================================
-class TestDirectedWakeOnLan:
+class TestDirectedWakeOnLan(unittest.TestCase):
     """
     Validates Ethernet Wake-on-LAN Magic Packet specification (AMD / IEEE):
     - Payload must be exactly 102 bytes (6x 0xFF prefix followed by 16x MAC repetitions).
@@ -133,7 +134,7 @@ class TestDirectedWakeOnLan:
 # ==============================================================================
 # TC-02: PHYSICAL-NIC DISCOVERY & VIRTUAL ADAPTER FILTERING
 # ==============================================================================
-class TestPhysicalNicDiscovery:
+class TestPhysicalNicDiscovery(unittest.TestCase):
     """
     Asserts network discovery only selects physical hardware NICs and ignores
     WSL, Hyper-V, Docker, and VMware virtual adapters.
@@ -187,7 +188,7 @@ class TestPhysicalNicDiscovery:
 # ==============================================================================
 # TC-03: BINARY WIRE PROTOCOL FRAMING & SEQUENCE MONOTONICITY
 # ==============================================================================
-class TestBinaryWireProtocol:
+class TestBinaryWireProtocol(unittest.TestCase):
     """
     Validates 12-byte header packing, magic signature (0xC5, 0x71),
     sequence monotonicity, and bounds enforcement across opcodes 0x01 to 0x0C and 0xEE.
@@ -237,7 +238,7 @@ class TestBinaryWireProtocol:
 # ==============================================================================
 # TC-04: CURVE25519 & CHACHA20-POLY1305 CRYPTO BENCHMARK & AUTHENTICATION
 # ==============================================================================
-class TestCryptoPipeline:
+class TestCryptoPipeline(unittest.TestCase):
     """
     Validates:
     - X25519 key agreement (ECDH) between Host and Client
@@ -344,7 +345,7 @@ class RFC6479SlidingWindow:
         return True
 
 
-class TestAntiReplayWindow:
+class TestAntiReplayWindow(unittest.TestCase):
     def test_in_order_sequence(self):
         window = RFC6479SlidingWindow(window_size=128)
         for s in range(1, 200):
@@ -380,7 +381,7 @@ class TestAntiReplayWindow:
 # ==============================================================================
 # TC-06: SIMD FRAME COMPRESSION & 8x8 CRC32 DELTA HASH GRID
 # ==============================================================================
-class TestDisplayPipeline:
+class TestDisplayPipeline(unittest.TestCase):
     """
     Validates 8x8 block grid delta hashing:
     - 64 blocks evaluated via CRC32.
@@ -426,7 +427,7 @@ class TestDisplayPipeline:
 # ==============================================================================
 # TC-07: BIDIRECTIONAL VIEWPORT ADAPTATION
 # ==============================================================================
-class TestViewportAdaptation:
+class TestViewportAdaptation(unittest.TestCase):
     """
     Validates dynamic downsampling of screen captures to match physical client viewport bounds (Opcode 0x0A).
     """
@@ -462,7 +463,7 @@ class TestViewportAdaptation:
 # ==============================================================================
 # TC-08: AST COMMAND FIREWALL & OBFUSCATION MATRIX (40 VECTORS)
 # ==============================================================================
-class TestASTCommandFirewall:
+class TestASTCommandFirewall(unittest.TestCase):
     """
     Executes parameterized tests across 20 safe commands and 20 attack/obfuscated vectors.
     Asserts zero catastrophic backtracking and deterministic classification.
@@ -526,7 +527,7 @@ class TestASTCommandFirewall:
 # ==============================================================================
 # TC-09: HUMAN-IN-THE-LOOP (HITL) INTERCEPT & 30-SECOND APPROVAL TIMEOUT
 # ==============================================================================
-class TestHITLSecurityIntercept:
+class TestHITLSecurityIntercept(unittest.TestCase):
     """
     Validates:
     - Risky commands halt execution and construct a pending approval future.
@@ -566,7 +567,7 @@ class TestHITLSecurityIntercept:
 # ==============================================================================
 # TC-10: PROCESS SUPERVISION & JOB OBJECTS (KILL_ON_JOB_CLOSE)
 # ==============================================================================
-class TestProcessSupervision:
+class TestProcessSupervision(unittest.TestCase):
     """
     Validates process supervision and termination of all descendant processes:
     - On Windows: Win32 Job Object with KILL_ON_JOB_CLOSE
@@ -613,7 +614,7 @@ class TestProcessSupervision:
 # ==============================================================================
 # TC-11: VIRTUAL TRACKPAD & MEDIA CONTROLS
 # ==============================================================================
-class TestVirtualTrackpadAndMedia:
+class TestVirtualTrackpadAndMedia(unittest.TestCase):
     """
     Validates injection of trackpad mouse movements, clicks, and media controls (Opcodes 0x08 & 0x09).
     """
@@ -649,7 +650,7 @@ class TestVirtualTrackpadAndMedia:
 # ==============================================================================
 # TC-12: CHUNKED ZERO-TRUST ENCRYPTED FILE TRANSFER
 # ==============================================================================
-class TestChunkedFileTransfer:
+class TestChunkedFileTransfer(unittest.TestCase):
     """
     Asserts 64KB chunking reassembly and 100% SHA-256 parity.
     """
@@ -675,7 +676,7 @@ class TestChunkedFileTransfer:
 # ==============================================================================
 # TC-13: MULTI-MONITOR DISPLAY ENUMERATION & CONTEXT SWITCHING
 # ==============================================================================
-class TestMultiMonitorEnumeration:
+class TestMultiMonitorEnumeration(unittest.TestCase):
     """
     Validates Opcode 0x0B display enumeration and dynamic screen switching.
     """
@@ -704,7 +705,7 @@ class TestMultiMonitorEnumeration:
 # ==============================================================================
 # TC-14: PRESENTATION FAIL-SAFE DEMO MODE
 # ==============================================================================
-class TestPresentationDemoMode:
+class TestPresentationDemoMode(unittest.TestCase):
     """
     Validates presentation fail-safe loopback mock engine when all physical network interfaces are disconnected.
     """

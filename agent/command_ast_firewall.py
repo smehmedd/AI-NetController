@@ -243,6 +243,12 @@ class CommandASTFirewall:
                     stderr=asyncio.subprocess.PIPE,
                     **kwargs
                 )
+                if IS_WINDOWS:
+                    try:
+                        from agent import JOB_SUPERVISOR
+                        JOB_SUPERVISOR.assign_process(proc.pid)
+                    except Exception:
+                        pass
 
             communicate_task = asyncio.create_task(proc.communicate())
             done, pending = await asyncio.wait({communicate_task}, timeout=timeout_sec)
@@ -307,3 +313,9 @@ class CommandASTFirewall:
                 "stderr": f"Subprocess execution exception: {str(e)}",
                 "risk_level": risk,
             }
+        finally:
+            if proc and proc.returncode is None:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass

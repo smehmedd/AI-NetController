@@ -394,7 +394,8 @@ class DaemonServer:
         if IS_WINDOWS:
             # SO_EXCLUSIVEADDRUSE = -5
             try:
-                sock.setsockopt(socket.SOL_SOCKET, 0xFFFF - 4, 1)
+                opt = getattr(socket, "SO_EXCLUSIVEADDRUSE", -5)
+                sock.setsockopt(socket.SOL_SOCKET, opt, 1)
             except Exception:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         else:

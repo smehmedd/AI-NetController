@@ -25,10 +25,12 @@ import {
   Star,
   Radio,
   Link2,
+  Info,
 } from 'lucide-react';
 import { HostDevice } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerHapticFeedback } from '../services/hapticService';
+import { copyToClipboard } from '../utils/clipboard';
 import { getLatencyConfig, FleetSortMode } from './FleetDashboard';
 import { useTranslation, Language } from '../i18n/useTranslation';
 import { clampPercentage } from '../utils/viewportScale';
@@ -161,6 +163,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   onSelectForCommand,
   onQuickCommand,
   onDiagnoseHost,
+  onOpenDetailsModal,
   onWakeClick,
 }) => {
   const { t, language: storeLang } = useTranslation();
@@ -175,7 +178,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const handleCopyMac = (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(host.mac);
+    copyToClipboard(host.mac);
     setCopiedMac(true);
     setTimeout(() => setCopiedMac(false), 1800);
   };
@@ -183,7 +186,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const handleCopyIp = (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(host.ip);
+    copyToClipboard(host.ip);
     setCopiedIp(true);
     setTimeout(() => setCopiedIp(false), 1600);
   };
@@ -196,7 +199,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
   const handleCopyUri = (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHapticFeedback('light');
-    navigator.clipboard?.writeText(connectionUri);
+    copyToClipboard(connectionUri);
     setCopiedUri(true);
     setTimeout(() => setCopiedUri(false), 1800);
   };
@@ -531,6 +534,23 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 </motion.button>
               </>
             )}
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.11, y: -2 }}
+              whileTap={{ scale: 0.88 }}
+              transition={SPRING_POP}
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerHapticFeedback('light');
+                onOpenDetailsModal(host);
+              }}
+              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-white/70 hover:text-cyan-300 flex items-center justify-center transition-colors cursor-pointer transform-gpu"
+              title={currentLang === 'bg' ? 'Детайли за хост, Карантина и Защити' : 'Host Details, Quarantine & Circuit Breaker'}
+              aria-label="Host Details"
+            >
+              <Info className="w-4 h-4 icon-bubbly" />
+            </motion.button>
 
             <motion.button
               type="button"
