@@ -30,6 +30,7 @@ agent/app_manifest.xml
 .flutter-plugins-dependencies
 .packages
 apps/mobile/android/.gradle/
+apps/mobile/android_native_build/
 apps/mobile/android/local.properties
 apps/mobile/android/key.properties
 *.jks

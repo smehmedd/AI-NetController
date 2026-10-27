@@ -33,7 +33,17 @@ export function useWorkerEngine({
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [wsUrl, setWsUrl] = useState('ws://localhost:8765');
+  const [wsUrl, setWsUrl] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cst_ws_url');
+      if (saved) return saved;
+      const host = window.location.hostname;
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        return `ws://${host}:8765`;
+      }
+    }
+    return 'ws://localhost:8765';
+  });
   const [latency, setLatency] = useState<number | null>(7);
   const [heartbeatMetrics, setHeartbeatMetrics] = useState<HeartbeatMetrics | undefined>(() => ({
     currentLatencyMs: 7,
@@ -188,6 +198,11 @@ export function useWorkerEngine({
   const connect = useCallback((url?: string) => {
     const targetUrl = url || wsUrl;
     setWsUrl(targetUrl);
+    try {
+      localStorage.setItem('cst_ws_url', targetUrl);
+    } catch {
+      // ignore
+    }
     setIsConnecting(true);
     const token = getStoredAuthToken();
     workerRef.current?.postMessage({
