@@ -32,8 +32,8 @@ All binaries are pre-compiled, cryptographically signed with Authenticode (`O=CS
 ```text
 ab33d3b4ea79e0bf89483221cfdba9dd86ffb29893d18a773f28ffde4aab09b3  CST_HostAgent_v2.9.0_win64.exe
 ef0c21dd241e0dfea30c7ad7c0efab3b44a38b4b3618e8d34fd43edbc0535c95  CST_HostAgent_v2.9.0_win64_portable.zip
-7efad8c969b08e2a33742c17dd064f9a77f876a159a420eef806f01ee96a4b59  CST_NetController_AI_v2.9.0_arm64-v8a.apk
-7efad8c969b08e2a33742c17dd064f9a77f876a159a420eef806f01ee96a4b59  CST_NetController_AI_v2.9.0.apk
+1364fe9cc55bf0d3ba0ed97544150f6c60c5a620d43a6242cb8e241629e45128  CST_NetController_AI_v2.9.0_arm64-v8a.apk
+1364fe9cc55bf0d3ba0ed97544150f6c60c5a620d43a6242cb8e241629e45128  CST_NetController_AI_v2.9.0.apk
 ```
 </details>
 
@@ -124,8 +124,9 @@ All previous versions remain fully accessible on the GitHub Releases tab:
   - `ScreenViewerModal.tsx` is now bound directly to `useScreenStore` reactive state, streaming real JPEG screen captures received from the Python host agent over WebSocket (`OP_FRAME` Opcode 0x03) with live/simulated status badging.
 - **Native Android UDP Wake-on-LAN**:
   - `MainActivity.java` and `useFleetState.ts` now support direct native UDP Magic Packet broadcasting over the Android phone's Wi-Fi network interface via `AndroidBridge.sendWolUdp` and embedded `/api/wol`, waking sleeping computers without requiring an external relay server.
-- **Zero Placeholder Architecture**:
-  - Removed all mock placeholders across the screen stream and API pipelines; all controls, terminal execution, diagnostics, and packet dispatch connect to live functional subsystems.
+- **Zero Placeholder Architecture & Clean User-Driven Fleet**:
+  - Removed all hardcoded mock/placeholder PCs (`CST-LAB-PC-1`, `HOME-WORKSTATION`, etc.), synthetic schedules, and dummy history seeds.
+  - When the app starts up, the fleet begins completely clean with zero ghost devices. The user has full control to add their PCs via IP and MAC address, scan their local Wi-Fi subnet via mDNS/ARP, or connect their host PC.
 
 ---
 

@@ -464,8 +464,29 @@ public class MainActivity extends Activity {
                     }
 
                     if (rawPath.equals("/api/hosts/scan")) {
-                        String json = "{\\\"hosts\\\": [{\\\"id\\\": \\\"HOST-ANDROID-GATEWAY\\\", \\\"name\\\": \\\"Gateway Subnet\\\", \\\"ip\\\": \\\"192.168.1.1\\\", \\\"mac\\\": \\\"00:11:22:33:44:55\\\", \\\"os\\\": \\\"linux\\\", \\\"ping\\\": 2}]}";
-                        sendJsonResponse(out, 200, json);
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("{\\\"hosts\\\": [");
+                        boolean first = true;
+                        try {
+                            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("/proc/net/arp"));
+                            String line;
+                            while ((line = br.readLine()) != null) {
+                                String[] tokens = line.split("\\\\s+");
+                                if (tokens.length >= 4) {
+                                    String ip = tokens[0];
+                                    String mac = tokens[3].toUpperCase();
+                                    if (mac.matches("..:..:..:..:..:..") && !mac.equals("00:00:00:00:00:00")) {
+                                        String lastOctet = ip.contains(".") ? ip.substring(ip.lastIndexOf('.') + 1) : "1";
+                                        if (!first) sb.append(",");
+                                        sb.append("{\\\"id\\\": \\\"LAN-PC-" + lastOctet + "\\\", \\\"name\\\": \\\"LAN-PC-" + lastOctet + "\\\", \\\"ip\\\": \\\"" + ip + "\\\", \\\"mac\\\": \\\"" + mac + "\\\", \\\"os\\\": \\\"windows\\\", \\\"ping\\\": 2}");
+                                        first = false;
+                                    }
+                                }
+                            }
+                            br.close();
+                        } catch (Exception ignored) {}
+                        sb.append("]}");
+                        sendJsonResponse(out, 200, sb.toString());
                         socket.close();
                         return;
                     }

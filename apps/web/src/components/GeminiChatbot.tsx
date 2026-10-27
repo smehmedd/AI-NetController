@@ -121,7 +121,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 
   const primaryHost = useMemo(() => {
     const found = hosts.find((h) => h.id === selectedTarget);
-    return found || hosts[0] || { id: 'WORKSTATION-01', name: 'WORKSTATION-01', ip: '192.168.1.10', mac: '00:2B:67:89:AB:CD', os: 'windows', isOnline: true, ping: 2 };
+    return found || hosts[0] || null;
   }, [hosts, selectedTarget]);
 
   const welcomeText = useMemo(
@@ -311,7 +311,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
 
       const formatItemFromServerAction = (act: any): AiActionItem => {
         const execRes = serverExecResults?.[act.id];
-        const targetName = act.target || primaryHost.id;
+        const targetName = act.target || primaryHost?.id || '';
 
         switch (act.type) {
           case 'mouse_click':
@@ -496,7 +496,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         idx += 1;
         const kind = match[1].toUpperCase();
         const attrs = match[2] || '';
-        const target = parseAttr(attrs, 'target') || primaryHost.id;
+        const target = parseAttr(attrs, 'target') || primaryHost?.id || '';
         items.push(
           formatItemFromServerAction({
             id: `client-act-${Date.now()}-${idx}`,
@@ -551,8 +551,8 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
         body: JSON.stringify({
           ...action.payload,
           type: action.type,
-          target: action.target || primaryHost.id,
-          mac: action.payload?.mac || primaryHost.mac,
+          target: action.target || primaryHost?.id || '',
+          mac: action.payload?.mac || primaryHost?.mac || '',
         }),
       });
       const data = await res.json();
@@ -644,7 +644,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       const fleetContext = {
         protocolVersion: 'CST/3.0-SECURE',
         networkMode: isRealWsConnected ? 'Live Real WebSocket' : 'Active LAN',
-        selectedTarget: primaryHost.id,
+        selectedTarget: primaryHost?.id || 'UNSET',
         hostsTotal: hosts.length,
         hostsOnline: hosts.filter((h) => h.isOnline).length,
         hostsSleeping: hosts.filter((h) => !h.isOnline).length,
@@ -691,7 +691,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
       if (autoExecutePcActions && Array.isArray(data.actions)) {
         data.actions.forEach((act: any, idx: number) => {
           if (act.type === 'shell_exec' && act.command && onSendCommand) {
-            onSendCommand(act.command, act.target || primaryHost.id);
+            onSendCommand(act.command, act.target || primaryHost?.id || '');
           } else if (act.type === 'rescan' && onTriggerRescan) {
             onTriggerRescan();
           } else if (act.type === 'wol') {
@@ -774,7 +774,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   // Quick 1-Tap AI PC Control & Update Deck items
   const quickControlDeck = useMemo(() => {
     const bg = language === 'bg';
-    const hostName = primaryHost.name || primaryHost.id;
+    const hostName = primaryHost?.name || primaryHost?.id || (language === 'bg' ? 'Няма хост' : 'No Host');
     return [
       {
         id: 'deck-hotkey',
@@ -947,7 +947,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
             </h2>
             <span className="text-[10px] font-mono text-cyan-300/80 truncate">
-              {selectedModel || activeRoleConfig.model} • {primaryHost.name}
+              {selectedModel || activeRoleConfig.model} • {primaryHost ? primaryHost.name : (language === 'bg' ? 'Няма хост' : 'No Host')}
             </span>
           </div>
         </div>

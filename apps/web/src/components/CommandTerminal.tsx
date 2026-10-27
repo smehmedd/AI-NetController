@@ -90,7 +90,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   const lastProcessedTimestampRef = useRef<string>('');
   const logScrollRef = useRef<HTMLDivElement>(null);
 
-  const selectedHost = hosts.find((h) => h.id === selectedTarget) || hosts[0];
+  const selectedHost = hosts.find((h) => h.id === selectedTarget) || hosts[0] || null;
 
   useEffect(() => {
     if (
@@ -169,7 +169,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
     setHistoryCursor(-1);
 
     onSendCommand({
-      target_id: selectedTarget || selectedHost?.id || 'WORKSTATION-01',
+      target_id: selectedTarget || selectedHost?.id || '',
       command_type: 'natural_language',
       prompt: trimmed,
     });
@@ -226,7 +226,12 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
       {/* 1. Header & Flush Target Selector Pills with Horizontal Scroll Fade Mask */}
       <div className="py-1.5 flex items-center justify-between gap-2 mb-3 max-w-full overflow-hidden">
         <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-4 py-1 [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">
-          {hosts.map((h) => {
+          {hosts.length === 0 ? (
+            <span className="text-xs font-mono text-slate-400 py-1.5 px-3 rounded-full bg-white/5 border border-white/10">
+              {language === 'bg' ? 'Няма добавени хостове' : 'No hosts registered'}
+            </span>
+          ) : (
+            hosts.map((h) => {
             const isSelected = h.id === selectedTarget;
             return (
               <motion.button
@@ -260,7 +265,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
                 <span className="whitespace-nowrap">{h.name}</span>
               </motion.button>
             );
-          })}
+          }))}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -419,19 +424,27 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
               </span>
             )}
             <span className="font-mono text-[11px] text-cyan-300/80 pl-1 tabular-nums">
-              {selectedHost?.ip || '192.168.1.10'}:8765
+              {selectedHost ? `${selectedHost.ip}:8765` : (language === 'bg' ? 'Няма хост' : 'No Host')}
             </span>
           </div>
         </div>
 
         {/* Scrollable Command Output */}
         <div className="flex-1 min-h-[160px] max-h-[52dvh] py-4 font-mono text-xs leading-relaxed space-y-3 overflow-y-auto scrollbar-thin">
-          <div className="text-white/50">
-            {t('term_connected_to', {
-              name: selectedHost?.name || 'WORKSTATION',
-              os: selectedHost?.os || 'Windows 11',
-            })}
-          </div>
+          {selectedHost ? (
+            <div className="text-white/50">
+              {t('term_connected_to', {
+                name: selectedHost.name,
+                os: selectedHost.os || 'Windows 11',
+              })}
+            </div>
+          ) : (
+            <div className="text-amber-300/80 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-mono">
+              {language === 'bg'
+                ? 'Няма свързан компютър във флота. Моля, добавете компютър от таб „Флот“, за да изпращате команди.'
+                : 'No computer registered in the fleet yet. Please add a PC from the "Fleet" tab to execute commands.'}
+            </div>
+          )}
 
           <AnimatePresence mode="popLayout">
             {executionLogs.map((entry) => {

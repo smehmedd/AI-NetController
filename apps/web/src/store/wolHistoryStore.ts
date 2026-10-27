@@ -118,17 +118,15 @@ class WolHistoryStore {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_WOL_HISTORY);
       if (!raw) {
-        const seed = createInitialSeedEntries();
-        this.saveToStorage(seed);
-        return seed;
+        return [];
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         return parsed;
       }
-      return createInitialSeedEntries();
+      return [];
     } catch {
-      return createInitialSeedEntries();
+      return [];
     }
   }
 

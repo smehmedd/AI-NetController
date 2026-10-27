@@ -9,23 +9,38 @@ import { triggerHapticFeedback } from '../services/hapticService';
 const STORAGE_KEY = 'cst_netcontroller_hosts';
 
 function loadInitialHosts(): HostDevice[] {
+  if (typeof window === 'undefined') return INITIAL_HOSTS;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // Exclude legacy mock hosts so the user starts with a completely clean fleet
+        const userHosts = parsed.filter(
+          (h: any) =>
+            !['CST-LAB-PC-1', 'HOME-WORKSTATION', 'CST-FIELD-LAPTOP', 'NFS-STORAGE-SERVER'].includes(h.id)
+        );
+        return userHosts;
       }
     }
   } catch (e) {
     console.error('Failed to load persisted hosts:', e);
   }
-  return INITIAL_HOSTS;
+  return [];
 }
 
 export function useFleetState() {
   const [hosts, setHosts] = useState<HostDevice[]>(() => loadInitialHosts());
-  const [selectedTarget, setSelectedTarget] = useState<string>(hosts[0]?.id || 'CST-LAB-PC-1');
+  const [selectedTarget, setSelectedTarget] = useState<string>(hosts[0]?.id || '');
+
+  // Keep selected target in sync when hosts change
+  useEffect(() => {
+    if (hosts.length > 0 && (!selectedTarget || !hosts.some((h) => h.id === selectedTarget))) {
+      setSelectedTarget(hosts[0].id);
+    } else if (hosts.length === 0 && selectedTarget !== '') {
+      setSelectedTarget('');
+    }
+  }, [hosts, selectedTarget]);
   const [isScanning, setIsScanning] = useState(false);
   const [wolSchedules, setWolSchedules] = useState<WolSchedule[]>(() => loadWolSchedules());
   const scanTimerRef = useRef<number | null>(null);
@@ -337,6 +352,7 @@ export function useFleetState() {
 
   const addCustomHost = useCallback((newHost: HostDevice) => {
     setHosts((prev) => [newHost, ...prev]);
+    setSelectedTarget(newHost.id);
     logStore.addLog('SYSTEM_MDNS', newHost.id, 'success', `Добавен нов хост към флота: ${newHost.name} (${newHost.ip})`);
   }, []);
 

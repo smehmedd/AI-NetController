@@ -30,12 +30,12 @@ export const AddHostModal: React.FC<AddHostModalProps> = ({
   const isBg = language === 'bg';
 
   const [name, setName] = useState('');
-  const [ip, setIp] = useState('192.168.1.');
+  const [ip, setIp] = useState('');
   const [mac, setMac] = useState('');
   const [deviceType, setDeviceType] = useState<'pc' | 'laptop' | 'server'>('pc');
   const [os, setOs] = useState<OSType>('windows');
   const [initialStatus, setInitialStatus] = useState<'ready' | 'sleeping'>('ready');
-  const [tagsInput, setTagsInput] = useState('Lab, Primary');
+  const [tagsInput, setTagsInput] = useState('');
   const [port, setPort] = useState('8765');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 

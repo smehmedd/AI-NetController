@@ -66,7 +66,7 @@ export const WolModal: React.FC<WolModalProps> = ({
 
   // Direct Packet State
   const [selectedDirectHostId, setSelectedDirectHostId] = useState<string>(device?.id || hosts[0]?.id || 'CUSTOM');
-  const [mac, setMac] = useState(device?.mac || hosts[0]?.mac || '00:1A:2B:3C:4D:5E');
+  const [mac, setMac] = useState(device?.mac || hosts[0]?.mac || '');
   const [broadcastIp, setBroadcastIp] = useState('255.255.255.255');
   const [port, setPort] = useState(9);
   const [secureOnPassword, setSecureOnPassword] = useState('');
@@ -234,7 +234,7 @@ export const WolModal: React.FC<WolModalProps> = ({
     setFormName(isBg ? 'Събуждане на залата (08:00)' : 'Wake Lab PCs (08:00)');
     setFormTargetType('all_lab');
     setFormTargetDeviceId(hosts[0]?.id || '');
-    setFormTargetMac(hosts[0]?.mac || '00:1A:2B:3C:4D:5E');
+    setFormTargetMac(hosts[0]?.mac || '');
     setFormTime('08:00');
     setFormDays(['mon', 'tue', 'wed', 'thu', 'fri']);
     setFormBroadcastIp('192.168.1.255');

@@ -149,17 +149,16 @@ export function loadWolSchedules(): WolSchedule[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WOL_SCHEDULES);
     if (!raw) {
-      saveWolSchedules(DEFAULT_WOL_SCHEDULES);
-      return DEFAULT_WOL_SCHEDULES;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
-    return DEFAULT_WOL_SCHEDULES;
+    return [];
   } catch (e) {
     console.error('Failed to parse persistent WoL schedules from localStorage:', e);
-    return DEFAULT_WOL_SCHEDULES;
+    return [];
   }
 }
 

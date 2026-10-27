@@ -1239,20 +1239,30 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
           </React.Suspense>
         </motion.div>
       ) : filteredHosts.length === 0 ? (
-        <div className="rounded-2xl bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] p-8 sm:p-10 flex flex-col items-center justify-center text-center mx-0.5 transform-gpu">
-          <div className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-white/40 mb-3.5">
-            <Wifi className="w-6 h-6" />
+        <div className="rounded-3xl bg-[#0b1324]/65 backdrop-blur-2xl border border-white/10 p-8 sm:p-12 flex flex-col items-center justify-center text-center mx-auto max-w-lg my-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400/25 flex items-center justify-center text-cyan-400 mb-4 shadow-[0_0_25px_rgba(34,211,238,0.2)]">
+            <Monitor className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-white tracking-tight">{t('empty_hosts_title')}</h3>
-          <p className="text-xs text-white/50 max-w-xs mt-1 mb-4">
-            {t('empty_hosts_desc')}
+          <h3 className="text-lg font-bold text-white tracking-tight">
+            {hosts.length === 0
+              ? language === 'bg'
+                ? 'Няма добавени компютри'
+                : 'No Computers Added Yet'
+              : t('empty_hosts_title')}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mt-2 mb-6 leading-relaxed">
+            {hosts.length === 0
+              ? language === 'bg'
+                ? 'Флотът ви е чист. Натиснете „Добави компютър“, за да въведете своя компютър, или сканирайте мрежата за автоматично откриване на хостове.'
+                : 'Your fleet is ready for setup. Add your computer by entering its IP & MAC address, or scan your local network to discover devices.'
+              : t('empty_hosts_desc')}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="min-h-[44px] px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 border border-white/15 font-semibold text-xs transition cursor-pointer"
+                className="min-h-[44px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/90 border border-white/15 font-semibold text-xs transition cursor-pointer"
               >
                 {language === 'bg' ? 'Изчисти търсенето' : 'Clear Search'}
               </button>
@@ -1260,11 +1270,22 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
             <button
               type="button"
               onClick={addHostHandler}
-              className="min-h-[44px] px-5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-400/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer"
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold text-xs flex items-center space-x-2 shadow-lg shadow-cyan-500/25 transition cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>{t('empty_hosts_btn')}</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>{language === 'bg' ? 'Добави компютър' : 'Add First PC'}</span>
             </button>
+            {onRescan && (
+              <button
+                type="button"
+                onClick={() => onRescan()}
+                disabled={isScanning}
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/30 font-semibold text-xs flex items-center space-x-2 transition cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+                <span>{isScanning ? (language === 'bg' ? 'Сканиране...' : 'Scanning...') : (language === 'bg' ? 'Сканирай мрежата' : 'Scan Network')}</span>
+              </button>
+            )}
           </div>
         </div>
       ) : (
