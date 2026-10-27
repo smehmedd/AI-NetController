@@ -9,7 +9,7 @@ import { triggerHapticFeedback } from '../services/hapticService';
 const STORAGE_KEY = 'cst_netcontroller_hosts';
 
 function loadInitialHosts(): HostDevice[] {
-  if (typeof window === 'undefined') return INITIAL_HOSTS;
+  if (typeof window === 'undefined') return [];
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -18,7 +18,7 @@ function loadInitialHosts(): HostDevice[] {
         // Exclude legacy mock hosts so the user starts with a completely clean fleet
         const userHosts = parsed.filter(
           (h: any) =>
-            !['CST-LAB-PC-1', 'HOME-WORKSTATION', 'CST-FIELD-LAPTOP', 'NFS-STORAGE-SERVER'].includes(h.id)
+            !['CST-LAB-PC-1', 'HOME-WORKSTATION', 'CST-FIELD-LAPTOP', 'NFS-STORAGE-SERVER', 'TEST-PC-1', 'TEST-WORKSTATION', 'TEST-LAPTOP', 'TEST-SERVER'].includes(h.id)
         );
         return userHosts;
       }
@@ -80,51 +80,6 @@ export function useFleetState() {
         return h;
       })
     );
-  }, []);
-
-  // Optimized periodic telemetry pulse (4s interval) with background freeze and zero-churn memoization
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-
-      const now = Date.now();
-
-      setHosts((prev) => {
-        let hasAnyChanged = false;
-        const next = prev.map((h) => {
-          if (!h.isOnline) return h;
-
-          const baseline = h.id.includes('SERVER') ? 2 : 4;
-          if (Math.random() < 0.65) {
-            return h;
-          }
-
-          const jitter = Math.random() > 0.5 ? 1 : -1;
-          const currentPing = Math.max(1, (h.ping ?? baseline) + jitter);
-
-          if (currentPing === h.ping) {
-            return h;
-          }
-
-          const prevHistory = h.latencyHistory ? h.latencyHistory.slice(-19) : [];
-          const updatedHistory: LatencyDataPoint[] = [
-            ...prevHistory,
-            { timestamp: now, latency: currentPing },
-          ];
-
-          hasAnyChanged = true;
-          return {
-            ...h,
-            ping: currentPing,
-            latencyHistory: updatedHistory,
-          };
-        });
-
-        return hasAnyChanged ? next : prev;
-      });
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const markHostUnreachable = useCallback((targetId: string, reason: string) => {

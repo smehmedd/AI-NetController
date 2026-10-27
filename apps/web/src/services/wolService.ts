@@ -2,7 +2,9 @@ import { HostDevice, Weekday, WolPacketPayload, WolSchedule } from '../types';
 
 export const STORAGE_KEY_WOL_SCHEDULES = 'cst_wol_schedules_config_v1';
 
-export const DEFAULT_WOL_SCHEDULES: WolSchedule[] = [
+export const DEFAULT_WOL_SCHEDULES: WolSchedule[] = [];
+
+export const TEST_WOL_SCHEDULES: WolSchedule[] = [
   {
     id: 'sched-lab-morning-01',
     name: 'Wake Lab PCs (Morning Schedule)',
@@ -20,8 +22,8 @@ export const DEFAULT_WOL_SCHEDULES: WolSchedule[] = [
     id: 'sched-home-sync-02',
     name: 'Home Workstation Daily Warm-Up',
     targetType: 'specific_device',
-    targetDeviceId: 'HOME-WORKSTATION',
-    targetName: 'HOME-WORKSTATION (Laptop)',
+    targetDeviceId: 'TEST-WORKSTATION',
+    targetName: 'TEST-WORKSTATION (Laptop)',
     targetMac: '00:2B:67:89:AB:CD',
     time: '07:30',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
@@ -145,7 +147,7 @@ export function localizeWolSchedule(
  * Automatically seeds defaults if no configuration exists.
  */
 export function loadWolSchedules(): WolSchedule[] {
-  if (typeof window === 'undefined') return DEFAULT_WOL_SCHEDULES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WOL_SCHEDULES);
     if (!raw) {

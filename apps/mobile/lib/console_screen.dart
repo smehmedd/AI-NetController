@@ -68,7 +68,7 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
   }
 
   void _showHitlDialog(HitlApprovalEvent event) {
-    HapticFeedback.heavyImpact();
+    // HapticFeedback removed for smoothness
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -163,7 +163,7 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
   void _handleSubmit() {
     final text = _inputController.text.trim();
     if (text.isNotEmpty) {
-      HapticFeedback.lightImpact();
+      // HapticFeedback removed for smoothness
       widget.onExecuteCommand(text);
       _inputController.clear();
     }
@@ -261,7 +261,7 @@ class _ConsoleScreenState extends State<ConsoleScreen> {
                   label: _isTrackpadOpen ? 'Hide Trackpad' : 'Virtual Trackpad',
                   icon: Icons.touch_app,
                   onTap: () {
-                    HapticFeedback.selectionClick();
+                    // HapticFeedback removed for smoothness
                     setState(() => _isTrackpadOpen = !_isTrackpadOpen);
                   },
                 ),
@@ -588,7 +588,7 @@ class _QuickChip extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            HapticFeedback.selectionClick();
+            // HapticFeedback removed for smoothness
             onTap();
           },
           borderRadius: BorderRadius.circular(16),

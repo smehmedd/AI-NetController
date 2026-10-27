@@ -75,7 +75,6 @@ def create_android_manifest():
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
-    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -146,6 +145,7 @@ import android.os.Bundle;
 import android.os.Vibrator;
 import android.os.VibrationEffect;
 import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
@@ -239,6 +239,8 @@ public class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(0xFF050811);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         root.addView(webView, new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
@@ -255,6 +257,8 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -264,16 +268,7 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new Object() {
             @JavascriptInterface
             public void vibrate(int durationMs) {
-                try {
-                    Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-                    if (v != null && v.hasVibrator()) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            v.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE));
-                        } else {
-                            v.vibrate(durationMs);
-                        }
-                    }
-                } catch (Exception ignored) {}
+                // Haptics disabled for ultra-smooth 120 FPS performance
             }
 
             @JavascriptInterface

@@ -102,7 +102,7 @@ class _SamsungPillNavBarState extends State<SamsungPillNavBar>
 
   void _handleTabTap(int index) {
     if (index != widget.selectedIndex) {
-      HapticFeedback.lightImpact();
+      // HapticFeedback removed for smoothness
       _triggerSpring();
       widget.onTabSelected(index);
     }

@@ -59,34 +59,7 @@ final fleetProvider =
 });
 
 class FleetNotifier extends StateNotifier<List<HostState>> {
-  FleetNotifier()
-      : super([
-          HostState(
-            id: 'CST-LAB-PC-1',
-            name: 'CST-LAB-PC-1',
-            ip: '192.168.1.50',
-            mac: '00:1A:2B:3C:4D:5E',
-            isOnline: true,
-            cpuUsage: 22,
-            ramUsage: 45,
-          ),
-          HostState(
-            id: 'HOME-WORKSTATION',
-            name: 'HOME-WORKSTATION',
-            ip: '192.168.1.75',
-            mac: '00:2B:3C:4D:5E:6F',
-            isOnline: false,
-          ),
-          HostState(
-            id: 'NFS-STORAGE-SERVER',
-            name: 'NFS-STORAGE-SERVER',
-            ip: '192.168.1.200',
-            mac: '00:3C:4D:5E:6F:70',
-            isOnline: true,
-            cpuUsage: 68,
-            ramUsage: 82,
-          ),
-        ]);
+  FleetNotifier() : super([]);
 
   void updateHost(String id, {bool? isOnline, int? cpu, int? ram}) {
     state = [
@@ -99,7 +72,7 @@ class FleetNotifier extends StateNotifier<List<HostState>> {
   }
 }
 
-final selectedHostIdProvider = StateProvider<String>((ref) => 'CST-LAB-PC-1');
+final selectedHostIdProvider = StateProvider<String>((ref) => '');
 
 // =====================================================================
 // ROOT APPLICATION ENTRY WITH ACCESSIBILITY & CLAMPED SCALER

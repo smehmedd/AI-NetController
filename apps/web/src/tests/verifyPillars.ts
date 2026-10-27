@@ -4,8 +4,8 @@
  */
 
 import { HeartbeatRingBuffer } from '../utils/heartbeatRingBuffer';
-import { generateMagicPacket, resolveScheduleTargets, DEFAULT_WOL_SCHEDULES } from '../services/wolService';
-import { INITIAL_HOSTS } from '../data/mockHosts';
+import { generateMagicPacket, resolveScheduleTargets, DEFAULT_WOL_SCHEDULES, TEST_WOL_SCHEDULES } from '../services/wolService';
+import { INITIAL_HOSTS, TEST_MOCK_HOSTS } from '../data/mockHosts';
 import { QUICK_ACTIONS, DESTRUCTIVE_ACTIONS } from '../constants/commandPresets';
 import { logStore } from '../store/logStore';
 import { wolHistoryStore } from '../store/wolHistoryStore';
@@ -91,8 +91,8 @@ console.log('================================================================\n'
 
 // Pillar 5: Wake-on-LAN Recurring Cron & Weekday Scheduler
 {
-  const sched = DEFAULT_WOL_SCHEDULES[0]; // All Lab PCs
-  const targets = resolveScheduleTargets(sched, INITIAL_HOSTS);
+  const sched = (TEST_WOL_SCHEDULES || DEFAULT_WOL_SCHEDULES)[0]; // All Lab PCs
+  const targets = resolveScheduleTargets(sched, TEST_MOCK_HOSTS || INITIAL_HOSTS);
   assert(targets.length > 0, 'Pillar 5 (WoL Scheduler)', `Resolved ${targets.length} target devices for schedule "${sched.name}"`);
   assert(sched.days.includes('mon') && sched.days.includes('fri'), 'Pillar 5 (Weekday Resolution)', 'Scheduler contains correct weekday mapping');
 }
@@ -130,7 +130,7 @@ console.log('================================================================\n'
 
 // Pillar 10: Unicast & Multicast Broadcast Addressing
 {
-  const targets = ['CST-LAB-PC-1', '[Lab]', '[Windows]', 'ALL'];
+  const targets = ['TEST-HOST-01', '[Lab]', '[Windows]', 'ALL'];
   const isUnicast = targets[0] && !targets[0].startsWith('[') && targets[0] !== 'ALL';
   const isBroadcastGroup = targets[1].startsWith('[') && targets[1].endsWith(']');
   const isGlobal = targets[3] === 'ALL';
@@ -242,12 +242,12 @@ console.log('================================================================\n'
 
 // Pillar 21: Wake-on-LAN Packet History Store & Telemetry Verification
 {
-  wolHistoryStore.resetToDefaults();
+  wolHistoryStore.seedTestEntries();
   const initialEntries = wolHistoryStore.getEntries();
   assert(initialEntries.length >= 5, 'Pillar 21 (WoL History Seed)', `Seeded with ${initialEntries.length} initial WoL packet log entries`);
 
   const successEntry = wolHistoryStore.addEntry({
-    deviceId: 'CST-LAB-PC-1',
+    deviceId: 'TEST-HOST-01',
     deviceName: 'Lab Workstation 01',
     mac: '00:2b:67:89:ab:cd',
     broadcastIp: '192.168.1.255',
@@ -285,7 +285,7 @@ console.log('================================================================\n'
 
   wolHistoryStore.clearHistory();
   assert(wolHistoryStore.getEntries().length === 0, 'Pillar 21 (WoL History Clear)', 'Cleared WoL packet history cleanly');
-  wolHistoryStore.resetToDefaults();
+  wolHistoryStore.seedTestEntries();
   assert(wolHistoryStore.getEntries().length >= 5, 'Pillar 21 (WoL History Restore)', 'Restored default WoL history entries');
 }
 

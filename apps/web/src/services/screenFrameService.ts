@@ -30,9 +30,9 @@ export function generateMockScreenCanvas(
   simState?: ScreenSimulationState
 ): string {
   const isWin = device?.os === 'windows' || !device;
-  const hostId = device?.id || 'CST-LAB-PC-1';
-  const ip = device?.ip || '192.168.1.50';
-  const mac = device?.mac || '00:1A:2B:3C:4D:5E';
+  const hostId = device?.id || 'HOST';
+  const ip = device?.ip || '0.0.0.0';
+  const mac = device?.mac || '00:00:00:00:00:00';
   const cpu = device?.cpuUsage ?? 24;
   const ram = device?.ramUsage ?? 48;
   const activeWin = simState?.activeWindow || 'default';

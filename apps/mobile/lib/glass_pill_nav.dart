@@ -77,7 +77,7 @@ class _GlassPillNavState extends State<GlassPillNav> {
                       isSelected: isSelected,
                       onTap: () {
                         if (!isSelected) {
-                          HapticFeedback.lightImpact();
+                          // HapticFeedback removed for smoothness
                           widget.onTabSelected(index);
                         }
                       },
@@ -146,7 +146,7 @@ class _PillTabItemState extends State<_PillTabItem>
       onTapUp: (_) => _scaleController.reverse(),
       onTapCancel: () => _scaleController.reverse(),
       onTap: () {
-        HapticFeedback.lightImpact();
+        // HapticFeedback removed for smoothness
         widget.onTap();
       },
       behavior: HitTestBehavior.opaque,

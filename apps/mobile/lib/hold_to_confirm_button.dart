@@ -38,7 +38,7 @@ class HoldToConfirmButton extends StatefulWidget {
 class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _progressController;
-  Timer? _hapticTicker;
+  // _hapticTicker removed
   bool _isHolding = false;
   bool _isCompleted = false;
 
@@ -63,22 +63,22 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
       _isHolding = true;
     });
 
-    HapticFeedback.lightImpact();
+    // HapticFeedback removed for smoothness
     _progressController.forward(from: 0.0);
 
     // Periodic tactile haptic tick every 180ms during active hold
-    _hapticTicker?.cancel();
+    
     _hapticTicker = Timer.periodic(const Duration(milliseconds: 180), (_) {
       if (_isHolding && !_isCompleted) {
-        HapticFeedback.selectionClick();
+        // HapticFeedback removed for smoothness
       }
     });
   }
 
   void _cancelHolding() {
     if (_isCompleted) return;
-    _hapticTicker?.cancel();
-    _hapticTicker = null;
+    
+    
 
     if (_isHolding) {
       setState(() {
@@ -90,15 +90,15 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
   }
 
   void _handleCompleted() {
-    _hapticTicker?.cancel();
-    _hapticTicker = null;
+    
+    
 
     setState(() {
       _isCompleted = true;
       _isHolding = false;
     });
 
-    HapticFeedback.heavyImpact();
+    // HapticFeedback removed for smoothness
     widget.onConfirmed();
 
     // Reset button state smoothly after feedback
@@ -114,7 +114,7 @@ class _HoldToConfirmButtonState extends State<HoldToConfirmButton>
 
   @override
   void dispose() {
-    _hapticTicker?.cancel();
+    
     _progressController.dispose();
     super.dispose();
   }

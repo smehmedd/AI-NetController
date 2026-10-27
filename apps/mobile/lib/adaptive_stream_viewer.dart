@@ -100,7 +100,7 @@ class _AdaptiveStreamViewerState extends State<AdaptiveStreamViewer> {
   }
 
   void _sendClick(String button) {
-    HapticFeedback.selectionClick();
+    // HapticFeedback removed for smoothness
     widget.onSendInput?.call({
       'action': 'click',
       'button': button,
@@ -245,7 +245,7 @@ class _AdaptiveStreamViewerState extends State<AdaptiveStreamViewer> {
                 side: const BorderSide(color: AppThemeTokens.cyanDim),
               ),
               onPressed: () {
-                HapticFeedback.selectionClick();
+                // HapticFeedback removed for smoothness
                 setState(() => _isTrackpadOpen = !_isTrackpadOpen);
               },
               tooltip: _isTrackpadOpen ? 'Скрий пад' : 'Виртуален тракпад',

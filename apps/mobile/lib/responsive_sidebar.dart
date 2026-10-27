@@ -139,7 +139,7 @@ class ResponsiveSidebar extends StatelessWidget {
                       message: item.label,
                       child: InkWell(
                         onTap: () {
-                          HapticFeedback.selectionClick();
+                          // HapticFeedback removed for smoothness
                           onDestinationSelected(index);
                         },
                         borderRadius: BorderRadius.circular(14),
@@ -173,7 +173,7 @@ class ResponsiveSidebar extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: InkWell(
                     onTap: () {
-                      HapticFeedback.selectionClick();
+                      // HapticFeedback removed for smoothness
                       onDestinationSelected(index);
                     },
                     borderRadius: BorderRadius.circular(12),

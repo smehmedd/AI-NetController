@@ -89,7 +89,7 @@ class _ConsoleViewState extends State<ConsoleView> {
     final raw = _promptController.text.trim();
     if (raw.isEmpty || _isExecuting) return;
 
-    HapticFeedback.lightImpact();
+    // HapticFeedback removed for smoothness
     setState(() {
       _terminalLogs.add(_TerminalMessage(text: '> $raw', type: _LogType.prompt));
       _isExecuting = true;
@@ -138,7 +138,7 @@ class _ConsoleViewState extends State<ConsoleView> {
   }
 
   void _copyTerminalLogs() {
-    HapticFeedback.selectionClick();
+    // HapticFeedback removed for smoothness
     final allText = _terminalLogs.map((m) => m.text).join('\n');
     Clipboard.setData(ClipboardData(text: allText));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -156,7 +156,7 @@ class _ConsoleViewState extends State<ConsoleView> {
   }
 
   void _handleHoldRestart() {
-    HapticFeedback.heavyImpact();
+    // HapticFeedback removed for smoothness
     setState(() {
       _terminalLogs.add(const _TerminalMessage(
         text: '⚠ [СИСТЕМА] Потвърден рестарт на отдалечената машина.',
@@ -421,7 +421,7 @@ class _ConsoleViewState extends State<ConsoleView> {
                                             icon: Icons.monitor_rounded,
                                             tooltip: 'Смяна на дисплей',
                                             onTap: () {
-                                              HapticFeedback.lightImpact();
+                                              // HapticFeedback removed for smoothness
                                             },
                                           ),
                                           const SizedBox(width: 6),
@@ -576,7 +576,7 @@ class _ConsoleViewState extends State<ConsoleView> {
       backgroundColor: GlassTheme.glassSurface,
       isInteractive: true,
       onTap: () {
-        HapticFeedback.lightImpact();
+        // HapticFeedback removed for smoothness
         onTap();
       },
       child: Row(

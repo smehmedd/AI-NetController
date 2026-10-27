@@ -135,43 +135,11 @@ class _FleetViewState extends State<FleetView> with SingleTickerProviderStateMix
   }
 
   List<FleetHost> _defaultDemoHosts() {
-    return const [
-      FleetHost(
-        id: 'CST-LAB-PC-1',
-        name: 'Лабораторен компютър 1',
-        ip: '192.168.1.50',
-        mac: '00:1A:2B:3C:4D:5E',
-        isOnline: true,
-        cpuPercent: 24,
-        ramPercent: 48,
-        latencyMs: 12,
-      ),
-      FleetHost(
-        id: 'HOME-WORKSTATION',
-        name: 'Работна станция',
-        ip: '192.168.1.75',
-        mac: '00:2B:3C:4D:5E:6F',
-        isOnline: false,
-        cpuPercent: 0,
-        ramPercent: 0,
-        latencyMs: 0,
-      ),
-      FleetHost(
-        id: 'NFS-STORAGE-SERVER',
-        name: 'Мрежов сървър NFS',
-        ip: '192.168.1.200',
-        mac: '00:3C:4D:5E:6F:70',
-        isOnline: true,
-        cpuPercent: 62,
-        ramPercent: 78,
-        isServer: true,
-        latencyMs: 16,
-      ),
-    ];
+    return const [];
   }
 
   void _triggerWake(FleetHost host) {
-    HapticFeedback.mediumImpact();
+    // HapticFeedback removed
     setState(() {
       _wakingTimers[host.id] = 45;
     });
@@ -206,7 +174,7 @@ class _FleetViewState extends State<FleetView> with SingleTickerProviderStateMix
   }
 
   void _openDeviceDetails(FleetHost host) {
-    HapticFeedback.selectionClick();
+    // HapticFeedback removed
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -216,7 +184,7 @@ class _FleetViewState extends State<FleetView> with SingleTickerProviderStateMix
   }
 
   void _openAddDeviceModal() {
-    HapticFeedback.lightImpact();
+    // HapticFeedback removed
     final nameCtrl = TextEditingController();
     final ipCtrl = TextEditingController(text: '192.168.1.');
     final macCtrl = TextEditingController();

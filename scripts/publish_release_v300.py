@@ -4,7 +4,7 @@ import urllib.error
 import json
 import os
 
-repo_dir = r"c:\Users\Lenovo\Downloads\AI-NetController-main\AI-NetController-main"
+repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 git_exe = r"C:\Program Files\Git\cmd\git.exe"
 
 # 1. Get Token from git credential helper

@@ -122,7 +122,7 @@ class _ConsoleDetailViewState extends State<ConsoleDetailView> {
   }
 
   void _scrollToBottomNow() {
-    HapticFeedback.selectionClick();
+    // HapticFeedback removed for smoothness
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -137,7 +137,7 @@ class _ConsoleDetailViewState extends State<ConsoleDetailView> {
     final clean = cmd.trim();
     if (clean.isEmpty) return;
 
-    HapticFeedback.lightImpact();
+    // HapticFeedback removed for smoothness
     if (clean.startsWith('AI:') || clean.contains('ollama') || clean.contains('deepseek')) {
       setState(() => _isAIEvaluating = true);
     }
@@ -147,7 +147,7 @@ class _ConsoleDetailViewState extends State<ConsoleDetailView> {
   }
 
   void _showHitlSecurityDialog(HitlApprovalEvent event) {
-    HapticFeedback.heavyImpact();
+    // HapticFeedback removed for smoothness
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -219,7 +219,7 @@ class _ConsoleDetailViewState extends State<ConsoleDetailView> {
 
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    HapticFeedback.selectionClick();
+    // HapticFeedback removed for smoothness
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: AppThemeTokens.surfaceElevated,

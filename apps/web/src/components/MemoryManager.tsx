@@ -106,7 +106,14 @@ export const MemoryManager: React.FC<MemoryManagerProps> = ({
   const { language } = useTranslation();
   const isBg = language === 'bg';
 
-  const [selectedHostId, setSelectedHostId] = useState<string>(hosts[0]?.id || 'CST-LAB-PC-1');
+    const [selectedHostId, setSelectedHostId] = useState<string>(hosts[0]?.id || '');
+  useEffect(() => {
+    if (hosts.length > 0 && (!selectedHostId || !hosts.some((h) => h.id === selectedHostId))) {
+      setSelectedHostId(hosts[0].id);
+    } else if (hosts.length === 0 && selectedHostId !== '') {
+      setSelectedHostId('');
+    }
+  }, [hosts, selectedHostId]);
   const [activeTab, setActiveTab] = useState<'persistent' | 'session'>('persistent');
   const [newPersistentRule, setNewPersistentRule] = useState('');
   const [newSessionRule, setNewSessionRule] = useState('');
@@ -219,8 +226,8 @@ export const MemoryManager: React.FC<MemoryManagerProps> = ({
                   selectedHost?.isOnline ? 'bg-emerald-400' : 'bg-amber-400'
                 }`}
               />
-              <span className="truncate">{selectedHost?.name || selectedHostId}</span>
-              <span className="text-slate-400 font-mono text-[11px]">({selectedHost?.ip})</span>
+              <span className="truncate">{selectedHost?.name || selectedHostId || (isBg ? "Няма свързан компютър" : "No Host Connected")}</span>
+              {selectedHost?.ip && <span className="text-slate-400 font-mono text-[11px]">({selectedHost.ip})</span>}
             </div>
           </div>
         </div>
@@ -235,11 +242,17 @@ export const MemoryManager: React.FC<MemoryManagerProps> = ({
             aria-label={isBg ? 'Избери целеви компютър' : 'Select target host'}
             className="w-full truncate rounded-xl bg-[#060b16] border border-cyan-500/35 px-3 py-2 min-h-[42px] text-xs text-cyan-200 font-mono font-semibold focus:border-cyan-400 focus:outline-none cursor-pointer"
           >
-            {hosts.map((h) => (
-              <option key={h.id} value={h.id} className="bg-slate-950 text-cyan-200">
-                {h.name} ({h.ip})
+            {hosts.length === 0 ? (
+              <option value="" disabled className="bg-slate-950 text-slate-500">
+                {isBg ? 'Няма регистрирани устройства' : 'No registered devices'}
               </option>
-            ))}
+            ) : (
+              hosts.map((h) => (
+                <option key={h.id} value={h.id} className="bg-slate-950 text-cyan-200">
+                  {h.name} ({h.ip})
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>

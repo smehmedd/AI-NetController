@@ -17,10 +17,16 @@ export function generate30sLatencyHistory(baseLatency: number, jitter: number = 
   return points;
 }
 
-export const INITIAL_HOSTS: CyberHostDevice[] = [
+export const INITIAL_HOSTS: CyberHostDevice[] = [];
+
+/**
+ * Isolated test mock hosts used strictly by verification test harnesses
+ * Zero runtime pollution in production app.
+ */
+export const TEST_MOCK_HOSTS: CyberHostDevice[] = [
   {
-    id: 'CST-LAB-PC-1',
-    name: 'CST-LAB-PC-1',
+    id: 'TEST-PC-1',
+    name: 'TEST-PC-1',
     ip: '192.168.1.50',
     mac: '00:1A:2B:3C:4D:5E',
     os: 'windows',
@@ -44,8 +50,8 @@ export const INITIAL_HOSTS: CyberHostDevice[] = [
     ]
   },
   {
-    id: 'HOME-WORKSTATION',
-    name: 'HOME-WORKSTATION',
+    id: 'TEST-WORKSTATION',
+    name: 'TEST-WORKSTATION',
     ip: '192.168.1.75',
     mac: '00:2B:67:89:AB:CD',
     os: 'windows',
@@ -66,8 +72,8 @@ export const INITIAL_HOSTS: CyberHostDevice[] = [
     sessionInstructions: []
   },
   {
-    id: 'CST-FIELD-LAPTOP',
-    name: 'CST-FIELD-LAPTOP',
+    id: 'TEST-LAPTOP',
+    name: 'TEST-LAPTOP',
     ip: '192.168.1.115',
     mac: '00:3C:4D:5E:6F:70',
     os: 'linux',
@@ -89,8 +95,8 @@ export const INITIAL_HOSTS: CyberHostDevice[] = [
     sessionInstructions: []
   },
   {
-    id: 'NFS-STORAGE-SERVER',
-    name: 'NFS-STORAGE-SERVER',
+    id: 'TEST-SERVER',
+    name: 'TEST-SERVER',
     ip: '192.168.1.200',
     mac: '00:0C:29:8B:D1:4F',
     os: 'linux',

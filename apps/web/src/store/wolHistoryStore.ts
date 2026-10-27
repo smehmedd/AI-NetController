@@ -18,14 +18,18 @@ export function formatWolTimestamp(date: Date = new Date()): string {
 }
 
 function createInitialSeedEntries(): WolPacketLogEntry[] {
+  return [];
+}
+
+export function createTestSeedEntries(): WolPacketLogEntry[] {
   const now = Date.now();
   return [
     {
       id: 'wol-hist-seed-1',
       timestamp: formatWolTimestamp(new Date(now - 3 * 60 * 1000)),
       createdAt: now - 3 * 60 * 1000,
-      deviceId: 'HOME-WORKSTATION',
-      deviceName: 'HOME-WORKSTATION',
+      deviceId: 'TEST-WORKSTATION',
+      deviceName: 'TEST-WORKSTATION',
       mac: '00:2B:67:89:AB:CD',
       broadcastIp: '192.168.1.255',
       port: 9,
@@ -56,8 +60,8 @@ function createInitialSeedEntries(): WolPacketLogEntry[] {
       id: 'wol-hist-seed-3',
       timestamp: formatWolTimestamp(new Date(now - 45 * 60 * 1000)),
       createdAt: now - 45 * 60 * 1000,
-      deviceId: 'CST-LAB-PC-1',
-      deviceName: 'CST-LAB-PC-1',
+      deviceId: 'TEST-PC-1',
+      deviceName: 'TEST-PC-1',
       mac: '00:1A:2B:3C:4D:5E',
       broadcastIp: '192.168.1.255',
       port: 9,
@@ -72,8 +76,8 @@ function createInitialSeedEntries(): WolPacketLogEntry[] {
       id: 'wol-hist-seed-4',
       timestamp: formatWolTimestamp(new Date(now - 2 * 3600 * 1000)),
       createdAt: now - 2 * 3600 * 1000,
-      deviceId: 'CST-FIELD-LAPTOP',
-      deviceName: 'CST-FIELD-LAPTOP',
+      deviceId: 'TEST-LAPTOP',
+      deviceName: 'TEST-LAPTOP',
       mac: '00:3C:4D:5E:6F:70',
       broadcastIp: '255.255.255.255',
       port: 7,
@@ -88,8 +92,8 @@ function createInitialSeedEntries(): WolPacketLogEntry[] {
       id: 'wol-hist-seed-5',
       timestamp: formatWolTimestamp(new Date(now - 5 * 3600 * 1000)),
       createdAt: now - 5 * 3600 * 1000,
-      deviceId: 'NFS-STORAGE-SERVER',
-      deviceName: 'NFS-STORAGE-SERVER',
+      deviceId: 'TEST-SERVER',
+      deviceName: 'TEST-SERVER',
       mac: '00:0C:29:8B:D1:4F',
       broadcastIp: '192.168.1.255',
       port: 9,
@@ -212,6 +216,12 @@ class WolHistoryStore {
     const seed = createInitialSeedEntries();
     this.entries = seed;
     this.saveToStorage(seed);
+    this.notify();
+  }
+
+  public seedTestEntries(): void {
+    this.entries = createTestSeedEntries();
+    this.saveToStorage(this.entries);
     this.notify();
   }
 

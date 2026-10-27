@@ -100,7 +100,7 @@ class _FleetScreenState extends State<FleetScreen> {
 
   /// Dispatches a Wake-on-LAN Magic Packet (6x 0xFF followed by 16x MAC address)
   Future<void> _sendDirectedWol(HostDevice device) async {
-    HapticFeedback.mediumImpact();
+    // HapticFeedback removed for smoothness
 
     try {
       final cleanMac = device.mac.replaceAll(RegExp(r'[^0-9A-Fa-f]'), '');
@@ -427,7 +427,7 @@ class _FleetScreenState extends State<FleetScreen> {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
-                                HapticFeedback.selectionClick();
+                                // HapticFeedback removed for smoothness
                                 widget.onSelectHost(device);
                               },
                               borderRadius: BorderRadius.circular(22),
