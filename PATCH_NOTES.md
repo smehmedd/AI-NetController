@@ -1,12 +1,12 @@
-# CST NetController AI — v3.0.0 Major Release Notes
+# CST NetController AI — v3.0.0 (Updated 3.0) Major Release Notes
 
-[![Version](https://img.shields.io/badge/version-v3.0.0--LTS-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v3.0.0)
+[![Version](https://img.shields.io/badge/version-v3.0.0--(Updated%203.0)-blue.svg)](https://github.com/smehmedd/AI-NetController/releases/tag/v3.0.0)
 [![Authenticode](https://img.shields.io/badge/code--signing-O%3DCST__RU--AK-brightgreen.svg)](https://github.com/smehmedd/AI-NetController)
 [![Windows Defender](https://img.shields.io/badge/windows--defender-clean%20(0%20threats)-success.svg)](https://github.com/smehmedd/AI-NetController)
 [![Test Suite](https://img.shields.io/badge/tests-137%2F137%20passing-brightgreen.svg)](https://github.com/smehmedd/AI-NetController)
-[![Display](https://img.shields.io/badge/display-120Hz%20Zero--Jitter-9cf.svg)](https://github.com/smehmedd/AI-NetController)
+[![Display](https://img.shields.io/badge/display-144Hz%20Zero--Jitter-9cf.svg)](https://github.com/smehmedd/AI-NetController)
 
-> **Release Version:** `v3.0.0-LTS` (Major Architectural Release: 100% PWA Visual Parity, Zero-Placeholder Fleet, Native Android Hardware WoL & Ultra-Smooth Performance)  
+> **Release Version:** `v3.0.0-LTS (Updated 3.0)` (Major Architectural Release: 144Hz Ultra-Smoothness, Universal Multi-Aspect Scaling, 100% PWA Visual Parity, Zero-Placeholder Fleet & Native Android Hardware WoL)  
 > **Protocol Specification:** `CST/3.0-SECURE`  
 > **Release Date:** October 27, 2026  
 > **Previous Releases:** [`v2.9.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.9.0), [`v2.8.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.8.0), [`v2.7.1`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.1), and [`v2.7.0`](https://github.com/smehmedd/AI-NetController/releases/tag/v2.7.0) (All remain fully accessible in the Releases tab)
