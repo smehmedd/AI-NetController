@@ -222,7 +222,7 @@ const CommandTerminalComponent: React.FC<CommandTerminalProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between select-none relative pb-1">
+    <div className="w-full max-w-5xl 2xl:max-w-7xl mx-auto flex-1 flex flex-col justify-between select-none relative pb-1">
       {/* 1. Header & Flush Target Selector Pills with Horizontal Scroll Fade Mask */}
       <div className="py-1.5 flex items-center justify-between gap-2 mb-3 max-w-full overflow-hidden">
         <div className="flex items-center space-x-2 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-4 py-1 [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">

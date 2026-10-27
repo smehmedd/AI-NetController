@@ -315,7 +315,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.13 } }}
       whileHover={{ y: -2.5, scale: 1.005 }}
       transition={SPRING_BUBBLY}
-      className={`${isExpanded ? 'lg:col-span-2' : ''} transform-gpu`}
+      className={`${isExpanded ? 'lg:col-span-2' : ''} transform-gpu smooth-144hz contain-paint-layout`}
     >
       {/* Tier 1 — Resting Canvas Card */}
       <div

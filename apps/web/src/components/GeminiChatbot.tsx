@@ -931,7 +931,7 @@ const GeminiChatbotComponent: React.FC<GeminiChatbotProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between w-full max-w-5xl mx-auto px-1 sm:px-3 pb-1 select-none">
+    <div className="flex-1 flex flex-col justify-between w-full max-w-5xl 2xl:max-w-7xl mx-auto px-1 sm:px-3 pb-1 select-none">
       {/* 1. Tier 2 Optical Glass Header Bar with Role Pills & Auto-Execute Toggle */}
       <header className="flex-none py-2 px-3 mb-2 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] transform-gpu flex items-center justify-between relative gap-2 flex-wrap sm:flex-nowrap">
         <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />

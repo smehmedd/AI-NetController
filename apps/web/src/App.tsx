@@ -351,7 +351,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <main className="relative z-10 w-full max-w-6xl ultrawide-canvas mx-auto px-3 sm:px-5 lg:px-8 pt-3.5 pb-[calc(env(safe-area-inset-bottom,12px)+5rem)] landscape-compact-shell flex-1 flex flex-col overflow-x-hidden">
+        <main className="relative z-10 w-full max-w-7xl ultrawide-canvas mx-auto px-3 sm:px-5 lg:px-8 pt-3.5 pb-[calc(env(safe-area-inset-bottom,12px)+5rem)] landscape-compact-shell flex-1 flex flex-col overflow-x-hidden">
           <AnimatePresence mode="wait" initial={false}>
             {activeTab === 'fleet' && (
               <motion.div

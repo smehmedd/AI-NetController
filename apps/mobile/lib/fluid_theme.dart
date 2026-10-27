@@ -38,7 +38,7 @@ class FluidSize {
   static double getScaleFactor(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final ratio = width / baselineWidth;
-    return ratio.clamp(0.85, 1.40);
+    return ratio.clamp(0.80, 1.50);
   }
 
   /// Clamped Fluid Font Size:

@@ -224,6 +224,7 @@ public class MainActivity extends Activity {
                     if (targetModeId != 0) {
                         WindowManager.LayoutParams params = getWindow().getAttributes();
                         params.preferredDisplayModeId = targetModeId;
+                        params.preferredRefreshRate = maxRate;
                         getWindow().setAttributes(params);
                     }
                 }
@@ -257,6 +258,9 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            settings.setOffscreenPreRaster(true);
+        }
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
 

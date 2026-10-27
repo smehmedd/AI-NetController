@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HostDevice } from '../types';
+import { ScreenAspectPreset } from '../utils/viewportScale';
 import {
   generateMockScreenCanvas,
   SimulatedWindowType,
@@ -76,6 +77,8 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   const [fps, setFps] = useState(60);
   const [latency, setLatency] = useState(12);
   const [quality, setQuality] = useState<'High' | 'Medium' | 'Low'>('High');
+  const [aspectPreset, setAspectPreset] = useState<ScreenAspectPreset>('fit');
+  const [zoomFactor, setZoomFactor] = useState<number>(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [frameUrl, setFrameUrl] = useState<string>('');
   const [localCapturing, setLocalCapturing] = useState(false);
@@ -857,6 +860,37 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
               </button>
 
               <select
+                value={aspectPreset}
+                onChange={(e) => setAspectPreset(e.target.value as ScreenAspectPreset)}
+                className="bg-black/40 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none focus:border-cyan-500 cursor-pointer hidden md:block"
+                title={isBg ? 'Съотношение на екрана' : 'Aspect Ratio Preset'}
+              >
+                <option value="fit">{isBg ? 'Адаптивно (Fit)' : 'Auto Fit'}</option>
+                <option value="16:9">16:9 (1080p/4K)</option>
+                <option value="16:10">16:10 (Workstation)</option>
+                <option value="21:9">21:9 (Ultrawide)</option>
+                <option value="4:3">4:3 (Classic)</option>
+                <option value="fill">{isBg ? 'Запълване (Fill)' : 'Stretch Fill'}</option>
+              </select>
+
+              <div className="hidden lg:flex items-center gap-1 bg-black/40 border border-white/10 rounded-lg p-0.5">
+                {[1, 1.5, 2].map((z) => (
+                  <button
+                    key={z}
+                    type="button"
+                    onClick={() => setZoomFactor(z)}
+                    className={`px-2 py-1 rounded text-[11px] font-mono font-bold transition cursor-pointer ${
+                      zoomFactor === z
+                        ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {z}x
+                  </button>
+                ))}
+              </div>
+
+              <select
                 value={quality}
                 onChange={(e) => setQuality(e.target.value as 'High' | 'Medium' | 'Low')}
                 className="bg-black/40 border border-white/10 text-white text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-cyan-500 hidden md:block"
@@ -927,14 +961,35 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
             {isDeviceOnline ? (
               <>
                 {displayFrameUrl ? (
-                  <img
-                    src={displayFrameUrl}
-                    alt="Remote Screen"
-                    draggable={false}
-                    className={`w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${
-                      isCapturing ? 'opacity-50 scale-[0.99]' : 'opacity-100'
-                    }`}
-                  />
+                  <div
+                    className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                    style={{
+                      transform: zoomFactor > 1 ? `scale(${zoomFactor})` : undefined,
+                      transformOrigin: `${cursorPos.x}% ${cursorPos.y}%`,
+                      transition: 'transform 0.15s ease-out',
+                    }}
+                  >
+                    <img
+                      src={displayFrameUrl}
+                      alt="Remote Screen"
+                      draggable={false}
+                      className={`max-w-full max-h-full pointer-events-none transition-opacity duration-200 ${
+                        aspectPreset === 'fill' ? 'w-full h-full object-fill' : 'object-contain'
+                      } ${isCapturing ? 'opacity-50 scale-[0.99]' : 'opacity-100'}`}
+                      style={{
+                        aspectRatio:
+                          aspectPreset === '16:9'
+                            ? '16 / 9'
+                            : aspectPreset === '16:10'
+                            ? '16 / 10'
+                            : aspectPreset === '21:9'
+                            ? '21 / 9'
+                            : aspectPreset === '4:3'
+                            ? '4 / 3'
+                            : undefined,
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-slate-500">
                     <RefreshCw className="w-8 h-8 animate-spin text-cyan-500" />

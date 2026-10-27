@@ -351,9 +351,9 @@ export const NetworkTopologyGraph: React.FC<NetworkTopologyGraphProps> = ({
       .attr('fill', '#38bdf8')
       .attr('filter', 'url(#neon-glow)');
 
-    let pulseProgress = 0;
-    const pulseTimer = d3.timer(() => {
-      pulseProgress = (pulseProgress + 0.008) % 1;
+    const pulseTimer = d3.timer((elapsed) => {
+      // 144Hz Framerate-Independent animation (constant speed across 60Hz, 120Hz & 144Hz displays)
+      const pulseProgress = (elapsed * 0.00048) % 1;
       pulses.each(function (d: any) {
         if (d.source.x !== undefined && d.target.x !== undefined) {
           const x = d.source.x + (d.target.x - d.source.x) * pulseProgress;

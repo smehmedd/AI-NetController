@@ -28,24 +28,62 @@
     font-size: clamp(14.5px, 0.88rem + 0.22vw, 16.5px);
   }
 
-  /* Compact Narrow Mobile (< 375px) */
-  @media (max-width: 374px) {
+  /* Fluid Root Font Size Scaling Across All Resolutions & Aspect Ratios */
+  :root {
+    font-size: clamp(13.25px, 0.82rem + 0.28vw, 17px);
+  }
+
+  /* 1. Ultra-Narrow Foldables (e.g. Galaxy Z Fold cover < 320px) */
+  @media (max-width: 320px) {
     :root {
-      font-size: 13.75px;
+      font-size: 12px;
     }
   }
 
-  /* Short Mobile Landscape (e.g. 16:9 / 19.5:9 landscape phones) */
-  @media (max-height: 520px) and (orientation: landscape) {
+  /* 2. Compact Narrow Mobile (321px - 374px) */
+  @media (min-width: 321px) and (max-width: 374px) {
     :root {
-      font-size: 13.5px;
+      font-size: 13px;
     }
   }
 
-  /* QHD / Ultrawide 21:9 & 4K Displays */
-  @media (min-width: 1920px) and (min-height: 900px) {
+  /* 3. Short Mobile Landscape (e.g. 16:9 / 19.5:9 / 21:9 phones <= 480px height) */
+  @media (max-height: 480px) and (orientation: landscape) {
     :root {
-      font-size: clamp(16px, 0.85rem + 0.28vw, 18px);
+      font-size: 12.75px;
+    }
+  }
+
+  /* 4. Medium Foldable / Square Inner Displays (aspect-ratio ~ 1:1, 4:3, e.g. 768x1024, 884x1104) */
+  @media (min-width: 600px) and (max-width: 960px) and (max-aspect-ratio: 1.35/1) {
+    :root {
+      font-size: 14.25px;
+    }
+  }
+
+  /* 5. Standard Laptops & Desktops 16:9 / 16:10 (1024px - 1919px) */
+  @media (min-width: 1024px) and (max-width: 1919px) {
+    :root {
+      font-size: 15px;
+    }
+  }
+
+  /* 6. High-DPI QHD, 4K & Ultrawide 21:9 / 32:9 (>= 1920px) */
+  @media (min-width: 1920px) {
+    :root {
+      font-size: 16px;
+    }
+  }
+
+  @media (min-width: 2560px) {
+    :root {
+      font-size: 17px;
+    }
+  }
+
+  @media (min-width: 3840px) {
+    :root {
+      font-size: 18.5px;
     }
   }
 
@@ -455,10 +493,108 @@ button, [role="button"] {
   }
 }
 
-/* Ultrawide 21:9 & 4K Crisp Container Scaling */
-@media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
+/* ============================================================================
+   144Hz ULTRA-FLUID COMPOSITOR & ZERO-JITTER HARDWARE OPTIMIZATION
+   ============================================================================ */
+/* 6.94ms Frame Budget Pinning: Forces GPU layer separation & prevents paint thrashing */
+.smooth-144hz,
+.transform-gpu {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* Isolate layouts and repaints so card interactions never trigger global reflows */
+.contain-paint-layout {
+  contain: layout style paint;
+}
+
+/* Liquid aurora zero-blur background layer pinning for 144Hz */
+.liquid-aurora-orb {
+  will-change: transform;
+  contain: strict;
+}
+
+/* ============================================================================
+   MULTI-RESOLUTION & MULTI-ASPECT-RATIO CANVAS & GRID SCALING
+   ============================================================================ */
+/* Ultrawide 21:9 (3440px) and 32:9 (5120px) container auto-expansion */
+.ultrawide-canvas {
+  width: 100%;
+  max-width: 72rem; /* 1152px baseline */
+}
+
+@media (min-width: 1280px) {
   .ultrawide-canvas {
-    max-width: 1560px;
+    max-width: 82rem !important; /* 1312px */
+  }
+}
+
+@media (min-width: 1536px) {
+  .ultrawide-canvas {
+    max-width: 96rem !important; /* 1536px */
+  }
+}
+
+@media (min-width: 1920px) {
+  .ultrawide-canvas {
+    max-width: 114rem !important; /* 1824px */
+  }
+}
+
+@media (min-width: 2560px) {
+  .ultrawide-canvas {
+    max-width: 148rem !important; /* 2368px */
+  }
+}
+
+@media (min-width: 3440px) {
+  .ultrawide-canvas {
+    max-width: 200rem !important; /* 3200px (21:9 Ultrawide) */
+  }
+}
+
+@media (min-width: 5120px) {
+  .ultrawide-canvas {
+    max-width: 295rem !important; /* 4720px (32:9 Super Ultrawide) */
+  }
+}
+
+/* Fleet Responsive Grid: Smoothly scales from 1 to 6 columns based on width and aspect ratio */
+.fleet-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .fleet-responsive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .fleet-responsive-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1800px) {
+  .fleet-responsive-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 2700px) {
+  .fleet-responsive-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 3600px) {
+  .fleet-responsive-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 

@@ -32,8 +32,8 @@ All binaries are pre-compiled, cryptographically signed with Authenticode (`O=CS
 ```text
 ab33d3b4ea79e0bf89483221cfdba9dd86ffb29893d18a773f28ffde4aab09b3  CST_HostAgent_v3.0.0_win64.exe
 ef0c21dd241e0dfea30c7ad7c0efab3b44a38b4b3618e8d34fd43edbc0535c95  CST_HostAgent_v3.0.0_win64_portable.zip
-edba8487abbef1c022e3601c092a0c99a529c57c42176cc33ab2a6f8ab6f52f4  CST_NetController_AI_v3.0.0_arm64-v8a.apk
-edba8487abbef1c022e3601c092a0c99a529c57c42176cc33ab2a6f8ab6f52f4  CST_NetController_AI_v3.0.0.apk
+7f6292430babf6f89eb285cf09f1711fb0a88828f152d37d28d0a8aa2a3168a8  CST_NetController_AI_v3.0.0_arm64-v8a.apk
+7f6292430babf6f89eb285cf09f1711fb0a88828f152d37d28d0a8aa2a3168a8  CST_NetController_AI_v3.0.0.apk
 ```
 </details>
 
@@ -59,7 +59,9 @@ All previous versions remain fully accessible on the GitHub Releases tab:
 ### 2. 100% PWA Visual Parity in Android Native App
 - **Embedded Zero-Latency Server**: The Android APK now runs the complete production React 19 / Tailwind / Bento Grid console hosted over an internal `http://127.0.0.1:<port>` server, delivering pixel-for-pixel visual fidelity with Google AI Studio.
 - **Display Cutout & System Bar Ergonomics**: Integrated `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` and dark translucent system bars (`#050811`) to prevent camera notch letterboxing.
-- **High-Refresh 120Hz/90Hz Optimization**: Automatically requests highest available display refresh rate modes on supported Android flagships for fluid liquid glass spring animations.
+- **Ultra-High Refresh 144Hz/120Hz/90Hz Display Pacing**: Automatically negotiates highest supported refresh rate modes (`preferredRefreshRate` & `preferredDisplayModeId`) for locked 144 FPS rendering on modern gaming & flagship displays.
+- **Universal Multi-Resolution & Aspect-Ratio Scaling**: Fully responsive layouts dynamically adapt across all screen geometries—from narrow 280px/320px foldables to 16:9/16:10 laptops, 4:3 tablets, 21:9 ultrawide (3440px), and 32:9 super-ultrawide (5120px) panoramas with 1-to-6 column fluid Bento grids.
+- **Aspect-Ratio Presets & Zoom Scaling in Remote Screen Streamer**: ScreenViewerModal now features built-in aspect ratio switches (`Auto Fit`, `16:9`, `16:10`, `21:9`, `4:3`, `Fill`) and zoom controls (1x, 1.5x, 2x) for razor-sharp terminal and desktop viewing.
 
 ### 3. Maximum Smoothness & Total Haptic Removal Overhaul
 - **Complete Haptic Elimination**: Completely eliminated all haptic feedback, vibration hardware calls, and `android.permission.VIBRATE` permissions across web frontend, native bridge, and mobile manifests. Zero vibration delays, zero audio context thread overhead, and instantaneous touch responses.
