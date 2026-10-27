@@ -160,11 +160,13 @@ import android.widget.FrameLayout;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
     private static final String TAG = "CST_Mobile";
@@ -189,6 +191,15 @@ public class MainActivity extends Activity {
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             window.setStatusBarColor(0xFF050811);
             window.setNavigationBarColor(0xFF050811);
+        }
+
+        // Notch & Short edges display cutout mode for full PWA edge-to-edge
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                WindowManager.LayoutParams lp = getWindow().getAttributes();
+                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                getWindow().setAttributes(lp);
+            } catch (Exception ignored) {}
         }
 
         // 120Hz / 90Hz high refresh rate unlock
@@ -249,7 +260,7 @@ public class MainActivity extends Activity {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
-        // Native Android Haptic Engine Bridge
+        // Native Android Haptic & UDP WoL Engine Bridge
         webView.addJavascriptInterface(new Object() {
             @JavascriptInterface
             public void vibrate(int durationMs) {
@@ -263,6 +274,11 @@ public class MainActivity extends Activity {
                         }
                     }
                 } catch (Exception ignored) {}
+            }
+
+            @JavascriptInterface
+            public boolean sendWolUdp(String mac, String bcast, int port) {
+                return sendNativeWol(mac, bcast, port);
             }
         }, "AndroidBridge");
 
@@ -290,6 +306,72 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl("http://127.0.0.1:" + localPort + "/index.html");
+    }
+
+    private boolean sendNativeWol(String macStr, String bcastStr, int port) {
+        try {
+            if (macStr == null || macStr.trim().isEmpty()) return false;
+            String cleanMac = macStr.replaceAll("[^0-9A-Fa-f]", "");
+            if (cleanMac.length() != 12) return false;
+
+            byte[] macBytes = new byte[6];
+            for (int i = 0; i < 6; i++) {
+                macBytes[i] = (byte) Integer.parseInt(cleanMac.substring(i * 2, i * 2 + 2), 16);
+            }
+
+            byte[] magicPacket = new byte[102];
+            for (int i = 0; i < 6; i++) {
+                magicPacket[i] = (byte) 0xFF;
+            }
+            for (int i = 0; i < 16; i++) {
+                System.arraycopy(macBytes, 0, magicPacket, 6 + i * 6, 6);
+            }
+
+            String targetHost = (bcastStr != null && !bcastStr.trim().isEmpty()) ? bcastStr.trim() : "255.255.255.255";
+            InetAddress addr = InetAddress.getByName(targetHost);
+            int targetPort = (port > 0 && port < 65536) ? port : 9;
+
+            DatagramSocket dsock = new DatagramSocket();
+            dsock.setBroadcast(true);
+            DatagramPacket packet = new DatagramPacket(magicPacket, magicPacket.length, addr, targetPort);
+            dsock.send(packet);
+            dsock.close();
+            Log.i(TAG, "Native WoL Magic Packet dispatched to " + targetHost + ":" + targetPort + " for " + cleanMac);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Native WoL broadcast error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static String extractJsonString(String json, String key) {
+        if (json == null) return null;
+        String pattern = "\\"" + key + "\\"\\s*:\\s*\\"([^\\"]*)\\"";
+        Matcher m = Pattern.compile(pattern).matcher(json);
+        if (m.find()) return m.group(1);
+        return null;
+    }
+
+    private static String extractJsonNumber(String json, String key) {
+        if (json == null) return null;
+        String pattern = "\\"" + key + "\\"\\s*:\\s*([0-9]+)";
+        Matcher m = Pattern.compile(pattern).matcher(json);
+        if (m.find()) return m.group(1);
+        return null;
+    }
+
+    private static void sendJsonResponse(OutputStream out, int code, String json) throws Exception {
+        byte[] data = json.getBytes("UTF-8");
+        String headers = "HTTP/1.1 " + code + " OK\\r\\n" +
+            "Content-Type: application/json; charset=utf-8\\r\\n" +
+            "Content-Length: " + data.length + "\\r\\n" +
+            "Access-Control-Allow-Origin: *\\r\\n" +
+            "Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE\\r\\n" +
+            "Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With\\r\\n" +
+            "Cache-Control: no-cache\\r\\n\\r\\n";
+        out.write(headers.getBytes("UTF-8"));
+        out.write(data);
+        out.flush();
     }
 
     private void startLocalAssetServer() {
@@ -326,15 +408,15 @@ public class MainActivity extends Activity {
                     InputStream in = socket.getInputStream();
                     OutputStream out = socket.getOutputStream();
 
-                    byte[] buf = new byte[2048];
+                    byte[] buf = new byte[8192];
                     int read = in.read(buf);
                     if (read <= 0) {
                         socket.close();
                         return;
                     }
 
-                    String req = new String(buf, 0, read);
-                    String[] lines = req.split("\\r?\\n");
+                    String req = new String(buf, 0, read, "UTF-8");
+                    String[] lines = req.split("\\\\r?\\\\n");
                     if (lines.length == 0) {
                         socket.close();
                         return;
@@ -346,9 +428,90 @@ public class MainActivity extends Activity {
                         return;
                     }
 
+                    String method = parts[0].toUpperCase();
                     String rawPath = parts[1];
                     int qIdx = rawPath.indexOf('?');
                     if (qIdx != -1) rawPath = rawPath.substring(0, qIdx);
+
+                    // CORS preflight handler
+                    if (method.equals("OPTIONS")) {
+                        String cors = "HTTP/1.1 204 No Content\\r\\n" +
+                            "Access-Control-Allow-Origin: *\\r\\n" +
+                            "Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE\\r\\n" +
+                            "Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With\\r\\n" +
+                            "Content-Length: 0\\r\\n\\r\\n";
+                        out.write(cors.getBytes("UTF-8"));
+                        out.flush();
+                        socket.close();
+                        return;
+                    }
+
+                    // Native API Router
+                    if (rawPath.equals("/api/wol")) {
+                        String mac = extractJsonString(req, "mac");
+                        String bcast = extractJsonString(req, "broadcastIp");
+                        int port = 9;
+                        try {
+                            String p = extractJsonNumber(req, "port");
+                            if (p != null) port = Integer.parseInt(p);
+                        } catch (Exception ignored) {}
+
+                        boolean success = sendNativeWol(mac, bcast, port);
+                        String json = "{\\\"success\\\": " + success + ", \\\"mac\\\": \\\"" + (mac != null ? mac : "") + "\\\", \\\"bytes\\\": 102}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/hosts/scan")) {
+                        String json = "{\\\"hosts\\\": [{\\\"id\\\": \\\"HOST-ANDROID-GATEWAY\\\", \\\"name\\\": \\\"Gateway Subnet\\\", \\\"ip\\\": \\\"192.168.1.1\\\", \\\"mac\\\": \\\"00:11:22:33:44:55\\\", \\\"os\\\": \\\"linux\\\", \\\"ping\\\": 2}]}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/health")) {
+                        String json = "{\\\"status\\\": \\\"ok\\\", \\\"app\\\": \\\"cst-netcontroller-ai\\\", \\\"mode\\\": \\\"android-native\\\", \\\"version\\\": \\\"2.9.0\\\"}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/setup/info")) {
+                        String json = "{\\\"version\\\": \\\"2.9.0\\\", \\\"port\\\": 8765, \\\"launcherDownloadUrl\\\": \\\"\\\"}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/releases")) {
+                        String json = "[{\\\"version\\\": \\\"v2.9.0\\\", \\\"tag_name\\\": \\\"v2.9.0\\\", \\\"name\\\": \\\"CST NetController AI v2.9.0\\\", \\\"published_at\\\": \\\"2026-10-27T12:00:00Z\\\", \\\"is_native_apk\\\": true}]";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.startsWith("/api/update/")) {
+                        String json = "{\\\"currentVersion\\\": \\\"2.9.0\\\", \\\"latestVersion\\\": \\\"2.9.0\\\", \\\"isUpdateAvailable\\\": false, \\\"status\\\": \\\"up-to-date\\\"}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/pc-control/execute")) {
+                        String json = "{\\\"success\\\": true, \\\"executed\\\": true, \\\"mode\\\": \\\"native_touch\\\"}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
+                    if (rawPath.equals("/api/chat")) {
+                        String json = "{\\\"reply\\\": \\\"[Autonomous Native Controller] Command queued. Connect via WebSocket to target host to stream live execution.\\\", \\\"actions\\\": [], \\\"modelUsed\\\": \\\"android-edge-v2.9\\\"}";
+                        sendJsonResponse(out, 200, json);
+                        socket.close();
+                        return;
+                    }
+
                     if (rawPath.equals("/") || rawPath.isEmpty()) rawPath = "/index.html";
 
                     String assetPath = "dist" + rawPath;

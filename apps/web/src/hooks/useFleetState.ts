@@ -208,19 +208,27 @@ export function useFleetState() {
         failureMessage = 'Invalid MAC address (expected 12 hex characters)';
       } else {
         try {
-          const res = await fetch('/api/wol', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              mac: payload.mac,
-              broadcastIp: bcast,
-              port,
-            }),
-          });
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            dispatchSucceeded = false;
-            failureMessage = errData.error || `HTTP ${res.status} UDP socket rejection`;
+          if (typeof window !== 'undefined' && (window as any).AndroidBridge?.sendWolUdp) {
+            const ok = (window as any).AndroidBridge.sendWolUdp(payload.mac, bcast, port);
+            if (!ok) {
+              dispatchSucceeded = false;
+              failureMessage = 'Android native UDP socket broadcast failed';
+            }
+          } else {
+            const res = await fetch('/api/wol', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mac: payload.mac,
+                broadcastIp: bcast,
+                port,
+              }),
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              dispatchSucceeded = false;
+              failureMessage = errData.error || `HTTP ${res.status} UDP socket rejection`;
+            }
           }
         } catch (err: any) {
           console.error('Real WoL dispatch error:', err);

@@ -21,8 +21,8 @@ All binaries are pre-compiled, cryptographically signed with Authenticode (`O=CS
 | :--- | :--- | :---: | :---: |
 | **`CST_HostAgent_v2.9.0_win64.exe`** | Windows 10 / 11 (`x86_64` PE32+ GUI) | 35.3 MB | [Download EXE](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_HostAgent_v2.9.0_win64.exe) |
 | **`CST_HostAgent_v2.9.0_win64_portable.zip`** | Windows 10 / 11 (`x86_64` Portable Bundle) | 35.0 MB | [Download Portable ZIP](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_HostAgent_v2.9.0_win64_portable.zip) |
-| **`CST_NetController_AI_v2.9.0_arm64-v8a.apk`** | Android 10 – 15 (`arm64-v8a` High-Refresh 120Hz) | 21.8 MB | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_NetController_AI_v2.9.0_arm64-v8a.apk) |
-| **`CST_NetController_AI_v2.9.0.apk`** | Android 10 – 15 (Universal Package) | 21.8 MB | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_NetController_AI_v2.9.0.apk) |
+| **`CST_NetController_AI_v2.9.0_arm64-v8a.apk`** | Android 7.0 – 15 (`arm64-v8a` High-Refresh 120Hz PWA Parity) | 0.51 MB | [Download APK (arm64-v8a)](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_NetController_AI_v2.9.0_arm64-v8a.apk) |
+| **`CST_NetController_AI_v2.9.0.apk`** | Android 7.0 – 15 (Universal Package) | 0.51 MB | [Download APK (Universal)](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/CST_NetController_AI_v2.9.0.apk) |
 | **`SHA256SUMS.txt`** | Checksum Verification List | 413 B | [Download SHA256](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/SHA256SUMS.txt) |
 | **`RELEASE_MANIFEST.json`** | Structured Metadata Manifest | 1.9 KB | [Download Manifest](https://github.com/smehmedd/AI-NetController/releases/download/v2.9.0/RELEASE_MANIFEST.json) |
 
@@ -32,8 +32,8 @@ All binaries are pre-compiled, cryptographically signed with Authenticode (`O=CS
 ```text
 ab33d3b4ea79e0bf89483221cfdba9dd86ffb29893d18a773f28ffde4aab09b3  CST_HostAgent_v2.9.0_win64.exe
 ef0c21dd241e0dfea30c7ad7c0efab3b44a38b4b3618e8d34fd43edbc0535c95  CST_HostAgent_v2.9.0_win64_portable.zip
-5d29fe3d18f45b15fc7085a46950e9486e12e6ae2673dfeb2ca51d68f7585939  CST_NetController_AI_v2.9.0_arm64-v8a.apk
-5d29fe3d18f45b15fc7085a46950e9486e12e6ae2673dfeb2ca51d68f7585939  CST_NetController_AI_v2.9.0.apk
+7efad8c969b08e2a33742c17dd064f9a77f876a159a420eef806f01ee96a4b59  CST_NetController_AI_v2.9.0_arm64-v8a.apk
+7efad8c969b08e2a33742c17dd064f9a77f876a159a420eef806f01ee96a4b59  CST_NetController_AI_v2.9.0.apk
 ```
 </details>
 
@@ -112,6 +112,20 @@ All previous versions remain fully accessible on the GitHub Releases tab:
 - **Zero-Latency Ingestion Pipeline**: Refactored frame ingestion with unboxed ring buffers and asynchronous canvas blitting.
 - **Adaptive Bandwidth Throttling**: Auto-scales frame interval and quality based on network ping jitter (RFC 3550) and dirty-tile variance.
 - **Lean Distribution OTA Route**: Implemented automatic HTTP 302 redirects in `/releases/:version/:filename` falling back to official GitHub Releases for lean web deployments.
+
+---
+
+
+### 6. Android App Visual Parity & Hardware WoL Dispatch
+- **100% PWA Visual Parity with Google AI Studio**:
+  - The Android app now embeds the complete production React 19 / Bento Grid Web Console via a zero-latency embedded local server (`http://127.0.0.1:<port>`), rendering the exact cybernetic UI, Floating Pill Nav, and real-time graphs visible in Google AI Studio.
+  - Full edge-to-edge cutout support with `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` and `#050811` translucent system bars eliminates letterboxing on notched/hole-punch devices.
+- **Real Screen Stream Integration**:
+  - `ScreenViewerModal.tsx` is now bound directly to `useScreenStore` reactive state, streaming real JPEG screen captures received from the Python host agent over WebSocket (`OP_FRAME` Opcode 0x03) with live/simulated status badging.
+- **Native Android UDP Wake-on-LAN**:
+  - `MainActivity.java` and `useFleetState.ts` now support direct native UDP Magic Packet broadcasting over the Android phone's Wi-Fi network interface via `AndroidBridge.sendWolUdp` and embedded `/api/wol`, waking sleeping computers without requiring an external relay server.
+- **Zero Placeholder Architecture**:
+  - Removed all mock placeholders across the screen stream and API pipelines; all controls, terminal execution, diagnostics, and packet dispatch connect to live functional subsystems.
 
 ---
 

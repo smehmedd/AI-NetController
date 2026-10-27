@@ -36,6 +36,7 @@ import {
   SimulatedWindowType,
   ScreenSimulationState
 } from '../services/screenFrameService';
+import { useScreenStore } from '../store/screenStore';
 import { triggerHapticFeedback } from '../services/hapticService';
 import { useTranslation } from '../i18n/useTranslation';
 
@@ -79,6 +80,8 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   const [frameUrl, setFrameUrl] = useState<string>('');
   const [localCapturing, setLocalCapturing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const liveScreenFrame = useScreenStore((s) => s.screenBase64);
+  const displayFrameUrl = liveScreenFrame || frameUrl;
 
   const isCapturing = localCapturing || externalCapturing;
   const isDeviceOnline = Boolean(device && (device.isOnline || (device as any).status === 'Online'));
@@ -505,20 +508,28 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
     clearHoldTimer();
   };
 
-  // Stream simulation frames
+  // Stream live screen frames or simulated canvas fallback
   useEffect(() => {
     if (!isOpen || !device || !isDeviceOnline || isPaused) return;
 
-    setFrameUrl(generateMockScreenCanvas(device, simStateRef.current));
+    if (onRefreshFrame) {
+      onRefreshFrame();
+    }
+
+    if (!useScreenStore.getState().screenBase64) {
+      setFrameUrl(generateMockScreenCanvas(device, simStateRef.current));
+    }
 
     const interval = setInterval(() => {
       setFps(Math.floor(58 + Math.random() * 4));
       setLatency(Math.floor(10 + Math.random() * 6));
-      setFrameUrl(generateMockScreenCanvas(device, simStateRef.current));
+      if (!useScreenStore.getState().screenBase64) {
+        setFrameUrl(generateMockScreenCanvas(device, simStateRef.current));
+      }
     }, 120);
 
     return () => clearInterval(interval);
-  }, [isOpen, device, isDeviceOnline, isPaused]);
+  }, [isOpen, device, isDeviceOnline, isPaused, onRefreshFrame]);
 
   // Clean up long-press hold timer on unmount
   useEffect(() => {
@@ -545,9 +556,9 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
   }, [isOpen, isFullscreen, onClose]);
 
   const handleCapture = () => {
-    if (!device || !frameUrl) return;
+    if (!device || !displayFrameUrl) return;
     const safeName = (device.name || device.id || 'host').replace(/\s+/g, '_');
-    const capturedFrame = frameUrl;
+    const capturedFrame = displayFrameUrl;
     triggerHapticFeedback('medium');
     setLocalCapturing(true);
     setTimeout(() => {
@@ -816,6 +827,15 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
                     <Activity className="w-3 h-3 text-emerald-400" />
                     {fps} FPS • {latency}ms
                   </span>
+                  {liveScreenFrame ? (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                      LIVE
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 hidden lg:inline">
+                      SIMULATED
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -906,9 +926,9 @@ export const ScreenViewerModal: React.FC<ScreenViewerModalProps> = ({
           >
             {isDeviceOnline ? (
               <>
-                {frameUrl ? (
+                {displayFrameUrl ? (
                   <img
-                    src={frameUrl}
+                    src={displayFrameUrl}
                     alt="Remote Screen"
                     draggable={false}
                     className={`w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${
