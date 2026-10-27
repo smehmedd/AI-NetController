@@ -1,7 +1,7 @@
 {
   "name": "cst-netcontroller-ai",
   "private": true,
-  "version": "2.9.0",
+  "version": "3.0.0",
   "description": "Autonomous LAN PC Inspector, Fleet Manager & Agentic OS Bridge",
   "type": "module",
   "scripts": {

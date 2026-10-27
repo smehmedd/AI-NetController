@@ -66,8 +66,8 @@ def create_android_manifest():
     manifest_content = """<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cst.autonomouslan"
-    android:versionCode="290"
-    android:versionName="2.9.0">
+    android:versionCode="300"
+    android:versionName="3.0.0">
 
     <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
 
@@ -492,28 +492,28 @@ public class MainActivity extends Activity {
                     }
 
                     if (rawPath.equals("/api/health")) {
-                        String json = "{\\\"status\\\": \\\"ok\\\", \\\"app\\\": \\\"cst-netcontroller-ai\\\", \\\"mode\\\": \\\"android-native\\\", \\\"version\\\": \\\"2.9.0\\\"}";
+                        String json = "{\\\"status\\\": \\\"ok\\\", \\\"app\\\": \\\"cst-netcontroller-ai\\\", \\\"mode\\\": \\\"android-native\\\", \\\"version\\\": \\\"3.0.0\\\"}";
                         sendJsonResponse(out, 200, json);
                         socket.close();
                         return;
                     }
 
                     if (rawPath.equals("/api/setup/info")) {
-                        String json = "{\\\"version\\\": \\\"2.9.0\\\", \\\"port\\\": 8765, \\\"launcherDownloadUrl\\\": \\\"\\\"}";
+                        String json = "{\\\"version\\\": \\\"3.0.0\\\", \\\"port\\\": 8765, \\\"launcherDownloadUrl\\\": \\\"\\\"}";
                         sendJsonResponse(out, 200, json);
                         socket.close();
                         return;
                     }
 
                     if (rawPath.equals("/api/releases")) {
-                        String json = "[{\\\"version\\\": \\\"v2.9.0\\\", \\\"tag_name\\\": \\\"v2.9.0\\\", \\\"name\\\": \\\"CST NetController AI v2.9.0\\\", \\\"published_at\\\": \\\"2026-10-27T12:00:00Z\\\", \\\"is_native_apk\\\": true}]";
+                        String json = "[{\\\"version\\\": \\\"v3.0.0\\\", \\\"tag_name\\\": \\\"v3.0.0\\\", \\\"name\\\": \\\"CST NetController AI v3.0.0\\\", \\\"published_at\\\": \\\"2026-10-27T12:00:00Z\\\", \\\"is_native_apk\\\": true}]";
                         sendJsonResponse(out, 200, json);
                         socket.close();
                         return;
                     }
 
                     if (rawPath.startsWith("/api/update/")) {
-                        String json = "{\\\"currentVersion\\\": \\\"2.9.0\\\", \\\"latestVersion\\\": \\\"2.9.0\\\", \\\"isUpdateAvailable\\\": false, \\\"status\\\": \\\"up-to-date\\\"}";
+                        String json = "{\\\"currentVersion\\\": \\\"3.0.0\\\", \\\"latestVersion\\\": \\\"3.0.0\\\", \\\"isUpdateAvailable\\\": false, \\\"status\\\": \\\"up-to-date\\\"}";
                         sendJsonResponse(out, 200, json);
                         socket.close();
                         return;
@@ -708,7 +708,7 @@ def zipalign_and_sign():
     bin_dir = os.path.join(STAGE_DIR, "bin")
     unaligned_apk = os.path.join(bin_dir, "unaligned.apk")
     aligned_apk = os.path.join(bin_dir, "aligned.apk")
-    signed_apk = os.path.join(bin_dir, "CST_NetController_AI_v2.9.0_arm64-v8a.apk")
+    signed_apk = os.path.join(bin_dir, "CST_NetController_AI_v3.0.0_arm64-v8a.apk")
 
     print("[*] Aligning APK with zipalign (4-byte alignment)...")
     if os.path.exists(aligned_apk):
@@ -742,10 +742,10 @@ def zipalign_and_sign():
     return signed_apk
 
 def distribute_apk(signed_apk):
-    rel_v290 = os.path.join(ROOT_DIR, "public", "releases", "v2.9.0")
+    rel_v290 = os.path.join(ROOT_DIR, "public", "releases", "v3.0.0")
     os.makedirs(rel_v290, exist_ok=True)
-    dest_arm64 = os.path.join(rel_v290, "CST_NetController_AI_v2.9.0_arm64-v8a.apk")
-    dest_univ = os.path.join(rel_v290, "CST_NetController_AI_v2.9.0.apk")
+    dest_arm64 = os.path.join(rel_v290, "CST_NetController_AI_v3.0.0_arm64-v8a.apk")
+    dest_univ = os.path.join(rel_v290, "CST_NetController_AI_v3.0.0.apk")
     mobile_out = os.path.join(ROOT_DIR, "apps", "mobile", "build", "app", "outputs", "flutter-apk")
     os.makedirs(mobile_out, exist_ok=True)
     dest_flutter = os.path.join(mobile_out, "app-arm64-v8a-release.apk")
@@ -764,7 +764,7 @@ def distribute_apk(signed_apk):
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         for art in manifest.get("artifacts", []):
-            if "CST_NetController_AI_v2.9.0" in art["filename"]:
+            if "CST_NetController_AI_v3.0.0" in art["filename"]:
                 art["sizeBytes"] = os.path.getsize(dest_arm64)
                 art["sizeFormatted"] = f"{size_mb:.1f} MB"
                 art["sha256"] = sha_hash
@@ -779,7 +779,7 @@ def distribute_apk(signed_apk):
         new_lines = []
         for l in lines:
             parts = l.split(None, 1)
-            if len(parts) == 2 and "CST_NetController_AI_v2.9.0" in parts[1]:
+            if len(parts) == 2 and "CST_NetController_AI_v3.0.0" in parts[1]:
                 new_lines.append(f"{sha_hash}  {parts[1]}")
             else:
                 new_lines.append(l)
