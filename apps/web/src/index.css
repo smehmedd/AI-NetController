@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @layer base {
   :root {
@@ -310,7 +311,7 @@ button:hover .icon-plus-bubbly,
   animation: liquid-aurora-drift 22s var(--ease-fluid) infinite alternate;
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  contain: layout style paint;
+  contain: layout style;
 }
 
 /* Tier 1 — Resting Canvas Cards (Zero filter transition thrashing) */
@@ -507,7 +508,7 @@ button, [role="button"] {
 
 /* Isolate layouts and repaints so card interactions never trigger global reflows */
 .contain-paint-layout {
-  contain: layout style paint;
+  contain: layout style;
 }
 
 /* Liquid aurora zero-blur background layer pinning for 144Hz */

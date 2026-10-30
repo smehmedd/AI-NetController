@@ -53,6 +53,7 @@ def setup_staging():
         shutil.rmtree(STAGE_DIR)
     os.makedirs(os.path.join(STAGE_DIR, "src", "com", "cst", "autonomouslan"), exist_ok=True)
     os.makedirs(os.path.join(STAGE_DIR, "res", "values"), exist_ok=True)
+    os.makedirs(os.path.join(STAGE_DIR, "res", "values-v29"), exist_ok=True)
     os.makedirs(os.path.join(STAGE_DIR, "res", "drawable"), exist_ok=True)
     os.makedirs(os.path.join(STAGE_DIR, "res", "mipmap-anydpi-v26"), exist_ok=True)
     os.makedirs(os.path.join(STAGE_DIR, "bin", "classes"), exist_ok=True)
@@ -80,7 +81,8 @@ def create_android_manifest():
     <application
         android:label="@string/app_name"
         android:icon="@drawable/ic_launcher"
-        android:theme="@android:style/Theme.NoTitleBar"
+        android:roundIcon="@drawable/ic_launcher"
+        android:theme="@style/AppTheme"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
@@ -92,7 +94,7 @@ def create_android_manifest():
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@android:style/Theme.NoTitleBar">
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -111,25 +113,100 @@ def create_resources():
     with open(os.path.join(STAGE_DIR, "res", "values", "strings.xml"), "w", encoding="utf-8") as f:
         f.write(strings_content)
 
-    # Create vector drawable icon
+    colors_content = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="canvas_deep">#040711</color>
+    <color name="cyan_accent">#22D3EE</color>
+</resources>"""
+    with open(os.path.join(STAGE_DIR, "res", "values", "colors.xml"), "w", encoding="utf-8") as f:
+        f.write(colors_content)
+
+    styles_base = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/canvas_deep</item>
+        <item name="android:colorBackground">@color/canvas_deep</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+</resources>"""
+    with open(os.path.join(STAGE_DIR, "res", "values", "styles.xml"), "w", encoding="utf-8") as f:
+        f.write(styles_base)
+
+    styles_v29 = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/canvas_deep</item>
+        <item name="android:colorBackground">@color/canvas_deep</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>"""
+    with open(os.path.join(STAGE_DIR, "res", "values-v29", "styles.xml"), "w", encoding="utf-8") as f:
+        f.write(styles_v29)
+
+    # High-Resolution Adaptive Cyber Radar Vector Icon
     icon_content = """<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    <!-- Dark Cyber Squircle Base -->
     <path
-        android:fillColor="#050811"
-        android:pathData="M0,0h108v108h-108z" />
+        android:fillColor="#081020"
+        android:pathData="M0,0h192v192h-192z" />
     <path
-        android:fillColor="#22D3EE"
-        android:pathData="M54,20 A34,34 0 1,1 53.9,20 Z" />
+        android:fillColor="#0C1424"
+        android:pathData="M42,0 H150 A42,42 0 0,1 192,42 V150 A42,42 0 0,1 150,192 H42 A42,42 0 0,1 0,150 V42 A42,42 0 0,1 42,0 Z" />
+    <!-- Radar Outer Arc -->
     <path
-        android:fillColor="#050811"
-        android:pathData="M54,32 A22,22 0 1,1 53.9,32 Z" />
+        android:strokeColor="#22D3EE"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.35"
+        android:fillColor="#00000000"
+        android:pathData="M96,42 A54,54 0 1,1 95.9,42 Z" />
+    <!-- Inner Cyber Ring -->
     <path
-        android:fillColor="#00F0FF"
-        android:pathData="M54,42 A12,12 0 1,1 53.9,42 Z" />
+        android:strokeColor="#06B6D4"
+        android:strokeWidth="2.5"
+        android:strokeAlpha="0.5"
+        android:fillColor="#00000000"
+        android:pathData="M96,56 A40,40 0 1,1 95.9,56 Z" />
+    <!-- Power Symbol Vertical Stem -->
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M96,54 L96,90" />
+    <!-- Power Symbol Arc -->
+    <path
+        android:strokeColor="#22D3EE"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M72,68 A38,38 0 1,0 120,68" />
+    <!-- Center Glowing Pulse Node -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M96,96m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0" />
+    <!-- Emerald Peripheral Node -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M68,128m-4.5,0a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
+    <!-- Cyan Peripheral Node -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M124,128m-4.5,0a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
 </vector>"""
     with open(os.path.join(STAGE_DIR, "res", "drawable", "ic_launcher.xml"), "w", encoding="utf-8") as f:
         f.write(icon_content)
@@ -140,10 +217,9 @@ def create_main_activity():
 
 import android.app.Activity;
 import android.content.res.AssetManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Vibrator;
-import android.os.VibrationEffect;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -185,24 +261,58 @@ public class MainActivity extends Activity {
             WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
         );
 
-        // Cyberpunk dark system bars (#050811)
+        Window window = getWindow();
+
+        // 1. True Edge-to-Edge System Bars (Status Bar & Gesture Navigation Bar)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
+            window.clearFlags(
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS |
+                WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION
+            );
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(0xFF050811);
-            window.setNavigationBarColor(0xFF050811);
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.setNavigationBarColor(Color.TRANSPARENT);
+        }
+
+        // Disable Android OS automatic contrast scrim overlay on navigation & status bars
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                window.setStatusBarContrastEnforced(false);
+                window.setNavigationBarContrastEnforced(false);
+            } catch (Throwable ignored) {}
         }
 
         // Notch & Short edges display cutout mode for full PWA edge-to-edge
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
-                WindowManager.LayoutParams lp = getWindow().getAttributes();
+                WindowManager.LayoutParams lp = window.getAttributes();
                 lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-                getWindow().setAttributes(lp);
-            } catch (Exception ignored) {}
+                window.setAttributes(lp);
+            } catch (Throwable ignored) {}
         }
 
-        // 120Hz / 90Hz high refresh rate unlock
+        // Edge-to-Edge Window Fitting & Light Icon Appearance (White icons on dark cyber canvas)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                window.setDecorFitsSystemWindows(false);
+                android.view.WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.setSystemBarsAppearance(
+                        0,
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS |
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    );
+                }
+            } catch (Throwable ignored) {}
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            View decor = window.getDecorView();
+            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            decor.setSystemUiVisibility(flags);
+        }
+
+        // 144Hz / 120Hz high refresh rate unlock
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 android.view.Display display;
@@ -222,26 +332,28 @@ public class MainActivity extends Activity {
                         }
                     }
                     if (targetModeId != 0) {
-                        WindowManager.LayoutParams params = getWindow().getAttributes();
+                        WindowManager.LayoutParams params = window.getAttributes();
                         params.preferredDisplayModeId = targetModeId;
                         params.preferredRefreshRate = maxRate;
-                        getWindow().setAttributes(params);
+                        window.setAttributes(params);
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
         }
 
         // Start embedded local asset server to eliminate file:// CORS restrictions on ES modules
         startLocalAssetServer();
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(0xFF050811);
+        root.setBackgroundColor(0xFF040711);
         setContentView(root);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(0xFF050811);
+        webView.setBackgroundColor(Color.TRANSPARENT);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
         root.addView(webView, new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
@@ -258,11 +370,25 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setTextZoom(100);
+
+        // Disable OS algorithmic force dark to preserve exact cyber palette and glassmorphism gradients
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                settings.setForceDark(WebSettings.FORCE_DARK_OFF);
+            } catch (Throwable ignored) {}
+        }
+        try {
+            java.lang.reflect.Method m = settings.getClass().getMethod("setAlgorithmicDarkeningAllowed", boolean.class);
+            m.invoke(settings, false);
+        } catch (Throwable ignored) {}
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             settings.setOffscreenPreRaster(true);
         }
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        settings.setMediaPlaybackRequiresUserGesture(false);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
@@ -272,7 +398,7 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new Object() {
             @JavascriptInterface
             public void vibrate(int durationMs) {
-                // Haptics disabled for ultra-smooth 120 FPS performance
+                // Haptics disabled for ultra-smooth 144 FPS performance
             }
 
             @JavascriptInterface
