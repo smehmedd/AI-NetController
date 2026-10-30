@@ -334,19 +334,19 @@ const HostCardComponent: React.FC<HostCardProps> = ({
           }
         }}
         className={`
-          bg-[#0b1324]/55 backdrop-blur-2xl backdrop-saturate-[160%] border border-white/[0.07] border-t-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.4)] transform-gpu
-          w-full rounded-[1.75rem] p-3.5 sm:p-5 text-left cursor-pointer select-none relative overflow-hidden transition-colors
+          bg-[#070e20]/80 backdrop-blur-3xl backdrop-saturate-[190%] border border-cyan-400/20 border-t-cyan-400/40 shadow-[0_16px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(0,229,255,0.08)] transform-gpu
+          w-full max-w-full rounded-[1.75rem] p-3.5 sm:p-5 text-left cursor-pointer select-none relative overflow-hidden transition-all duration-200
           ${
             isSonarPulsing
-              ? 'border-cyan-300 shadow-[0_0_38px_rgba(34,211,238,0.45)] ring-2 ring-cyan-400/50'
+              ? 'border-cyan-300 shadow-[0_0_48px_rgba(0,240,255,0.6)] ring-2 ring-cyan-400/70'
               : isSelected
-              ? 'border-cyan-400/50 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.7),0_0_28px_rgba(56,189,248,0.18)]'
-              : 'hover:border-white/20'
+              ? 'border-cyan-400/80 shadow-[0_20px_54px_-8px_rgba(0,0,0,0.8),0_0_36px_rgba(0,229,255,0.3)] ring-1 ring-cyan-400/60'
+              : 'hover:border-cyan-400/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.65),0_0_32px_rgba(0,229,255,0.18)]'
           }
           ${isOffline ? 'opacity-85' : ''}
         `}
       >
-        <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent pointer-events-none" />
 
         {/* Collapsed Header Row */}
         <div className="relative z-10 flex items-center justify-between gap-2 sm:gap-3">
@@ -364,8 +364,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center shrink-0 border relative overflow-hidden transform-gpu
                 ${
                   isOffline
-                    ? 'bg-white/[0.03] text-white/35 border-white/[0.08]'
-                    : 'bg-gradient-to-br from-cyan-400/20 via-sky-500/10 to-indigo-500/15 text-cyan-300 border-cyan-400/35 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_0_16px_rgba(56,189,248,0.18)]'
+                    ? 'bg-white/[0.04] text-white/40 border-white/10'
+                    : 'bg-gradient-to-br from-cyan-400/35 via-sky-500/25 to-indigo-500/30 text-cyan-200 border-cyan-300/60 shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_24px_rgba(0,229,255,0.4)]'
                 }
               `}
             >
@@ -377,7 +377,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
-                <span className="text-fluid-card-title font-bold text-white tracking-tight break-words">
+                <span className="text-fluid-card-title font-bold text-white tracking-tight truncate min-w-0">
                   {host.name || safeId}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono font-semibold text-white/80 shrink-0">
@@ -447,13 +447,13 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                 </button>
                 <span className="text-white/25" aria-hidden="true">•</span>
                 {isOffline ? (
-                  <span className="text-amber-300/80 text-[11.5px] font-medium">
+                  <span className="text-amber-300 font-semibold text-[11.5px] drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]">
                     {currentLang === 'bg' ? 'Спящ • Готов за Wake-on-LAN' : 'Sleeping • Ready for Wake-on-LAN'}
                   </span>
                 ) : (
                   <>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 font-mono text-[10.5px] font-semibold text-emerald-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/50 font-mono text-[10.5px] font-bold text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981] animate-pulse" />
                       {rttMs}ms
                     </span>
                     {isLaptop && safeBatteryPct !== undefined && batteryConfig && (
@@ -490,7 +490,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                   whileTap={{ scale: 0.88 }}
                   transition={SPRING_POP}
                   onClick={(e) => onWakeClick(e, host)}
-                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/45 text-amber-300 hover:text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.3)] transform-gpu"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-br from-amber-500/25 to-orange-500/20 hover:from-amber-500/40 hover:to-orange-500/30 border border-amber-400/60 text-amber-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_24px_rgba(245,158,11,0.45)] transform-gpu"
                   title={t('host_wake_tooltip')}
                   aria-label={t('host_wake_tooltip')}
                 >
@@ -509,7 +509,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     triggerHapticFeedback('light');
                     onSelectForCommand?.(host.id);
                   }}
-                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer transform-gpu"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_14px_rgba(0,229,255,0.25)] transform-gpu"
                   title={t('host_terminal_tooltip')}
                   aria-label={t('host_terminal_tooltip')}
                 >
@@ -526,7 +526,7 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     triggerHapticFeedback('light');
                     onViewScreen(host);
                   }}
-                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 hover:text-cyan-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_16px_rgba(56,189,248,0.2)] transform-gpu"
+                  className="group min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/50 text-sky-200 flex items-center justify-center transition-colors cursor-pointer shadow-[0_0_18px_rgba(14,165,233,0.35)] transform-gpu"
                   title={t('host_screen_tooltip')}
                   aria-label={t('host_screen_tooltip')}
                 >
@@ -598,8 +598,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     style={{ transformOrigin: 'left' }}
                     className={`h-full w-full rounded-full transform-gpu ${
                       cpuVal >= 75
-                        ? 'bg-gradient-to-r from-rose-400 to-amber-400 shadow-[0_0_8px_#fb7185]'
-                        : 'bg-gradient-to-r from-cyan-400 to-sky-300 shadow-[0_0_8px_#38bdf8]'
+                        ? 'bg-gradient-to-r from-rose-500 via-pink-400 to-amber-400 shadow-[0_0_14px_#ff2a6d]'
+                        : 'bg-gradient-to-r from-cyan-400 via-sky-300 to-cyan-200 shadow-[0_0_14px_#00f0ff]'
                     }`}
                   />
                 </div>
@@ -620,8 +620,8 @@ const HostCardComponent: React.FC<HostCardProps> = ({
                     style={{ transformOrigin: 'left' }}
                     className={`h-full w-full rounded-full transform-gpu ${
                       ramVal >= 75
-                        ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_0_8px_#fbbf24]'
-                        : 'bg-gradient-to-r from-indigo-400 to-cyan-300 shadow-[0_0_8px_#818cf8]'
+                        ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 shadow-[0_0_14px_#ffb703]'
+                        : 'bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-300 shadow-[0_0_14px_#8b5cf6]'
                     }`}
                   />
                 </div>

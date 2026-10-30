@@ -57,10 +57,10 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
 
   return (
     <div className="fixed bottom-[calc(env(safe-area-inset-bottom,12px)+0.5rem)] left-1/2 -translate-x-1/2 z-40 max-w-lg md:max-w-xl w-[calc(100%-1.25rem)] sm:w-[calc(100%-2rem)] select-none pointer-events-auto smooth-144hz">
-      <nav className="landscape-compact-nav bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] w-full h-[58px] sm:h-[62px] rounded-full flex items-center justify-between p-1.5 transform-gpu relative">
+      <nav className="landscape-compact-nav bg-[#050b1a]/95 backdrop-blur-3xl backdrop-saturate-[220%] border border-cyan-400/30 border-t-white/45 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_32px_rgba(0,229,255,0.22)] w-full h-[58px] sm:h-[62px] rounded-full flex items-center justify-between p-1.5 transform-gpu relative">
         {/* Top & Bottom Specular Refraction Highlights */}
-        <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
-        <div className="absolute inset-x-12 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-8 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-12 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent pointer-events-none" />
 
         {/* Tab Items with 120Hz Zero-Reflow Sliding Liquid Glass Capsule */}
         <div className="flex-1 flex items-center justify-around h-full gap-1 min-w-0">
@@ -87,7 +87,7 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
                 {isActive && (
                   <motion.div
                     layoutId="activeNavPill"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400/25 via-sky-500/20 to-indigo-500/20 border border-cyan-300/45 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.4),0_0_20px_rgba(56,189,248,0.28)] pointer-events-none transform-gpu"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400/35 via-sky-500/30 to-indigo-500/30 border border-cyan-300/70 shadow-[inset_0_1px_2px_rgba(255,255,255,0.6),0_0_28px_rgba(0,229,255,0.45)] pointer-events-none transform-gpu"
                     transition={SPRING_BUBBLY}
                   />
                 )}
@@ -106,8 +106,8 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
                     <Icon
                       className={`w-[18px] h-[18px] sm:w-[19px] sm:h-[19px] transition-colors duration-150 shrink-0 ${
                         isActive
-                          ? 'text-cyan-200 drop-shadow-[0_0_8px_rgba(56,189,248,0.75)] stroke-[2.25]'
-                          : 'text-white/55 group-hover:text-cyan-200 stroke-[1.9]'
+                          ? 'text-cyan-100 drop-shadow-[0_0_12px_rgba(0,229,255,0.9)] stroke-[2.4]'
+                          : 'text-white/60 group-hover:text-cyan-200 stroke-[1.9]'
                       }`}
                     />
                   </motion.div>
@@ -152,8 +152,8 @@ const FloatingPillNavComponent: React.FC<FloatingPillNavProps> = ({
             <Radio
               className={`w-3.5 h-3.5 shrink-0 icon-bubbly ${
                 isConnected
-                  ? 'text-emerald-400 drop-shadow-[0_0_6px_#34d399]'
-                  : 'text-sky-400 drop-shadow-[0_0_6px_#38bdf8]'
+                  ? 'text-emerald-300 drop-shadow-[0_0_8px_#10b981]'
+                  : 'text-cyan-300 drop-shadow-[0_0_8px_#00f0ff]'
               }`}
             />
             <span className="text-white/90 font-semibold text-[10.5px] whitespace-nowrap">

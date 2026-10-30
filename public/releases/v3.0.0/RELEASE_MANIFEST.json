@@ -2,7 +2,7 @@
   "version": "v3.0.0",
   "tag": "v3.0.0-LTS",
   "releaseName": "CST NetController AI v3.0.0 \u2014 Major Architecture Release: PWA Parity, Zero-Placeholder Fleet & Native UDP WoL",
-  "publishedAt": "2026-10-30T19:34:06.293479+00:00",
+  "publishedAt": "2026-10-30T19:46:04.067714+00:00",
   "protocol": "CST/3.0-SECURE",
   "artifacts": [
     {
@@ -27,18 +27,18 @@
       "filename": "CST_NetController_AI_v3.0.0_arm64-v8a.apk",
       "kind": "apk",
       "platform": "Android 7.0\u201315 arm64-v8a (120Hz PWA Parity .APK)",
-      "sizeBytes": 1349501,
+      "sizeBytes": 1353597,
       "sizeFormatted": "1.3 MB",
-      "sha256": "d835e5e5894ac35c8f0661f85f739fb60e6af28ac36365530a180c6d0f242268",
+      "sha256": "a2f4ef00aaebb4af8d7b87cefeee15035ef5284ab719d66b84efcfe6f8433fde",
       "downloadUrl": "/releases/v3.0.0/CST_NetController_AI_v3.0.0_arm64-v8a.apk"
     },
     {
       "filename": "CST_NetController_AI_v3.0.0.apk",
       "kind": "apk",
       "platform": "Android 7.0\u201315 Universal Package (Mobile Controller .APK)",
-      "sizeBytes": 1349501,
+      "sizeBytes": 1353597,
       "sizeFormatted": "1.3 MB",
-      "sha256": "d835e5e5894ac35c8f0661f85f739fb60e6af28ac36365530a180c6d0f242268",
+      "sha256": "a2f4ef00aaebb4af8d7b87cefeee15035ef5284ab719d66b84efcfe6f8433fde",
       "downloadUrl": "/releases/v3.0.0/CST_NetController_AI_v3.0.0.apk"
     }
   ]

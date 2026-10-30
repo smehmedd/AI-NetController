@@ -257,30 +257,42 @@ export default function App() {
 
   return (
     <GlobalErrorBoundary>
-      <div className="min-h-[100dvh] bg-[#040711] text-white flex flex-col font-sans selection:bg-cyan-500/30 relative overflow-x-hidden">
-        {/* 120Hz Zero-Blur Ambient Refraction Field (Multi-stop soft radial gradients, zero runtime Gaussian filter) */}
+      <div className="min-h-[100dvh] w-full max-w-full bg-[#030712] text-white flex flex-col font-sans selection:bg-cyan-500/40 selection:text-cyan-100 relative overflow-x-hidden">
+        {/* 144Hz Poppy & Vibrant Ambient Refraction Field (Rich saturated cyber aurora, zero runtime filter blur) */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          {/* Electric Cyan Beam */}
           <div
-            className="liquid-aurora-orb absolute -top-[18%] -right-[10%] w-[560px] h-[560px] rounded-full opacity-90"
+            className="liquid-aurora-orb absolute -top-[16%] -right-[8%] w-[620px] h-[620px] rounded-full pointer-events-none opacity-95"
             style={{
               background:
-                'radial-gradient(circle, rgba(56,189,248,0.12) 0%, rgba(14,165,233,0.05) 35%, rgba(14,165,233,0.015) 55%, transparent 72%)',
+                'radial-gradient(circle, rgba(0,240,255,0.26) 0%, rgba(14,165,233,0.15) 32%, rgba(14,165,233,0.03) 60%, transparent 76%)',
             }}
           />
+          {/* Deep Electric Violet Beam */}
           <div
-            className="liquid-aurora-orb absolute top-[28%] -left-[15%] w-[520px] h-[520px] rounded-full opacity-80"
+            className="liquid-aurora-orb absolute top-[22%] -left-[12%] w-[580px] h-[580px] rounded-full pointer-events-none opacity-90"
             style={{
               background:
-                'radial-gradient(circle, rgba(99,102,241,0.10) 0%, rgba(56,189,248,0.04) 38%, rgba(56,189,248,0.01) 58%, transparent 74%)',
+                'radial-gradient(circle, rgba(139,92,246,0.24) 0%, rgba(99,102,241,0.14) 34%, rgba(99,102,241,0.02) 60%, transparent 78%)',
               animationDelay: '-7s',
             }}
           />
+          {/* Luminous Neon Emerald Pulse */}
           <div
-            className="liquid-aurora-orb absolute -bottom-[15%] right-[12%] w-[480px] h-[480px] rounded-full opacity-75"
+            className="liquid-aurora-orb absolute -bottom-[12%] right-[8%] w-[540px] h-[540px] rounded-full pointer-events-none opacity-85"
             style={{
               background:
-                'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(56,189,248,0.035) 38%, rgba(56,189,248,0.01) 56%, transparent 72%)',
+                'radial-gradient(circle, rgba(16,185,129,0.22) 0%, rgba(6,182,212,0.12) 35%, rgba(6,182,212,0.02) 62%, transparent 78%)',
               animationDelay: '-14s',
+            }}
+          />
+          {/* Cyber Sunset Magenta/Amber Accent */}
+          <div
+            className="liquid-aurora-orb absolute top-[52%] -right-[10%] w-[480px] h-[480px] rounded-full pointer-events-none opacity-80"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(244,63,94,0.18) 0%, rgba(245,158,11,0.08) 35%, transparent 72%)',
+              animationDelay: '-19s',
             }}
           />
         </div>
@@ -351,7 +363,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <main className="relative z-10 w-full max-w-7xl ultrawide-canvas mx-auto px-3 sm:px-5 lg:px-8 pt-3.5 pb-[calc(env(safe-area-inset-bottom,12px)+5rem)] landscape-compact-shell flex-1 flex flex-col overflow-x-hidden">
+        <main className="relative z-10 w-full max-w-full ultrawide-canvas mx-auto px-2.5 sm:px-5 lg:px-8 pt-3.5 pb-[calc(env(safe-area-inset-bottom,12px)+5.5rem)] landscape-compact-shell flex-1 flex flex-col overflow-x-hidden">
           <AnimatePresence mode="wait" initial={false}>
             {activeTab === 'fleet' && (
               <motion.div

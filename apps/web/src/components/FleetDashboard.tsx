@@ -749,34 +749,34 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
         {/* 1. HEADER ROW: Title + Inline Non-Wrapping Status Pill + Health Pill on Left | Wake All + Cards/Map + EN/BG on Right */}
         <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
-            <h1 className="text-fluid-title font-extrabold tracking-tight text-white font-display truncate">
+            <h1 className="text-fluid-title font-black tracking-tight font-display truncate bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_2px_14px_rgba(0,229,255,0.35)]">
               {t('fleet_title')}
             </h1>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-[0_8px_20px_rgba(0,0,0,0.5)] tabular-nums">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-              <span className="text-emerald-300 font-semibold">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#060c1c]/95 backdrop-blur-3xl border border-cyan-400/30 text-[11px] font-medium whitespace-nowrap shrink-0 shadow-[0_8px_24px_rgba(0,0,0,0.6),0_0_16px_rgba(0,229,255,0.15)] tabular-nums">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981] animate-pulse" />
+              <span className="text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
                 {onlineCount} {t('fleet_online')}
               </span>
               <span className="text-white/30">•</span>
-              <span className="text-white/60">
+              <span className="text-amber-300/90 font-medium">
                 {offlineCount} {t('fleet_sleeping')}
               </span>
             </div>
             <div
-              className="group hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-[10.5px] font-mono font-semibold text-emerald-300 whitespace-nowrap shrink-0"
+              className="group hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/50 text-[10.5px] font-mono font-bold text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.25)] whitespace-nowrap shrink-0"
               title={
                 language === 'bg'
                   ? 'Индекс на здравето на мрежата (RTT + натоварване + сигурност)'
                   : 'Real-time Fleet Network Health Index (RTT + load + security)'
               }
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 icon-bubbly" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 icon-bubbly drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
               <span>{fleetHealthScore}% {language === 'bg' ? 'Здраве' : 'Health'}</span>
             </div>
           </div>
 
-          {/* Right Header Controls: [ ⚡ Wake All (N) ] + [Cards | Map] + [EN/BG] */}
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {/* Right Header Controls: Wraps cleanly on mobile without overflowing */}
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0 max-w-full justify-end ml-auto">
             {offlineCount > 0 && (
               <motion.button
                 type="button"
@@ -1043,19 +1043,19 @@ const FleetDashboardComponent: React.FC<FleetDashboardProps> = ({
               triggerHapticFeedback('light');
               addHostHandler();
             }}
-            className="group min-h-[44px] h-11 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_16px_rgba(16,185,129,0.15)] transform-gpu"
+            className="group min-h-[44px] h-11 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500/30 via-teal-500/25 to-cyan-500/25 hover:from-emerald-500/45 hover:to-cyan-500/35 border border-emerald-400/60 text-emerald-200 font-bold text-xs flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer shrink-0 shadow-[0_0_24px_rgba(16,185,129,0.38)] transform-gpu"
             title={t('fleet_add_host_tooltip')}
             aria-label={t('fleet_add_host_aria')}
           >
             <Plus className="w-4 h-4 stroke-[2.5] icon-plus-bubbly" />
-            <span className="font-display">{language === 'bg' ? 'Добави хост' : 'Add Host'}</span>
+            <span className="hidden xs:inline font-display">{language === 'bg' ? 'Добави хост' : 'Add Host'}</span>
           </motion.button>
         </div>
 
         {/* 3. HORIZONTAL FILTER PILLS + EXPAND/COLLAPSE ALL + COMPACT SORT DROPDOWN PILL */}
         <div className="flex items-center justify-between gap-2">
           {/* Filter Pills (All, Online, Sleeping, Servers, Quarantined) */}
-          <div className="bg-[#070c18]/90 backdrop-blur-3xl backdrop-saturate-[190%] border border-white/15 border-t-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.8)] p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0 transform-gpu">
+          <div className="bg-[#060c1c]/95 backdrop-blur-3xl border border-cyan-400/25 border-t-white/30 shadow-[0_16px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(0,229,255,0.12)] p-1 rounded-full flex items-center gap-0.5 overflow-x-auto scrollbar-none min-w-0 max-w-full flex-1 sm:flex-initial transform-gpu">
             {[
               { id: 'all', label: t('filter_all'), count: hosts.length },
               { id: 'online', label: t('filter_online'), count: onlineCount },
