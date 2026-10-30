@@ -37,7 +37,7 @@ with open(patch_notes_path, "r", encoding="utf-8") as f:
     notes_body = f.read()
 
 target_tag = "v3.0.0"
-target_name = "CST NetController AI v3.0.0 (Updated 3.0) — 144Hz Ultra-Smoothness, Universal Multi-Aspect Scaling, Zero-Placeholder Fleet & Native UDP WoL"
+target_name = "CST NetController AI v3.0.0 (Updated 3.0) — Poppy & Vibrant Aesthetic, 100% PWA Parity, 144Hz Ultra-Smoothness & Universal Multi-Aspect Scaling"
 
 existing_release = next((r for r in releases if r["tag_name"] == target_tag), None)
 
